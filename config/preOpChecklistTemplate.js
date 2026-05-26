@@ -1,0 +1,148 @@
+// ✅ Default Pre-Operative Checklist Template
+// Used when creating a new PreOpChecklist record
+
+const preOpChecklistTemplate = [
+  {
+    id: 'section-consents',
+    category: 'Consents',
+    items: [
+      {
+        id: 'consent-surgical',
+        name: 'Surgical Consent',
+        required: true,
+        status: 'not-started',
+        item_type: 'form',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'consent-anesthesia',
+        name: 'Anesthesia Consent',
+        required: true,
+        status: 'not-started',
+        item_type: 'form',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'consent-blood',
+        name: 'Blood Consent',
+        required: false,
+        status: 'not-required',
+        item_type: 'form',
+        verified_by: null,
+        verified_at: null,
+      },
+    ],
+  },
+  {
+    id: 'section-labs',
+    category: 'Labs & Tests',
+    items: [
+      {
+        id: 'lab-cbc',
+        name: 'CBC (Full Blood Count)',
+        required: true,
+        status: 'not-started',
+        item_type: 'lab',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'lab-bmp',
+        name: 'Basic Metabolic Panel',
+        required: true,
+        status: 'not-started',
+        item_type: 'lab',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'lab-ptinr',
+        name: 'PT/INR',
+        required: true,
+        status: 'not-started',
+        item_type: 'lab',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'lab-pregnancy',
+        name: 'Pregnancy Test (if applicable)',
+        required: false,
+        status: 'not-required',
+        item_type: 'lab',
+        verified_by: null,
+        verified_at: null,
+      },
+    ],
+  },
+  {
+    id: 'section-imaging',
+    category: 'Imaging',
+    items: [
+      {
+        id: 'img-xray',
+        name: 'Chest X-Ray',
+        required: true,
+        status: 'not-started',
+        item_type: 'imaging',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'img-ekg',
+        name: 'EKG / ECG',
+        required: true,
+        status: 'not-started',
+        item_type: 'imaging',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'img-mri',
+        name: 'MRI (if indicated)',
+        required: false,
+        status: 'not-required',
+        item_type: 'imaging',
+        verified_by: null,
+        verified_at: null,
+      },
+    ],
+  },
+  {
+    id: 'section-instructions',
+    category: 'Pre-Op Instructions',
+    items: [
+      {
+        id: 'instr-npo',
+        name: 'NPO (Nothing by Mouth) Instructions',
+        required: true,
+        status: 'not-started',
+        item_type: 'instruction',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'instr-medication',
+        name: 'Medication Instructions',
+        required: true,
+        status: 'not-started',
+        item_type: 'instruction',
+        verified_by: null,
+        verified_at: null,
+      },
+      {
+        id: 'instr-arrival',
+        name: 'Arrival Time Confirmed',
+        required: true,
+        status: 'not-started',
+        item_type: 'instruction',
+        verified_by: null,
+        verified_at: null,
+      },
+    ],
+  },
+];
+
+module.exports = preOpChecklistTemplate;

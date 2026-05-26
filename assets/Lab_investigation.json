@@ -1,0 +1,959 @@
+{
+  "lab_investigations": [
+    {
+      "Test Description": "2 Hour Post Prandial Blood Glucose",
+      "G-DRG Code": "INVEO1D",
+      "Tariff (GHS)": 21.28
+    },
+    {
+      "Test Description": "24hr Urine for Protein",
+      "G-DRG Code": "INVEO2D",
+      "Tariff (GHS)": 15.76
+    },
+    {
+      "Test Description": "Acid Phosphate",
+      "G-DRG Code": "INVE100",
+      "Tariff (GHS)": 12.43
+    },
+    {
+      "Test Description": "AEC",
+      "G-DRG Code": "INVE150",
+      "Tariff (GHS)": 15.27
+    },
+    {
+      "Test Description": "Alanine Aminotransferase (ALT)",
+      "G-DRG Code": "INVEO3D",
+      "Tariff (GHS)": 15.89
+    },
+    {
+      "Test Description": "Alpha Amylase (Serum/Urine)",
+      "G-DRG Code": "INVEO4D",
+      "Tariff (GHS)": 21.08
+    },
+    {
+      "Test Description": "Alpha-Fetoprotein (AFP)",
+      "G-DRG Code": "INVEO5D",
+      "Tariff (GHS)": 14.81
+    },
+    {
+      "Test Description": "Anti-streptolysin test",
+      "G-DRG Code": "INVE132",
+      "Tariff (GHS)": 23.76
+    },
+    {
+      "Test Description": "Ap-Prothrombin Time",
+      "G-DRG Code": "INVEO6D",
+      "Tariff (GHS)": 17.87
+    },
+    {
+      "Test Description": "Arterial Blood Gas (ABG)",
+      "G-DRG Code": "INVEO7D",
+      "Tariff (GHS)": 25.43
+    },
+    {
+      "Test Description": "A-scan",
+      "G-DRG Code": "INVE125",
+      "Tariff (GHS)": 53.20
+    },
+    {
+      "Test Description": "ASO titre",
+      "G-DRG Code": "INVE154",
+      "Tariff (GHS)": 31.62
+    },
+    {
+      "Test Description": "Aspartate Aminotransferase (AST)",
+      "G-DRG Code": "INVEO8D",
+      "Tariff (GHS)": 13.89
+    },
+    {
+      "Test Description": "B/F for Malaria Parasites",
+      "G-DRG Code": "INVEO9D",
+      "Tariff (GHS)": 9.77
+    },
+    {
+      "Test Description": "Barium Enema",
+      "G-DRG Code": "INVE10D",
+      "Tariff (GHS)": 185.13
+    },
+    {
+      "Test Description": "Barium Meal",
+      "G-DRG Code": "INVE11D",
+      "Tariff (GHS)": 117.32
+    },
+    {
+      "Test Description": "Barium Meal & Follow Through",
+      "G-DRG Code": "INVE12D",
+      "Tariff (GHS)": 126.66
+    },
+    {
+      "Test Description": "Barium Swallow",
+      "G-DRG Code": "INVE13D",
+      "Tariff (GHS)": 107.52
+    },
+    {
+      "Test Description": "Bilirubin",
+      "G-DRG Code": "INVE14D",
+      "Tariff (GHS)": 13.89
+    },
+    {
+      "Test Description": "Biopsy L/A",
+      "G-DRG Code": "INVE15Z",
+      "Tariff (GHS)": 104.57
+    },
+    {
+      "Test Description": "Bleeding and Clotting Time",
+      "G-DRG Code": "INVE15D",
+      "Tariff (GHS)": 10.92
+    },
+    {
+      "Test Description": "Blood for C/S",
+      "G-DRG Code": "INVE16D",
+      "Tariff (GHS)": 22.25
+    },
+    {
+      "Test Description": "Blood Grouping",
+      "G-DRG Code": "INVE17D",
+      "Tariff (GHS)": 11.71
+    },
+    {
+      "Test Description": "Blood Grouping & Antibody Screen",
+      "G-DRG Code": "INVE18D",
+      "Tariff (GHS)": 14.99
+    },
+    {
+      "Test Description": "Blood Parasites",
+      "G-DRG Code": "INVE19D",
+      "Tariff (GHS)": 14.76
+    },
+    {
+      "Test Description": "Blood Sugar PP",
+      "G-DRG Code": "INVE151",
+      "Tariff (GHS)": 8.42
+    },
+    {
+      "Test Description": "Blood Urea",
+      "G-DRG Code": "INVE20D",
+      "Tariff (GHS)": 22.08
+    },
+    {
+      "Test Description": "Blood Urea & Electrolytes",
+      "G-DRG Code": "INVE21D",
+      "Tariff (GHS)": 24.36
+    },
+    {
+      "Test Description": "Bone Marrow - Trephine Biopsy",
+      "G-DRG Code": "INVE22D",
+      "Tariff (GHS)": 133.14
+    },
+    {
+      "Test Description": "Bone Marrow Aspirate",
+      "G-DRG Code": "INVE23D",
+      "Tariff (GHS)": 87.96
+    },
+    {
+      "Test Description": "Bone Scan",
+      "G-DRG Code": "INVE139",
+      "Tariff (GHS)": 122.55
+    },
+    {
+      "Test Description": "Breast tissue Biopsy",
+      "G-DRG Code": "INVE140",
+      "Tariff (GHS)": 34.08
+    },
+    {
+      "Test Description": "Bue & Creatinine",
+      "G-DRG Code": "INVE24D",
+      "Tariff (GHS)": 25.60
+    },
+    {
+      "Test Description": "C Reactive Protein",
+      "G-DRG Code": "INVE141",
+      "Tariff (GHS)": 22.29
+    },
+    {
+      "Test Description": "Calcium Infusion test",
+      "G-DRG Code": "INVE134",
+      "Tariff (GHS)": 25.60
+    },
+    {
+      "Test Description": "Cancer antigen 19-9",
+      "G-DRG Code": "INVE137",
+      "Tariff (GHS)": 93.43
+    },
+    {
+      "Test Description": "Carcino Embryonic Antigen (CEA)",
+      "G-DRG Code": "INVE25D",
+      "Tariff (GHS)": 13.42
+    },
+    {
+      "Test Description": "Cerebrospinal Fluid for C/S",
+      "G-DRG Code": "INVE26D",
+      "Tariff (GHS)": 24.13
+    },
+    {
+      "Test Description": "Chloride",
+      "G-DRG Code": "INVE101",
+      "Tariff (GHS)": 12.72
+    },
+    {
+      "Test Description": "Clusters Of Differentiation Cells (CD4)",
+      "G-DRG Code": "INVE27D",
+      "Tariff (GHS)": 76.98
+    },
+    {
+      "Test Description": "Coombs Test (Direct)",
+      "G-DRG Code": "INVE28D",
+      "Tariff (GHS)": 15.14
+    },
+    {
+      "Test Description": "Creatine Kinase - Mb (CK - Mb)",
+      "G-DRG Code": "INVE29D",
+      "Tariff (GHS)": 20.58
+    },
+    {
+      "Test Description": "Creatine Kinase (CK)",
+      "G-DRG Code": "INVE30D",
+      "Tariff (GHS)": 17.23
+    },
+    {
+      "Test Description": "CSF Latex Agglutination",
+      "G-DRG Code": "INVE31D",
+      "Tariff (GHS)": 16.06
+    },
+    {
+      "Test Description": "CT Scan - 1 Region + 1IV Contrast",
+      "G-DRG Code": "INVE33D",
+      "Tariff (GHS)": 308.96
+    },
+    {
+      "Test Description": "CT Scan - 1 Region + 2 Contrast",
+      "G-DRG Code": "INVE32D",
+      "Tariff (GHS)": 384.95
+    },
+    {
+      "Test Description": "CT Scan - 1 Region + No Contrast",
+      "G-DRG Code": "INVE34D",
+      "Tariff (GHS)": 110.82
+    },
+    {
+      "Test Description": "CT Scan - 2 Region + 1Contrast",
+      "G-DRG Code": "INVE158",
+      "Tariff (GHS)": 196.86
+    },
+    {
+      "Test Description": "CT Scan - 2 region + 2 contrast",
+      "G-DRG Code": "INVE159",
+      "Tariff (GHS)": 221.60
+    },
+    {
+      "Test Description": "CT Scan - 2 Region with No Contrast",
+      "G-DRG Code": "INVE157",
+      "Tariff (GHS)": 192.45
+    },
+    {
+      "Test Description": "Cystogram",
+      "G-DRG Code": "INVE35D",
+      "Tariff (GHS)": 108.28
+    },
+    {
+      "Test Description": "Cytology",
+      "G-DRG Code": "INVE36D",
+      "Tariff (GHS)": 24.58
+    },
+    {
+      "Test Description": "Demonstration of Heinz bodies",
+      "G-DRG Code": "INVE130",
+      "Tariff (GHS)": 14.29
+    },
+    {
+      "Test Description": "Digoxin Level",
+      "G-DRG Code": "INVE37D",
+      "Tariff (GHS)": 11.86
+    },
+    {
+      "Test Description": "Dihydroxy Epiandosterone Sulphate (Dhea-S)",
+      "G-DRG Code": "INVE38D",
+      "Tariff (GHS)": 12.77
+    },
+    {
+      "Test Description": "Direct Bilirubin/Total Bilirubin",
+      "G-DRG Code": "INVE102",
+      "Tariff (GHS)": 15.94
+    },
+    {
+      "Test Description": "Donor Screening For HB & AG",
+      "G-DRG Code": "INVE103",
+      "Tariff (GHS)": 23.23
+    },
+    {
+      "Test Description": "Doppler Scan",
+      "G-DRG Code": "INVE39D",
+      "Tariff (GHS)": 41.21
+    },
+    {
+      "Test Description": "Ductologram/Galactographyy",
+      "G-DRG Code": "INVE40D",
+      "Tariff (GHS)": 84.66
+    },
+    {
+      "Test Description": "ECG",
+      "G-DRG Code": "INVE41D",
+      "Tariff (GHS)": 17.71
+    },
+    {
+      "Test Description": "EEG (Electroencephalogram)",
+      "G-DRG Code": "INVE142",
+      "Tariff (GHS)": 68.41
+    },
+    {
+      "Test Description": "Erythrocyte Sedimentation Rate (ESR)",
+      "G-DRG Code": "INVE42D",
+      "Tariff (GHS)": 8.87
+    },
+    {
+      "Test Description": "Estrogen",
+      "G-DRG Code": "INVE43D",
+      "Tariff (GHS)": 26.77
+    },
+    {
+      "Test Description": "Factor IX",
+      "G-DRG Code": "INVE44D",
+      "Tariff (GHS)": 33.13
+    },
+    {
+      "Test Description": "Factor VIII",
+      "G-DRG Code": "INVE45D",
+      "Tariff (GHS)": 72.45
+    },
+    {
+      "Test Description": "Fasting Blood Sugar/Random Blood Sugar",
+      "G-DRG Code": "INVE46D",
+      "Tariff (GHS)": 10.01
+    },
+    {
+      "Test Description": "Fistulogram",
+      "G-DRG Code": "INVE47D",
+      "Tariff (GHS)": 149.96
+    },
+    {
+      "Test Description": "Follicle Stimulating Hormone (FSH)",
+      "G-DRG Code": "INVE48D",
+      "Tariff (GHS)": 28.78
+    },
+    {
+      "Test Description": "FT3",
+      "G-DRG Code": "INVE49D",
+      "Tariff (GHS)": 33.04
+    },
+    {
+      "Test Description": "FT4",
+      "G-DRG Code": "INVE50D",
+      "Tariff (GHS)": 33.04
+    },
+    {
+      "Test Description": "Full Blood Count FBC (Auto) & Film Comment",
+      "G-DRG Code": "INVE51D",
+      "Tariff (GHS)": 24.26
+    },
+    {
+      "Test Description": "Full Blood Count FBC (Automation)",
+      "G-DRG Code": "INVE52D",
+      "Tariff (GHS)": 20.80
+    },
+    {
+      "Test Description": "Full Blood Count with Film Comment (Manual)",
+      "G-DRG Code": "INVE53D",
+      "Tariff (GHS)": 23.51
+    },
+    {
+      "Test Description": "Fungal Cultures",
+      "G-DRG Code": "INVE54D",
+      "Tariff (GHS)": 23.93
+    },
+    {
+      "Test Description": "Gamma Glutamyl Transferase (GGT)",
+      "G-DRG Code": "INVE55D",
+      "Tariff (GHS)": 20.58
+    },
+    {
+      "Test Description": "Glucose-6-Phosphate Dehydrogenase (G6PD)",
+      "G-DRG Code": "INVE56D",
+      "Tariff (GHS)": 13.89
+    },
+    {
+      "Test Description": "Glycosylated Haemoglobin (HBA 1C)",
+      "G-DRG Code": "INVE57D",
+      "Tariff (GHS)": 28.11
+    },
+    {
+      "Test Description": "Gonioscopy",
+      "G-DRG Code": "INVE155",
+      "Tariff (GHS)": 14.05
+    },
+    {
+      "Test Description": "Grouping/X' Matching/Unit",
+      "G-DRG Code": "INVE104",
+      "Tariff (GHS)": 13.64
+    },
+    {
+      "Test Description": "Guthrie test",
+      "G-DRG Code": "INVE146",
+      "Tariff (GHS)": 67.96
+    },
+    {
+      "Test Description": "Haemoglobin A2 & F Estimation",
+      "G-DRG Code": "INVE58D",
+      "Tariff (GHS)": 13.85
+    },
+    {
+      "Test Description": "Haemoglobin Electrophoresis",
+      "G-DRG Code": "INVE59D",
+      "Tariff (GHS)": 16.46
+    },
+    {
+      "Test Description": "Haemoglobin Estimation (HB)",
+      "G-DRG Code": "INVE60D",
+      "Tariff (GHS)": 10.15
+    },
+    {
+      "Test Description": "HDL - Cholesterol",
+      "G-DRG Code": "INVE61D",
+      "Tariff (GHS)": 15.89
+    },
+    {
+      "Test Description": "Helicobacter Pylori Test",
+      "G-DRG Code": "INVE62D",
+      "Tariff (GHS)": 10.74
+    },
+    {
+      "Test Description": "Hematocrit",
+      "G-DRG Code": "INVE156",
+      "Tariff (GHS)": 20.22
+    },
+    {
+      "Test Description": "Hepatitis B Surface Antigen (HBSAG) HBV",
+      "G-DRG Code": "INVE63D",
+      "Tariff (GHS)": 11.12
+    },
+    {
+      "Test Description": "Hepatitis B Virus Profile (HBV Profile)",
+      "G-DRG Code": "INVE64D",
+      "Tariff (GHS)": 25.06
+    },
+    {
+      "Test Description": "Hepatitis C screening",
+      "G-DRG Code": "INVE105",
+      "Tariff (GHS)": 13.38
+    },
+    {
+      "Test Description": "High Vaginal Swab for C/S",
+      "G-DRG Code": "INVE65D",
+      "Tariff (GHS)": 21.58
+    },
+    {
+      "Test Description": "High Vaginal Swab Routine Examination",
+      "G-DRG Code": "INVE66D",
+      "Tariff (GHS)": 12.41
+    },
+    {
+      "Test Description": "Histopathology",
+      "G-DRG Code": "INVE67D",
+      "Tariff (GHS)": 41.59
+    },
+    {
+      "Test Description": "Holter",
+      "G-DRG Code": "INVE143",
+      "Tariff (GHS)": 113.97
+    },
+    {
+      "Test Description": "Human Immunodeficiency Virus (HIV) Confirmation",
+      "G-DRG Code": "INVE68D",
+      "Tariff (GHS)": 21.42
+    },
+    {
+      "Test Description": "Human Immunodeficiency Virus (HIV) Screening",
+      "G-DRG Code": "INVE69D",
+      "Tariff (GHS)": 19.41
+    },
+    {
+      "Test Description": "Hysterosalpingogram",
+      "G-DRG Code": "INVE70D",
+      "Tariff (GHS)": 68.66
+    },
+    {
+      "Test Description": "Immunostaining",
+      "G-DRG Code": "INVE71D",
+      "Tariff (GHS)": 77.46
+    },
+    {
+      "Test Description": "Intravenous Urography",
+      "G-DRG Code": "INVE72D",
+      "Tariff (GHS)": 286.97
+    },
+    {
+      "Test Description": "IOPA Xray",
+      "G-DRG Code": "INVE106",
+      "Tariff (GHS)": 20.08
+    },
+    {
+      "Test Description": "Keratometry",
+      "G-DRG Code": "INVE124",
+      "Tariff (GHS)": 17.45
+    },
+    {
+      "Test Description": "LDL - Cholesterol",
+      "G-DRG Code": "INVE73D",
+      "Tariff (GHS)": 14.29
+    },
+    {
+      "Test Description": "LFT",
+      "G-DRG Code": "INVE74D",
+      "Tariff (GHS)": 33.37
+    },
+    {
+      "Test Description": "Lipid Profile",
+      "G-DRG Code": "INVE75D",
+      "Tariff (GHS)": 31.67
+    },
+    {
+      "Test Description": "Lupus Erythematosus Cell (Le Cell)",
+      "G-DRG Code": "INVE76D",
+      "Tariff (GHS)": 17.23
+    },
+    {
+      "Test Description": "Luteinizing Hormone (LH)",
+      "G-DRG Code": "INVE77D",
+      "Tariff (GHS)": 28.48
+    },
+    {
+      "Test Description": "Magnesium",
+      "G-DRG Code": "INVE107",
+      "Tariff (GHS)": 13.89
+    },
+    {
+      "Test Description": "Malaria Card Test (Dipstik assay/rapid card)",
+      "G-DRG Code": "INVE122",
+      "Tariff (GHS)": 5.02
+    },
+    {
+      "Test Description": "Mammogram",
+      "G-DRG Code": "INVE78D",
+      "Tariff (GHS)": 61.21
+    },
+    {
+      "Test Description": "Miscellaneous Cultures (Fluids, Aspirates & Exudates)",
+      "G-DRG Code": "INVE79D",
+      "Tariff (GHS)": 19.74
+    },
+    {
+      "Test Description": "MRI - 1 Region + Contrast",
+      "G-DRG Code": "INVE80D",
+      "Tariff (GHS)": 401.96
+    },
+    {
+      "Test Description": "MRI - 1 Region + No Contrast",
+      "G-DRG Code": "INVE81D",
+      "Tariff (GHS)": 185.11
+    },
+    {
+      "Test Description": "MRI 2 region with + contrast",
+      "G-DRG Code": "INVE161",
+      "Tariff (GHS)": 556.18
+    },
+    {
+      "Test Description": "MRI 2 region with no contrast",
+      "G-DRG Code": "INVE160",
+      "Tariff (GHS)": 436.91
+    },
+    {
+      "Test Description": "Myelogram - 1 Region",
+      "G-DRG Code": "INVE82D",
+      "Tariff (GHS)": 124.81
+    },
+    {
+      "Test Description": "Myocardial perfusion imaging",
+      "G-DRG Code": "INVE145",
+      "Tariff (GHS)": 219.31
+    },
+    {
+      "Test Description": "NA+",
+      "G-DRG Code": "INVE108",
+      "Tariff (GHS)": 13.15
+    },
+    {
+      "Test Description": "Oral Glucose Tolerance Test (OGTT)",
+      "G-DRG Code": "INVE83D",
+      "Tariff (GHS)": 26.33
+    },
+    {
+      "Test Description": "Orthopanthomograph (OPT)",
+      "G-DRG Code": "INVE84D",
+      "Tariff (GHS)": 57.19
+    },
+    {
+      "Test Description": "Pancreatic Amylase",
+      "G-DRG Code": "INVE85D",
+      "Tariff (GHS)": 18.54
+    },
+    {
+      "Test Description": "Pap Smear/Fine Needle Aspiration",
+      "G-DRG Code": "INVE86D",
+      "Tariff (GHS)": 33.95
+    },
+    {
+      "Test Description": "Percutaneous Biopsy - CT Scan Guide",
+      "G-DRG Code": "INVE87D",
+      "Tariff (GHS)": 131.31
+    },
+    {
+      "Test Description": "Percutaneous Biopsy - Flouroscopic Guide",
+      "G-DRG Code": "INVE88D",
+      "Tariff (GHS)": 103.60
+    },
+    {
+      "Test Description": "Phosphorus",
+      "G-DRG Code": "INVE109",
+      "Tariff (GHS)": 13.91
+    },
+    {
+      "Test Description": "Plasma Cortisol",
+      "G-DRG Code": "INVE91D",
+      "Tariff (GHS)": 12.15
+    },
+    {
+      "Test Description": "Platelet Count",
+      "G-DRG Code": "INVE110",
+      "Tariff (GHS)": 10.36
+    },
+    {
+      "Test Description": "Pleural fluid analysis",
+      "G-DRG Code": "INVE136",
+      "Tariff (GHS)": 18.77
+    },
+    {
+      "Test Description": "Potassium",
+      "G-DRG Code": "INVE111",
+      "Tariff (GHS)": 13.91
+    },
+    {
+      "Test Description": "Pregnancy Test",
+      "G-DRG Code": "INVE92D",
+      "Tariff (GHS)": 11.40
+    },
+    {
+      "Test Description": "Progesterone (Prog)",
+      "G-DRG Code": "INVE93D",
+      "Tariff (GHS)": 28.92
+    },
+    {
+      "Test Description": "Prostate Specific Antigen (PSA)",
+      "G-DRG Code": "INVE94D",
+      "Tariff (GHS)": 30.62
+    },
+    {
+      "Test Description": "Prothrombin Time",
+      "G-DRG Code": "INVE95D",
+      "Tariff (GHS)": 16.80
+    },
+    {
+      "Test Description": "Pulmonary Function test",
+      "G-DRG Code": "INVE135",
+      "Tariff (GHS)": 54.01
+    },
+    {
+      "Test Description": "Renal Function Test",
+      "G-DRG Code": "INVE112",
+      "Tariff (GHS)": 22.79
+    },
+    {
+      "Test Description": "Reticulocyte Count (Retics)",
+      "G-DRG Code": "INVE96D",
+      "Tariff (GHS)": 10.44
+    },
+    {
+      "Test Description": "RH Typing",
+      "G-DRG Code": "INVE123",
+      "Tariff (GHS)": 10.39
+    },
+    {
+      "Test Description": "Rheumatoid Factor",
+      "G-DRG Code": "INVE97D",
+      "Tariff (GHS)": 8.90
+    },
+    {
+      "Test Description": "Routine Stool Examination",
+      "G-DRG Code": "INVE98D",
+      "Tariff (GHS)": 8.51
+    },
+    {
+      "Test Description": "Routine Urine Examination",
+      "G-DRG Code": "INVE99D",
+      "Tariff (GHS)": 9.18
+    },
+    {
+      "Test Description": "Semen Analysis",
+      "G-DRG Code": "INVE113",
+      "Tariff (GHS)": 55.52
+    },
+    {
+      "Test Description": "Serum Adrenocorticotropic Hormone (ACTH)",
+      "G-DRG Code": "INVE01E",
+      "Tariff (GHS)": 11.87
+    },
+    {
+      "Test Description": "Serum Albumin",
+      "G-DRG Code": "INVE02E",
+      "Tariff (GHS)": 13.71
+    },
+    {
+      "Test Description": "Serum Alkaline Phosphatase (ALP)",
+      "G-DRG Code": "INVE03E",
+      "Tariff (GHS)": 13.02
+    },
+    {
+      "Test Description": "Serum Beta-Human Chorionic Gonadotropin (HCG)",
+      "G-DRG Code": "INVE04E",
+      "Tariff (GHS)": 27.41
+    },
+    {
+      "Test Description": "Serum Calcium",
+      "G-DRG Code": "INVE05E",
+      "Tariff (GHS)": 17.23
+    },
+    {
+      "Test Description": "Serum Creatinine",
+      "G-DRG Code": "INVE06E",
+      "Tariff (GHS)": 13.24
+    },
+    {
+      "Test Description": "Serum Electrolyte (Na+, K+)",
+      "G-DRG Code": "INVE07E",
+      "Tariff (GHS)": 14.69
+    },
+    {
+      "Test Description": "Serum Ferritin",
+      "G-DRG Code": "INVE08E",
+      "Tariff (GHS)": 25.16
+    },
+    {
+      "Test Description": "Serum Iron (Fe)",
+      "G-DRG Code": "INVE09E",
+      "Tariff (GHS)": 14.44
+    },
+    {
+      "Test Description": "Serum Lactate Dehydrogenase (LDH)",
+      "G-DRG Code": "INVE10E",
+      "Tariff (GHS)": 14.44
+    },
+    {
+      "Test Description": "Serum Prolactin (PRL)",
+      "G-DRG Code": "INVE11E",
+      "Tariff (GHS)": 28.49
+    },
+    {
+      "Test Description": "Serum Total Protein",
+      "G-DRG Code": "INVE12E",
+      "Tariff (GHS)": 12.35
+    },
+    {
+      "Test Description": "Serum Triglyceride",
+      "G-DRG Code": "INVE13E",
+      "Tariff (GHS)": 13.35
+    },
+    {
+      "Test Description": "Serum Uric Acid",
+      "G-DRG Code": "INVE14E",
+      "Tariff (GHS)": 15.56
+    },
+    {
+      "Test Description": "Serum vitamin B12, and folate levels",
+      "G-DRG Code": "INVE12G",
+      "Tariff (GHS)": 111.63
+    },
+    {
+      "Test Description": "Sialogram",
+      "G-DRG Code": "INVE15E",
+      "Tariff (GHS)": 89.44
+    },
+    {
+      "Test Description": "Sickling Test",
+      "G-DRG Code": "INVE16E",
+      "Tariff (GHS)": 8.87
+    },
+    {
+      "Test Description": "Skin Scrapping for Fungal Elements",
+      "G-DRG Code": "INVE17E",
+      "Tariff (GHS)": 9.99
+    },
+    {
+      "Test Description": "Skin Snip",
+      "G-DRG Code": "INVE18E",
+      "Tariff (GHS)": 10.02
+    },
+    {
+      "Test Description": "Stool C/S",
+      "G-DRG Code": "INVE19E",
+      "Tariff (GHS)": 21.75
+    },
+    {
+      "Test Description": "Stool for Occult Blood",
+      "G-DRG Code": "INVE20E",
+      "Tariff (GHS)": 10.13
+    },
+    {
+      "Test Description": "T3",
+      "G-DRG Code": "INVE21E",
+      "Tariff (GHS)": 54.62
+    },
+    {
+      "Test Description": "T4",
+      "G-DRG Code": "INVE22E",
+      "Tariff (GHS)": 54.62
+    },
+    {
+      "Test Description": "Testosterone",
+      "G-DRG Code": "INVE23E",
+      "Tariff (GHS)": 34.45
+    },
+    {
+      "Test Description": "Thyroid Function Test (TSH)",
+      "G-DRG Code": "INVE24E",
+      "Tariff (GHS)": 33.13
+    },
+    {
+      "Test Description": "Thyroid Profile",
+      "G-DRG Code": "INVE25E",
+      "Tariff (GHS)": 73.43
+    },
+    {
+      "Test Description": "Total Iron Binding Capacity (TIBC)",
+      "G-DRG Code": "INVE26E",
+      "Tariff (GHS)": 17.07
+    },
+    {
+      "Test Description": "Total leucocyte count",
+      "G-DRG Code": "INVE114",
+      "Tariff (GHS)": 11.58
+    },
+    {
+      "Test Description": "Total Proteins Blood",
+      "G-DRG Code": "INVE115",
+      "Tariff (GHS)": 10.53
+    },
+    {
+      "Test Description": "Total Serum Cholesterol",
+      "G-DRG Code": "INVE27E",
+      "Tariff (GHS)": 12.77
+    },
+    {
+      "Test Description": "Transhepatic cholangiography (PTC)",
+      "G-DRG Code": "INVE138",
+      "Tariff (GHS)": 123.48
+    },
+    {
+      "Test Description": "Trophozoite Count",
+      "G-DRG Code": "INVE28E",
+      "Tariff (GHS)": 15.41
+    },
+    {
+      "Test Description": "Troponin",
+      "G-DRG Code": "INVE29E",
+      "Tariff (GHS)": 25.37
+    },
+    {
+      "Test Description": "Typhi Dot",
+      "G-DRG Code": "INVE149",
+      "Tariff (GHS)": 15.24
+    },
+    {
+      "Test Description": "Ultrasound",
+      "G-DRG Code": "INVE30E",
+      "Tariff (GHS)": 41.90
+    },
+    {
+      "Test Description": "Ultrasound - 2 Regions",
+      "G-DRG Code": "INVE31E",
+      "Tariff (GHS)": 58.63
+    },
+    {
+      "Test Description": "Ultrasound biomicroscopy",
+      "G-DRG Code": "INVE129",
+      "Tariff (GHS)": 56.30
+    },
+    {
+      "Test Description": "Ultrasound Guided Incision & Drainage",
+      "G-DRG Code": "INVE32E",
+      "Tariff (GHS)": 72.28
+    },
+    {
+      "Test Description": "Urethrogram",
+      "G-DRG Code": "INVE33E",
+      "Tariff (GHS)": 85.47
+    },
+    {
+      "Test Description": "Urine C/S",
+      "G-DRG Code": "INVE34E",
+      "Tariff (GHS)": 20.08
+    },
+    {
+      "Test Description": "Urine For Bence Jones Protein",
+      "G-DRG Code": "INVE35E",
+      "Tariff (GHS)": 8.50
+    },
+    {
+      "Test Description": "Urine Sugar",
+      "G-DRG Code": "INVE116",
+      "Tariff (GHS)": 8.14
+    },
+    {
+      "Test Description": "VCT",
+      "G-DRG Code": "INVE117",
+      "Tariff (GHS)": 4.35
+    },
+    {
+      "Test Description": "Veneral Disease Research Laboratory (VDRL)",
+      "G-DRG Code": "INVE36E",
+      "Tariff (GHS)": 8.98
+    },
+    {
+      "Test Description": "Venogram - 1 Region",
+      "G-DRG Code": "INVE37E",
+      "Tariff (GHS)": 257.88
+    },
+    {
+      "Test Description": "Viral serology",
+      "G-DRG Code": "INVE133",
+      "Tariff (GHS)": 114.31
+    },
+    {
+      "Test Description": "Vitality Test",
+      "G-DRG Code": "INVE118",
+      "Tariff (GHS)": 26.97
+    },
+    {
+      "Test Description": "VLDL",
+      "G-DRG Code": "INVE119",
+      "Tariff (GHS)": 10.67
+    },
+    {
+      "Test Description": "WBC+Differential",
+      "G-DRG Code": "INVE120",
+      "Tariff (GHS)": 13.26
+    },
+    {
+      "Test Description": "Widal Test",
+      "G-DRG Code": "INVE38E",
+      "Tariff (GHS)": 11.64
+    },
+    {
+      "Test Description": "X-ray one region",
+      "G-DRG Code": "INVE89D",
+      "Tariff (GHS)": 37.81
+    },
+    {
+      "Test Description": "X-ray two region",
+      "G-DRG Code": "INVE90D",
+      "Tariff (GHS)": 58.26
+    }
+  ]
+}

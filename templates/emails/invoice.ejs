@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #333;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      width: 80%;
+      margin: 20px auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      color: #5d9b9b;
+    }
+    .institution {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .institution img {
+      max-width: 100px;
+      border-radius: 50%;
+    }
+    .details {
+      margin: 20px 0;
+    }
+    .details p {
+      margin: 5px 0;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    .table th, .table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    .table th {
+      background-color: #f2f2f2;
+    }
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="institution">
+      <img src="<%= institution.logo_url %>" alt="<%= institution.name %> Logo">
+      <h2><%= institution.name %></h2>
+      <p><%= institution.address %></p>
+      <p><%= institution.contact %> | <%= institution.email %></p>
+    </div>
+
+    <h1>Invoice</h1>
+    <div class="details">
+      <p><strong>Patient Name:</strong> <%= name %></p>
+      <p><strong>Date:</strong> <%= new Date().toLocaleDateString() %></p>
+    </div>
+
+    <p>
+      At <%= institution.name %>, we are committed to providing exceptional care and ensuring transparency in all our services. Below is a detailed breakdown of the medical services provided during your visit. We thank you for entrusting us with your health and well-being, and we are here to assist with any questions or clarifications regarding your invoice.
+    </p>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Cost (₵)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% invoices.forEach(invoice => { %>
+          <tr>
+            <td><%= invoice.service.name %></td>
+            <td>₵<%= invoice.service.cost %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div class="details">
+      <p><strong>Total Amount:</strong> ₵<%= totalAmount %></p>
+      <p><strong>Paid Amount:</strong> ₵<%= paidAmount %></p>
+      <p><strong>Remaining Amount:</strong> ₵<%= remainingAmount %></p>
+    </div>
+
+    <div class="footer">
+      <% if (remainingAmount > 0) { %>
+        <p>Please settle your remaining balance promptly.</p>
+      <% } else { %>
+        <p>Thank you for clearing your balance. We look forward to serving you again!</p>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>

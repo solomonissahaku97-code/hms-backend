@@ -1,0 +1,430 @@
+[
+  {
+    "test_name": "Alanine aminotransferase (ALT)",
+    "reference_range": "10–40",
+    "unit": "U/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Albumin (adults)",
+    "reference_range": "3.5–5",
+    "unit": "g/dL",
+    "category": "serumChemistries",
+    "notes": "adults"
+  },
+  {
+    "test_name": "Albumin (young children)",
+    "reference_range": "3.4–4.2",
+    "unit": "g/dL",
+    "category": "serumChemistries",
+    "notes": "young children"
+  },
+  {
+    "test_name": "Alkaline phosphatase (ALP) (adults)",
+    "reference_range": "30–120",
+    "unit": "IU/L",
+    "category": "serumChemistries",
+    "notes": "adults"
+  },
+  {
+    "test_name": "Alkaline phosphatase (ALP) (children)",
+    "reference_range": "150–420",
+    "unit": "IU/L",
+    "category": "serumChemistries",
+    "notes": "children"
+  },
+  {
+    "test_name": "Ammonia",
+    "reference_range": "15–45",
+    "unit": "mcg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Amylase",
+    "reference_range": "27–131",
+    "unit": "U/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Aspartate aminotransferase (AST)",
+    "reference_range": "10–30",
+    "unit": "U/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Bilirubin, direct",
+    "reference_range": "0.1–0.3",
+    "unit": "mg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Bilirubin, total",
+    "reference_range": "0.3–1.2",
+    "unit": "mg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Blood urea nitrogen (BUN) (adults)",
+    "reference_range": "8–23",
+    "unit": "mg/dL",
+    "category": "serumChemistries",
+    "notes": "adults"
+  },
+  {
+    "test_name": "Blood urea nitrogen (BUN) (children)",
+    "reference_range": "Lower",
+    "unit": "mg/dL",
+    "category": "serumChemistries",
+    "notes": "children"
+  },
+  {
+    "test_name": "Calcium, ionized",
+    "reference_range": "4.6–5.1",
+    "unit": "mg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Calcium, total serum",
+    "reference_range": "8.2–10.2",
+    "unit": "mg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Carbon dioxide (venous) (CO₂)",
+    "reference_range": "22–28",
+    "unit": "mEq/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Chloride (Cl)",
+    "reference_range": "96–106",
+    "unit": "mEq/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "C-reactive protein (CRP)",
+    "reference_range": "0.08–3.1",
+    "unit": "mg/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Creatinine kinase (CK)",
+    "reference_range": "40–150",
+    "unit": "U/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Creatinine, serum (SCr) (adults)",
+    "reference_range": "0.6–1.2",
+    "unit": "mg/dL",
+    "category": "serumChemistries",
+    "notes": "adults"
+  },
+  {
+    "test_name": "Creatinine, serum (SCr) (children)",
+    "reference_range": "0.2–0.7",
+    "unit": "mg/dL",
+    "category": "serumChemistries",
+    "notes": "children"
+  },
+  {
+    "test_name": "Creatinine (clearance) (CrCl)",
+    "reference_range": "75–125",
+    "unit": "mL/minute/1.73 m²",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Ferritin",
+    "reference_range": "15–200",
+    "unit": "ng/mL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "γ-Glutamyl transpeptidase",
+    "reference_range": "2–30",
+    "unit": "U/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Glucose, serum",
+    "reference_range": "70–110",
+    "unit": "mg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Hemoglobin A1C percent of total hemoglobin",
+    "reference_range": "4–7",
+    "unit": "%",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Lactate dehydrogenase (LDH)",
+    "reference_range": "100–200",
+    "unit": "U/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Lipase",
+    "reference_range": "31–186",
+    "unit": "U/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Magnesium",
+    "reference_range": "1.3–2.1",
+    "unit": "mEq/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Osmolality, serum",
+    "reference_range": "275–295",
+    "unit": "mOsm/kg",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Phosphorus (adults)",
+    "reference_range": "2.3–4.7",
+    "unit": "mg/dL",
+    "category": "serumChemistries",
+    "notes": "adults"
+  },
+  {
+    "test_name": "Phosphorus (children)",
+    "reference_range": "3.7–5.6",
+    "unit": "mg/dL",
+    "category": "serumChemistries",
+    "notes": "children"
+  },
+  {
+    "test_name": "Potassium",
+    "reference_range": "3.5–5.0",
+    "unit": "mEq/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Prealbumin",
+    "reference_range": "19.5–35.8",
+    "unit": "mg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Sodium",
+    "reference_range": "136–142",
+    "unit": "mEq/L",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Uric acid, serum",
+    "reference_range": "4–8",
+    "unit": "mg/dL",
+    "category": "serumChemistries"
+  },
+  {
+    "test_name": "Hematocrit (Hct) (men)",
+    "reference_range": "42–50",
+    "unit": "%",
+    "category": "hematologyCoagulation",
+    "notes": "men"
+  },
+  {
+    "test_name": "Hematocrit (Hct) (women)",
+    "reference_range": "36–45",
+    "unit": "%",
+    "category": "hematologyCoagulation",
+    "notes": "women"
+  },
+  {
+    "test_name": "Hemoglobin (Hgb) (men)",
+    "reference_range": "14–18",
+    "unit": "g/dL",
+    "category": "hematologyCoagulation",
+    "notes": "men"
+  },
+  {
+    "test_name": "Hemoglobin (Hgb) (women)",
+    "reference_range": "12–16",
+    "unit": "g/dL",
+    "category": "hematologyCoagulation",
+    "notes": "women"
+  },
+  {
+    "test_name": "International normalized ratio (INR)",
+    "reference_range": "0.9–1.1",
+    "unit": "",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Mean corpuscular hemoglobin (MCH)",
+    "reference_range": "26–34",
+    "unit": "pg/cell",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Mean corpuscular hemoglobin concentration (MCHC)",
+    "reference_range": "33–37",
+    "unit": "g/dL",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Mean corpuscular volume (MCV)",
+    "reference_range": "80–100",
+    "unit": "fL/cell",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Partial thromboplastin time (PTT)",
+    "reference_range": "25–40",
+    "unit": "seconds",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Platelet count (Plt)",
+    "reference_range": "150000–350000",
+    "unit": "cells/mm³",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Prothrombin time (PT)",
+    "reference_range": "10–13",
+    "unit": "seconds",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Red blood cell count (RBC) (men)",
+    "reference_range": "4.5–5.9",
+    "unit": "× 10⁶ cells/mm³",
+    "category": "hematologyCoagulation",
+    "notes": "men"
+  },
+  {
+    "test_name": "Red blood cell count (RBC) (women)",
+    "reference_range": "4.1–5.1",
+    "unit": "× 10⁶ cells/mm³",
+    "category": "hematologyCoagulation",
+    "notes": "women"
+  },
+  {
+    "test_name": "Reticulocyte percent of red blood cells",
+    "reference_range": "0.5–1.5",
+    "unit": "%",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "White blood cell count (WBC)",
+    "reference_range": "4.5–11.0",
+    "unit": "× 10³ cells/mm³",
+    "category": "hematologyCoagulation"
+  },
+  {
+    "test_name": "Cholesterol, total (TC), desirable",
+    "reference_range": "< 200",
+    "unit": "mg/dL",
+    "category": "serumLipids"
+  },
+  {
+    "test_name": "High-density lipoprotein (HDL) cholesterol, desirable",
+    "reference_range": "≥ 60",
+    "unit": "mg/dL",
+    "category": "serumLipids"
+  },
+  {
+    "test_name": "Low-density lipoprotein (LDL) cholesterol",
+    "reference_range": "< 100",
+    "unit": "mg/dL",
+    "category": "serumLipids"
+  },
+  {
+    "test_name": "Triglycerides (TG)",
+    "reference_range": "< 150",
+    "unit": "mg/dL",
+    "category": "serumLipids"
+  },
+  {
+    "test_name": "pH (Arterial)",
+    "reference_range": "7.35–7.45",
+    "unit": "",
+    "category": "bloodGases",
+    "notes": "Arterial"
+  },
+  {
+    "test_name": "pH (Venous)",
+    "reference_range": "7.31–7.41",
+    "unit": "",
+    "category": "bloodGases",
+    "notes": "Venous"
+  },
+  {
+    "test_name": "Partial pressure of carbon dioxide (PCO₂) (Arterial)",
+    "reference_range": "35–45",
+    "unit": "mm Hg",
+    "category": "bloodGases",
+    "notes": "Arterial"
+  },
+  {
+    "test_name": "Partial pressure of carbon dioxide (PCO₂) (Venous)",
+    "reference_range": "40–52",
+    "unit": "mm Hg",
+    "category": "bloodGases",
+    "notes": "Venous"
+  },
+  {
+    "test_name": "Partial pressure of oxygen (PO₂) (Arterial)",
+    "reference_range": "80–100",
+    "unit": "mm Hg",
+    "category": "bloodGases",
+    "notes": "Arterial"
+  },
+  {
+    "test_name": "Partial pressure of oxygen (PO₂) (Venous)",
+    "reference_range": "30–50",
+    "unit": "mm Hg",
+    "category": "bloodGases",
+    "notes": "Venous"
+  },
+  {
+    "test_name": "Oxygen saturation (SaO₂) (Arterial)",
+    "reference_range": "> 90",
+    "unit": "%",
+    "category": "bloodGases",
+    "notes": "Arterial"
+  },
+  {
+    "test_name": "Oxygen saturation (SaO₂) (Venous)",
+    "reference_range": "60–75",
+    "unit": "%",
+    "category": "bloodGases",
+    "notes": "Venous"
+  },
+  {
+    "test_name": "Serum bicarbonate (HCO₃) (Arterial)",
+    "reference_range": "22–26",
+    "unit": "mEq/L",
+    "category": "bloodGases",
+    "notes": "Arterial"
+  },
+  {
+    "test_name": "Serum bicarbonate (HCO₃) (Venous)",
+    "reference_range": "21–28",
+    "unit": "mEq/L",
+    "category": "bloodGases",
+    "notes": "Venous"
+  },
+  {
+    "test_name": "Leukocyte esterase, nitrite, protein, blood, ketones, bilirubin, glucose",
+    "reference_range": "Negative",
+    "unit": "",
+    "category": "urinalysis"
+  },
+  {
+    "test_name": "pH (Urinalysis)",
+    "reference_range": "4.5–8.0",
+    "unit": "",
+    "category": "urinalysis"
+  },
+  {
+    "test_name": "Specific gravity",
+    "reference_range": "1.010–1.025",
+    "unit": "",
+    "category": "urinalysis"
+  }
+]

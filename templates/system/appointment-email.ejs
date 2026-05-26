@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Scheduled</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #e2e2e2;
+            border-radius: 10px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .content {
+            font-size: 16px;
+        }
+        .appointment-details {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #eaf4fe;
+            border-radius: 10px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>New Appointment Scheduled</h2>
+        </div>
+        <div class="content">
+            <p>Dear <strong><%= staffName %></strong>,</p>
+            <p>An appointment has been scheduled with the following details:</p>
+            <div class="appointment-details">
+                <p><strong>Patient Name:</strong> <%= patientName %></p>
+                <p><strong>Appointment Date:</strong> <%= appointmentDate %></p>
+                <p><strong>Appointment Time:</strong> <%= appointmentTime %></p>
+                <p><strong>Reason:</strong> <%= reason %></p>
+            </div>
+            <p>Please make sure to attend to the appointment as scheduled.</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from the Hospital Management System.</p>
+        </div>
+    </div>
+</body>
+</html>

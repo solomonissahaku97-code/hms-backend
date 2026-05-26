@@ -1,0 +1,1800 @@
+{
+  "GDRG_Codes": [
+    {
+      "category": "General Surgery",
+      "codes": [
+        {
+          "code": "00ASUR01A",
+          "description": "Operations of thyroid & parathyroid glands",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR02A",
+          "description": "Surgery for lung and bronchus lesions",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR03A",
+          "description": "Thoracostomy and chest tube insertion",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR04A",
+          "description": "Operations on the oesophagus and diaphragm",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR05A",
+          "description": "Excision of Neck Swellings",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR06A",
+          "description": "Laparotomy for solid organ Surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR07A",
+          "description": "Laparotomy for Gastric Surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR08A",
+          "description": "Laparotomy for peritonitis",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR09A",
+          "description": "Endoscopic surgery for bleeding esophageal varices",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR10A",
+          "description": "Laparotomy and Small Bowel Resection",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR11A",
+          "description": "Laparotomy and colon resection",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR12A",
+          "description": "Laparotomy for Colostomy or Ileostomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR13A",
+          "description": "Laparotomy and AP Resection",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR14A",
+          "description": "Percutaneous Ultrasound Guided Drainage of lesions",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR15A",
+          "description": "Operations on Anus",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR16A",
+          "description": "Laparotomy and drainage of liver",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR17A",
+          "description": "Laparotomy for biliary surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR18A",
+          "description": "Laparotomy and Pancreatic Surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR19A",
+          "description": "Internal Hernia Repair",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR20A",
+          "description": "External Hernia Repair",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR21A",
+          "description": "Operations on the urethra",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR22A",
+          "description": "Surgery on scrotum & tunica vaginalis",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR23A",
+          "description": "Mastectomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR24A",
+          "description": "Vascular surgery operations",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR25A",
+          "description": "Stripping and Ligation of veins",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR27A",
+          "description": "Emergency circumcision",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR28A",
+          "description": "Genitourinary surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR29A",
+          "description": "Craniotomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR30A",
+          "description": "General Surgery Excision Biopsy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR31A",
+          "description": "Incision, Drainage and Debridement - General Surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR32A",
+          "description": "Closure of colostomy and ileostomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR33A",
+          "description": "Laparotomy and Porto-caval Shunt",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ASUR34A",
+          "description": "Conservative management of surgery",
+          "condition": "none"
+        },
+        {
+          "code": "00ASUR35A",
+          "description": "Surgery for removal of finger or toe",
+          "condition": "none"
+        },
+        {
+          "code": "00ASUR36A",
+          "description": "Surgery for amputation of hand or foot (through or below ankle/wrist joint)",
+          "condition": "none"
+        },
+        {
+          "code": "00ASUR37A",
+          "description": "Amputation below, above or through elbow or knee or the complete removal of limb",
+          "condition": "none"
+        }
+      ]
+    },
+    {
+      "category": "Dental",
+      "codes": [
+        {
+          "code": "00DENT01A",
+          "description": "Forceps Extraction of Tooth",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT01C",
+          "description": "Forceps Extraction of Tooth",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT02A",
+          "description": "Surgical Removal of Tooth",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT03A",
+          "description": "Temporary Filling",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT03C",
+          "description": "Temporary Filling",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT04A",
+          "description": "Amalgam Filling",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT04C",
+          "description": "Amalgam Filling",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT05A",
+          "description": "Composite/GI Filling",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT05C",
+          "description": "Composite/GI Filling",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT06A",
+          "description": "Scaling & Polishing",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT06C",
+          "description": "Scaling & Polishing",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT07A",
+          "description": "Gingivectomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT07C",
+          "description": "Gingivectomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT08A",
+          "description": "Root Canal Therapy - Single Root (RCT)",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT08C",
+          "description": "Root Canal Therapy - Single Root (RCT)",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT09A",
+          "description": "Apicectomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT09C",
+          "description": "Apicectomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT10A",
+          "description": "Incision and Drainage (I & D) of Oro-Facial Abscess",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT10C",
+          "description": "Incision and Drainage (I & D) of Oro-Facial Abscess",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT11A",
+          "description": "Surgical Excision of Intraoral Lesions",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT11C",
+          "description": "Surgical Excision of Intraoral Lesions",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT12A",
+          "description": "Curettage/Sequestrectomy of Facial Bone",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT12C",
+          "description": "Curetage/Sequestrectomy of Facial Bone",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT13A",
+          "description": "Removal of Stone from Salivary Duct",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT13C",
+          "description": "Removal of Stone from Salivary Duct",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT14A",
+          "description": "Sialoadenectomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT14C",
+          "description": "Sialoadenectomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT15A",
+          "description": "Suturing of Lacerations of Facial Region",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT15C",
+          "description": "Suturing of Lacerations of Facial Region",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT16A",
+          "description": "Dressing of Open Facial Wounds",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT16C",
+          "description": "Dressing of Open Facial Wounds",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT17A",
+          "description": "Frenectomy/Frenotomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT17C",
+          "description": "Frenectomy/Frenotomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT18A",
+          "description": "Partial Resection of Facial Bones or Soft Tissues",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT18C",
+          "description": "Partial Resection of Facial Bones or Soft Tissues",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT19A",
+          "description": "Total Resection of Facial Bones and Soft Tissues",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT19C",
+          "description": "Total Resection of Facial Bones and Soft Tissues",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT20A",
+          "description": "Closed Reduction of Fractures of Facial Bones (IMF)",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT20C",
+          "description": "Closed Reduction of Fractures of Facial Bones (IMF)",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT21A",
+          "description": "Open Reduction of Facial Fractures",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT21C",
+          "description": "Open Reduction of Facial Fractures",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT22A",
+          "description": "Removal of Dental Wiring",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT22C",
+          "description": "Removal of Dental Wiring",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT23A",
+          "description": "Manual Reduction of TMJ Dislocation",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT23C",
+          "description": "Manual Reduction of TMJ Dislocation",
+          "condition": "<12"
+        },
+        {
+          "code": "00DENT24A",
+          "description": "Dental Examination (Medical Management)",
+          "condition": ">=12"
+        },
+        {
+          "code": "00DENT24C",
+          "description": "Dental Examination (Medical Management)",
+          "condition": "<12"
+        }
+      ]
+    },
+    {
+      "category": "ENT",
+      "codes": [
+        {
+          "code": "00ENTH01A",
+          "description": "Excision and biopsy of swellings of ear, nose and throat",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH01C",
+          "description": "Excision and biopsy of swellings of ear, nose and throat",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH02A",
+          "description": "Surgery for external ear lesions",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH02C",
+          "description": "Surgery for external ear lesions",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH05A",
+          "description": "Surgery for internal ear lesions",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH05C",
+          "description": "Surgery for internal ear lesions",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH06A",
+          "description": "Reconstructive Surgery of ear",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH06C",
+          "description": "Reconstructive Surgery of ear",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH07A",
+          "description": "Sinus Surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH07C",
+          "description": "Sinus Surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH08A",
+          "description": "Surgery of tonsils and adenoids",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH08C",
+          "description": "Surgery of tonsils and adenoids",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH09A",
+          "description": "Surgery of Salivary Glands",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH09C",
+          "description": "Surgery of Salivary Glands",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH10A",
+          "description": "Laryngectomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH10C",
+          "description": "Laryngectomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH12A",
+          "description": "Excision and Reconstruction of Oro- and Naso-pharynx",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH12C",
+          "description": "Excision and Reconstruction of Oro- and Naso-pharynx",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH13A",
+          "description": "Examination under anaesthesia and removal of foreign body in Ear, Nose and Throat",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH13C",
+          "description": "Examination under anaesthesia and removal of foreign body in Ear, Nose and Throat",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH14A",
+          "description": "Incision and Drainage of Abscess of ear, nose and throat",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH14C",
+          "description": "Incision and Drainage of Abscess of ear, nose and throat",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH15A",
+          "description": "Manipulation and reduction of fractured nasal bone",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH15C",
+          "description": "Manipulation and reduction of fractured nasal bone",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH16A",
+          "description": "Specific nasal surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH16C",
+          "description": "Specific nasal surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH17A",
+          "description": "Arterial Ligation for Epistaxis",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH17C",
+          "description": "Arterial Ligation for Epistaxis",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH18A",
+          "description": "Surgery for trauma to ear, nose, throat",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH18C",
+          "description": "Surgery for trauma to ear, nose, throat",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH19A",
+          "description": "Excision biopsy of swellings of neck",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH19C",
+          "description": "Excision biopsy of swellings of neck",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH20A",
+          "description": "ENT OPD Procedures",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH20C",
+          "description": "ENT OPD Procedures",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH21A",
+          "description": "Vestibulometry",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH21C",
+          "description": "Vestibulometry",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH22A",
+          "description": "Evoked response audiometry",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH22C",
+          "description": "Evoked response audiometry",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH23A",
+          "description": "Antral Lavage under Local Anaesthesia",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH23C",
+          "description": "Antral Lavage under Local Anaesthesia",
+          "condition": "<12"
+        },
+        {
+          "code": "00ENTH24A",
+          "description": "Endoscopic ENT Surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ENTH24C",
+          "description": "Endoscopic ENT Surgery",
+          "condition": "<12"
+        }
+      ]
+    },
+    {
+      "category": "Medical",
+      "codes": [
+        {
+          "code": "00MEDI01A",
+          "description": "Thyroid Diseases",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI02A",
+          "description": "Diabetes – Simple",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI03A",
+          "description": "Diabetes – Complicated",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI04A",
+          "description": "Other Endocrine Diseases",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI05A",
+          "description": "Malnutrition",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI06A",
+          "description": "Anaemia",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI07A",
+          "description": "Heart Disease",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI08A",
+          "description": "Poisoning",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI10A",
+          "description": "Non-Traumatic Coma",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI11A",
+          "description": "Paralytic Conditions",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI12A",
+          "description": "Seizure Disorders",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI13A",
+          "description": "Transient Loss of Consciousness",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI14A",
+          "description": "Cerebro Vascular Accident/Stroke",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI15A",
+          "description": "Bone Marrow Hypoplasia",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI16A",
+          "description": "Sickle Cell Disease with Complication/Crisis",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI17A",
+          "description": "Clotting/Bleeding Disorders",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI18A",
+          "description": "Diseases of Skin/Subcutaneous Tissues",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI19A",
+          "description": "Kidney Disease without Renal Failure",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI20A",
+          "description": "Renal Failure without Dialysis",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI21A",
+          "description": "Acute Renal Failure with Dialysis",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI22A",
+          "description": "Obstructive Airway Disease",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI23A",
+          "description": "Diarrhoea and Vomiting",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI24A",
+          "description": "Liver Diseases",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI25A",
+          "description": "Gastrointestinal Tract Bleeding",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI26A",
+          "description": "Non-Specific Abdominal Conditions",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI27A",
+          "description": "Shock",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI28A",
+          "description": "Malaria",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI29A",
+          "description": "Black Water Fever",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI30A",
+          "description": "Systemic Infections",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI31A",
+          "description": "Localised Infections",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI32A",
+          "description": "Hypertension",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI33A",
+          "description": "Ischaemic Heart Disease",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI34A",
+          "description": "Pulmonary Embolism",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI35A",
+          "description": "Ulcer of Skin",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI36A",
+          "description": "Alcoholism",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI37A",
+          "description": "Animal Bites",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI38A",
+          "description": "Retroviral Infection/Immuno Suppression",
+          "condition": ">=12"
+        },
+        {
+          "code": "00MEDI39A",
+          "description": "Chemotherapy",
+          "condition": "none"
+        },
+        {
+          "code": "00MEDI40A",
+          "description": "Radiotherapy",
+          "condition": "none"
+        },
+        {
+          "code": "00MEDI41A",
+          "description": "Cerebral malaria",
+          "condition": ">=12"
+        }
+      ]
+    },
+    {
+      "category": "Obstetrics & Gynaecology",
+      "codes": [
+        {
+          "code": "00OBGY01A",
+          "description": "Gynaecological Laparotomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY02A",
+          "description": "Diagnostic Laparoscopy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY03A",
+          "description": "Operative Laparoscopy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY04A",
+          "description": "Culdocentesis/Culdotomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY05A",
+          "description": "Cauterization",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY06A",
+          "description": "MVA/EOU",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY07A",
+          "description": "Suction Curettage",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY08A",
+          "description": "Manual Removal of Placenta",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY09A",
+          "description": "Expectant management/Medical Treatment in Obstetrics and Gynaecology",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY10A",
+          "description": "Marsupialization of Bartholin's gland",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY11A",
+          "description": "Excision of genital lesions",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY12A",
+          "description": "Incision and drainage in Gynaecology Cases",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY13A",
+          "description": "Pelvic Floor Repair - Simple",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY14A",
+          "description": "Vaginal Hysterectomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY15A",
+          "description": "Repair of Enterocele",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY16A",
+          "description": "Vaginal Pessary Insertion",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY17A",
+          "description": "Colpocleisis",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY18A",
+          "description": "Fistula Repair - Simple",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY19A",
+          "description": "Fistula Repair - Complex",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY20A",
+          "description": "Abdominal Hysterectomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY21A",
+          "description": "Perineal repair - Complex",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY22A",
+          "description": "Pelvic Floor Repair - Complex",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY23A",
+          "description": "Colposcopy and Biopsy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY24A",
+          "description": "Partial Vaginectomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY25A",
+          "description": "Polypectomy (Avulsion)",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY26A",
+          "description": "Hysteroscopy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY27A",
+          "description": "Correction of Malposition of Uterus",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY28A",
+          "description": "Vulvectomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY29A",
+          "description": "Instrumental delivery",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY30A",
+          "description": "Internal Podalic Version with Breech Extraction",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY31A",
+          "description": "Destructive Delivery",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY32A",
+          "description": "Caesarean Section",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY34A",
+          "description": "Spontaneous Vaginal Delivery with or without Episiotomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY35A",
+          "description": "Cervical Cerclage suture",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY36A",
+          "description": "Myomectomy",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY38A",
+          "description": "Post-Partum Haemorrhage",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY39A",
+          "description": "Wertheims Operation",
+          "condition": "none"
+        },
+        {
+          "code": "00OBGY40A",
+          "description": "Eclampsia",
+          "condition": "none"
+        }
+      ]
+    },
+    {
+      "category": "Ophthalmology",
+      "codes": [
+        {
+          "code": "00OPHT01A",
+          "description": "Enucleation",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT01C",
+          "description": "Enucleation",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT02A",
+          "description": "Evisceration",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT02C",
+          "description": "Evisceration",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT03A",
+          "description": "Removal of superficial foreign body",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT03C",
+          "description": "Removal of superficial foreign body",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT04A",
+          "description": "Removal of intraocular foreign body",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT04C",
+          "description": "Removal of intraocular foreign body",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT05A",
+          "description": "Removal of intraorbital foreign body",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT05C",
+          "description": "Removal of intraorbital foreign body",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT06A",
+          "description": "Eyelid surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT06C",
+          "description": "Eyelid surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT07A",
+          "description": "Scleral and Corneal surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT07C",
+          "description": "Scleral and Corneal surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT08A",
+          "description": "Anterior chamber washout",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT08C",
+          "description": "Anterior chamber washout",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT09A",
+          "description": "Glaucoma surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT09C",
+          "description": "Glaucoma surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT10A",
+          "description": "Cataract surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT10C",
+          "description": "Cataract surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT11A",
+          "description": "Strabismus surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT11C",
+          "description": "Strabismus surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT12A",
+          "description": "Incision and curettage of eyelid",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT12C",
+          "description": "Incision and curettage of eyelid",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT13A",
+          "description": "Reconstructive surgery of eyelid",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT13C",
+          "description": "Reconstructive surgery of eyelid",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT14A",
+          "description": "Nasolacrimal drainage system surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT14C",
+          "description": "Nasolacrimal drainage system surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT15A",
+          "description": "Incision and drainage of abscesses",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT15C",
+          "description": "Incision and drainage of abscesses",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT16A",
+          "description": "Examination under anaesthesia",
+          "condition": ">=12"
+        },
+        {
+          "code": "00OPHT16C",
+          "description": "Examination under anaesthesia",
+          "condition": "<12"
+        },
+        {
+          "code": "00OPHT17A",
+          "description": "Uveitis Management",
+          "condition": "none"
+        },
+        {
+          "code": "00OPHT18A",
+          "description": "Cataract Surgery with Implants",
+          "condition": ">=12"
+        }
+      ]
+    },
+    {
+      "category": "Orthopaedics",
+      "codes": [
+        {
+          "code": "00ORTH01A",
+          "description": "Bandaging / Cast Application",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH01C",
+          "description": "Bandaging / Cast Application",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH02A",
+          "description": "Bone Biopsy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH02C",
+          "description": "Bone Biopsy",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH03A",
+          "description": "Bone Graft",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH03C",
+          "description": "Bone Graft",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH04A",
+          "description": "Closed Reduction and Splintage of Fractures and Joints",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH04C",
+          "description": "Closed Reduction and Splintage of Fractures and Joints",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH05A",
+          "description": "Debridement and Suturing",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH05C",
+          "description": "Debridement and Suturing",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH06A",
+          "description": "Dressing and Minor Suturing",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH06C",
+          "description": "Dressing and Minor Suturing",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH07A",
+          "description": "Excision of Soft Tissue Lumps",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH07C",
+          "description": "Excision of Soft Tissue Lumps",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH08A",
+          "description": "External Fixation",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH08C",
+          "description": "External Fixation",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH09A",
+          "description": "Fasciotomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH09C",
+          "description": "Fasciotomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH10A",
+          "description": "Hemi-Arthroplasty",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH10C",
+          "description": "Hemi-Arthroplasty",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH11A",
+          "description": "Incision and Drainage of Abscesses",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH11C",
+          "description": "Incision and Drainage of Abscesses",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH12A",
+          "description": "Internal Fixation of Fractures",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH12C",
+          "description": "Internal Fixation of Fractures",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH14A",
+          "description": "Major Surgery of Joints",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH14C",
+          "description": "Major Surgery of Joints",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH15A",
+          "description": "Minor Surgery of Joints",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH15C",
+          "description": "Minor Surgery of Joints",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH16A",
+          "description": "Nail Avulsion",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH16C",
+          "description": "Nail Avulsion",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH17A",
+          "description": "Open Reduction and Internal Fixation",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH17C",
+          "description": "Open Reduction and Internal Fixation",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH18A",
+          "description": "Osteotomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH18C",
+          "description": "Osteotomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH20A",
+          "description": "Surgery for Infected Bone",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH20C",
+          "description": "Surgery for Infected Bone",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH22A",
+          "description": "Synovectomy",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH22C",
+          "description": "Synovectomy",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH23A",
+          "description": "Tendon Surgery",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH23C",
+          "description": "Tendon Surgery",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH24A",
+          "description": "Conservative Management of Head and Spinal Injuries",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH24C",
+          "description": "Conservative Management of Head and Spinal Injuries",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH25A",
+          "description": "Surgery for removal of finger or toe",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH25C",
+          "description": "Surgery for removal of finger or toe",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH26A",
+          "description": "Surgery for amputation of hand or foot (through or below ankle/wrist joint)",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH26C",
+          "description": "Surgery for amputation of hand or foot (through or below ankle/wrist joint)",
+          "condition": "<12"
+        },
+        {
+          "code": "00ORTH27A",
+          "description": "Amputation below or through elbow or knee or for the complete removal of limb",
+          "condition": ">=12"
+        },
+        {
+          "code": "00ORTH27C",
+          "description": "Amputation below or through elbow or knee or for the complete removal of limb",
+          "condition": "<12"
+        }
+      ]
+    },
+    {
+      "category": "Paediatrics",
+      "codes": [
+        {
+          "code": "00PAED01C",
+          "description": "Thyroid Diseases",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED02C",
+          "description": "Diabetes - Simple",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED03C",
+          "description": "Diabetes with Complications",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED04C",
+          "description": "Other Endocrine Diseases",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED05C",
+          "description": "Malnutrition",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED06C",
+          "description": "Anaemia",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED07C",
+          "description": "Other Neonatal Diseases",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED08C",
+          "description": "Neonatal Jaundice – Severe",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED09C",
+          "description": "Neonatal Jaundice – Simple",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED10C",
+          "description": "Birth Weight Abnormalities",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED11C",
+          "description": "Birth Trauma",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED12C",
+          "description": "Neonatal Respiratory Disorders without Ventilation",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED13C",
+          "description": "Neonatal Respiratory Disorders with Ventilation",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED14C",
+          "description": "Neonatal Septicaemia",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED15C",
+          "description": "Heart Disease",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED16C",
+          "description": "Poisoning",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED18C",
+          "description": "Non-Traumatic Coma",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED19C",
+          "description": "Paralytic Conditions",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED20C",
+          "description": "Seizure Disorders",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED21C",
+          "description": "Transient Loss of Consciousness",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED22C",
+          "description": "Cerebro Vascular Accident/Stroke",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED23C",
+          "description": "Bone Marrow Hypoplasia",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED24C",
+          "description": "Sickle Cell Disease with Complication/Crisis",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED25C",
+          "description": "Clotting/Bleeding Disorders",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED26C",
+          "description": "Diseases of Skin/Subcutaneous Tissues",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED27C",
+          "description": "Kidney Disease without Renal Failure",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED28C",
+          "description": "Renal Failure without Dialysis",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED29C",
+          "description": "Acute Renal Failure with Dialysis",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED30C",
+          "description": "Obstructive Airway Disease",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED31C",
+          "description": "Diarrhea and Vomiting",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED32C",
+          "description": "Liver Diseases",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED33C",
+          "description": "Gastrointestinal Tract Bleeding",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED34C",
+          "description": "Non-Specific Abdominal Conditions",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED35C",
+          "description": "Shock",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED36C",
+          "description": "Malaria",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED37C",
+          "description": "Black Water Fever",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED38C",
+          "description": "Severe Infections",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED39C",
+          "description": "Localized Infections",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED40C",
+          "description": "Hypertension",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED41C",
+          "description": "Ischemic Heart Disease",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED42C",
+          "description": "Pulmonary Embolism",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED43C",
+          "description": "Ulcer of Skin",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED44C",
+          "description": "Animal Bites",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED45C",
+          "description": "Retroviral Infection/Immuno Suppression",
+          "condition": "<12"
+        },
+        {
+          "code": "00PAED46C",
+          "description": "Cerebral malaria",
+          "condition": "<12yrs"
+        },
+        {
+          "code": "00PAED47C",
+          "description": "Chemotherapy for Childhood Cancer",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED48C",
+          "description": "Radiotherapy for Childhood Cancer",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED49C",
+          "description": "Acute Lymphoblastic Leukaemia (Initiation Therapy)",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED50C",
+          "description": "Acute Lymphoblastic Leukaemia (Maintenance Therapy)",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED51C",
+          "description": "Burkitt Lymphoma",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED52C",
+          "description": "Retinoblastoma",
+          "condition": "none"
+        },
+        {
+          "code": "00PAED53C",
+          "description": "Wilms Tumour",
+          "condition": "none"
+        }
+      ]
+    },
+    {
+      "category": "Service",
+      "codes": [
+        {
+          "code": "OPDC01A",
+          "description": "First Contact Consultation - Adult",
+          "condition": ">=12"
+        },
+        {
+          "code": "OPDC01C",
+          "description": "First Contact Consultation - Child",
+          "condition": "<12"
+        },
+        {
+          "code": "OPDC02A",
+          "description": "Antenatal Screening",
+          "condition": ">=12"
+        },
+        {
+          "code": "OPDC02C",
+          "description": "Antenatal Screening",
+          "condition": "<12"
+        },
+        {
+          "code": "OPDC03A",
+          "description": "Follow-up Consultation - Adult",
+          "condition": ">=12"
+        },
+        {
+          "code": "OPDC03C",
+          "description": "Follow-up Consultation - Child",
+          "condition": "<12"
+        },
+        {
+          "code": "OPDC04A",
+          "description": "Emergency Consultation - Adult",
+          "condition": ">=12"
+        },
+        {
+          "code": "OPDC04C",
+          "description": "Emergency Consultation - Child",
+          "condition": "<12"
+        },
+        {
+          "code": "OPDC05A",
+          "description": "Specialist Consultation - Adult",
+          "condition": ">=12"
+        },
+        {
+          "code": "OPDC05C",
+          "description": "Specialist Consultation - Child",
+          "condition": "<12"
+        },
+        {
+          "code": "OPDC06A",
+          "description": "General OPD Consultation - Adult",
+          "condition": ">=12"
+        },
+        {
+          "code": "OPDC06C",
+          "description": "General OPD Consultation - Child",
+          "condition": "<12"
+        },
+        {
+          "code": "CONS001",
+          "description": "General Consultation",
+          "condition": "<12"
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,9 @@
+{
+    "editor.cursorSmoothCaretAnimation": "on",
+    "workbench.colorTheme": "Default Dark+",
+    "editor.cursorStyle": "line",
+    "editor.cursorBlinking": "smooth",
+    "editor.fontSize": 14,
+    "editor.lineHeight": 1.5,
+    "postman.settings.dotenv-detection-notification-visibility": false
+}

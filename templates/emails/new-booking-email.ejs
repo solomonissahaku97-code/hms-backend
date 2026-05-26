@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Patient Booking</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      font-size: 22px;
+      font-weight: bold;
+      color: #4CAF50;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .sub-header {
+      font-size: 16px;
+      color: #555;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .content {
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 10px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      margin-top: 20px;
+    }
+    .highlight {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .cta {
+      margin-top: 20px;
+      background-color: #4CAF50;
+      color: #fff;
+      padding: 10px 15px;
+      text-align: center;
+      border-radius: 5px;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .cta:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">New Patient Booking Alert</div>
+    <div class="sub-header">Empowering Institutions with Seamless Scheduling</div>
+    <div class="content">
+      <p>Hello <span class="highlight"><%= admin.name %></span>,</p>
+      <p>A new patient booking has been made for your institution, <span class="highlight"><%= institution %></span>.</p>
+      <p>Here are the details:</p>
+      <ul>
+        <li><strong>Patient Name:</strong> <%= patient.name %></li>
+        <li><strong>Consultation Type:</strong> <%= patient.consultation_type %></li>
+        <li><strong>Phone Number:</strong> <%= patient.phone_number %></li>
+        <li><strong>Appointment Date:</strong> <%= patient.appointment_date %></li>
+        <li><strong>Start Time:</strong> <%= patient.start_time %></li>
+        <li><strong>End Time:</strong> <%= patient.end_time %></li>
+        <% if (patient.additional_message) { %>
+        <li><strong>Additional Message:</strong> <%= patient.additional_message %></li>
+        <% } %>
+      </ul>
+      <p>Please log in to the admin portal to manage this booking and ensure a seamless experience for your patients.</p>
+      <p><span class="highlight">Referral Program:</span> Did you know you can earn rewards by referring our system to other institutions? For every successful referral, your institution will receive a <span class="highlight">10% discount</span> on the subscription fee for the next billing cycle!</p>
+      <p>Take advantage of this opportunity to help others streamline their operations while enjoying exclusive benefits for your institution.</p>
+      <p><a href="https://falconhive.com/referral" class="cta">Refer Now</a></p>
+    </div>
+    <div class="footer">
+      &copy; <%= new Date().getFullYear() %> FalconHive. All rights reserved.<br>
+      <span>Providing innovative solutions for healthcare institutions worldwide.</span>
+    </div>
+  </div>
+</body>
+</html>

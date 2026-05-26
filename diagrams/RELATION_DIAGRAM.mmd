@@ -1,0 +1,67 @@
+erDiagram
+    PATIENT {
+        string id PK
+        string nhis_number
+        string name
+        date dob
+        bool is_infant
+    }
+    
+    CLAIM {
+        string id PK
+        string patient_id FK
+        enum service_type "OUT,INP,DIA"
+        date service_date
+        decimal total_cost
+    }
+    
+    DIAGNOSIS {
+        string id PK
+        string claim_id FK
+        string icd_code FK
+        string description
+    }
+    
+    PROCEDURE {
+        string id PK
+        string claim_id FK
+        string gdrg_code FK
+        date procedure_date
+        decimal tariff
+    }
+    
+    MEDICATION {
+        string id PK
+        string claim_id FK
+        string nhis_code FK
+        int quantity
+        decimal unit_price
+    }
+    
+    ICD10_CODES {
+        string code PK
+        string description
+        date effective_from
+    }
+    
+    GDRG_CODES {
+        string code PK
+        string description
+        decimal tariff
+        string specialty
+    }
+    
+    NHIS_MED_CODES {
+        string code PK
+        string name
+        decimal unit_price
+        int prescribing_level
+    }
+    
+    PATIENT ||--o{ CLAIM : "submits"
+    CLAIM ||--|{ DIAGNOSIS : "contains"
+    CLAIM ||--|{ PROCEDURE : "contains"
+    CLAIM ||--|{ MEDICATION : "contains"
+    ICD10_CODES ||--o{ DIAGNOSIS : "validates"
+    GDRG_CODES ||--o{ PROCEDURE : "validates"
+    NHIS_MED_CODES ||--o{ MEDICATION : "validates"

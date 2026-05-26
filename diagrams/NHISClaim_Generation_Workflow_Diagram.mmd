@@ -1,0 +1,29 @@
+graph TD
+    A[Patient Arrival] --> B{Registration}
+    B -->|Records Dept| C[Capture NHIS Card Details]
+    C --> D{Patient Type?}
+    
+    %% Outpatient Flow
+    D -->|Outpatient| E[OPD Consultation]
+    E --> F[Diagnosis: ICD-10 Code]
+    F --> G[Procedures: G-DRG Codes]
+    G --> H[Prescriptions: NHIS Med Codes]
+    H --> I{Claim Trigger}
+    I -->|After Visit| J[Generate Outpatient Claim]
+    
+    %% Inpatient Flow
+    D -->|Inpatient| K[Admission]
+    K --> L[Daily Services]
+    L --> M[Diagnosis: ICD-10]
+    M --> N[Procedures: G-DRG]
+    N --> O[Medications: NHIS Codes]
+    O --> P{Discharge?}
+    P -->|Yes| Q[Generate Inpatient Claim]
+    
+    %% Common Flow
+    J --> R[Claim Validation]
+    Q --> R
+    R --> S{Batch Ready?}
+    S -->|Yes| T[Add to Monthly Batch]
+    T --> U[Generate NHIA XML]
+    U --> V[Submit to NHIA]

@@ -1,0 +1,312 @@
+[
+  {
+    "gdrg_code": "00MEDI30A",
+    "gdrg_description": "Systemic Infections",
+    "condition": ">=12",
+    "icd10_codes": [
+      "A0689"
+    ],
+    "icd10_diagnoses": [
+      "Other amebic infections"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI25A",
+    "gdrg_description": "Gastrointestinal Tract Bleeding",
+    "condition": ">=12",
+    "icd10_codes": [
+      "A222"
+    ],
+    "icd10_diagnoses": [
+      "Gastrointestinal anthrax"
+    ]
+  },
+  {
+    "gdrg_code": "00PAED07C",
+    "gdrg_description": "Other Neonatal Diseases",
+    "condition": "none",
+    "icd10_codes": [
+      "A7489",
+      "B998",
+      "G1229",
+      "K055",
+      "P358"
+    ],
+    "icd10_diagnoses": [
+      "Other chlamydial diseases",
+      "Other infectious disease",
+      "Other motor neuron disease",
+      "Other periodontal diseases",
+      "Other congenital viral diseases"
+    ]
+  },
+  {
+    "gdrg_code": "00PAED03C",
+    "gdrg_description": "Diabetes with Complications",
+    "condition": "<12",
+    "icd10_codes": [
+      "B028",
+      "B029",
+      "B059",
+      "B069",
+      "E109",
+      "E119"
+    ],
+    "icd10_diagnoses": [
+      "Zoster with other complications",
+      "Zoster without complications",
+      "Measles without complication",
+      "Rubella without complication",
+      "Type 1 diabetes mellitus without complications",
+      "Type 2 diabetes mellitus without complications"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI24A",
+    "gdrg_description": "Liver Diseases",
+    "condition": ">=12",
+    "icd10_codes": [
+      "B331",
+      "G3181"
+    ],
+    "icd10_diagnoses": [
+      "Ross River disease",
+      "Alpers disease"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI04A",
+    "gdrg_description": "Other Endocrine Diseases",
+    "condition": ">=12",
+    "icd10_codes": [
+      "B768"
+    ],
+    "icd10_diagnoses": [
+      "Other hookworm diseases"
+    ]
+  },
+  {
+    "gdrg_code": "00PAED52C",
+    "gdrg_description": "Retinoblastoma",
+    "condition": "none",
+    "icd10_codes": [
+      "C222"
+    ],
+    "icd10_diagnoses": [
+      "Hepatoblastoma"
+    ]
+  },
+  {
+    "gdrg_code": "00PAED51C",
+    "gdrg_description": "Burkitt Lymphoma",
+    "condition": "none",
+    "icd10_codes": [
+      "C8377"
+    ],
+    "icd10_diagnoses": [
+      "Burkitt lymphoma, spleen"
+    ]
+  },
+  {
+    "gdrg_code": "00PAED49C",
+    "gdrg_description": "Acute Lymphoblastic Leukaemia (Initiation Therapy)",
+    "condition": "none",
+    "icd10_codes": [
+      "C9101",
+      "C9102"
+    ],
+    "icd10_diagnoses": [
+      "Acute lymphoblastic leukemia, in remission",
+      "Acute lymphoblastic leukemia, in relapse"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI18A",
+    "gdrg_description": "Diseases of Skin/Subcutaneous Tissues",
+    "condition": ">=12",
+    "icd10_codes": [
+      "D1801"
+    ],
+    "icd10_diagnoses": [
+      "Hemangioma of skin and subcutaneous tissue"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI16A",
+    "gdrg_description": "Sickle Cell Disease with Complication/Crisis",
+    "condition": ">=12",
+    "icd10_codes": [
+      "D571",
+      "D5720"
+    ],
+    "icd10_diagnoses": [
+      "Sickle-cell disease without crisis",
+      "Sickle-cell/Hb-C disease without crisis"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI07A",
+    "gdrg_description": "Heart Disease",
+    "condition": ">=12",
+    "icd10_codes": [
+      "E7202",
+      "E7403",
+      "E7522",
+      "K900",
+      "M352"
+    ],
+    "icd10_diagnoses": [
+      "Hartnup's disease",
+      "Cori disease",
+      "Gaucher disease",
+      "Celiac disease",
+      "Behcet's disease"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI41A",
+    "gdrg_description": "Cerebral malaria",
+    "condition": ">=12",
+    "icd10_codes": [
+      "G936",
+      "I6782"
+    ],
+    "icd10_diagnoses": [
+      "Cerebral edema",
+      "Cerebral ischemia"
+    ]
+  },
+  {
+    "gdrg_code": "00PAED41C",
+    "gdrg_description": "Ischemic Heart Disease",
+    "condition": "<12",
+    "icd10_codes": [
+      "I271"
+    ],
+    "icd10_diagnoses": [
+      "Kyphoscoliotic heart disease"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI34A",
+    "gdrg_description": "Pulmonary Embolism",
+    "condition": ">=12",
+    "icd10_codes": [
+      "I2782"
+    ],
+    "icd10_diagnoses": [
+      "Chronic pulmonary embolism"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI39A",
+    "gdrg_description": "Chemotherapy",
+    "condition": "none",
+    "icd10_codes": [
+      "J942"
+    ],
+    "icd10_diagnoses": [
+      "Hemothorax"
+    ]
+  },
+  {
+    "gdrg_code": "00ENTH09A",
+    "gdrg_description": "Surgery of Salivary Glands",
+    "condition": ">=12",
+    "icd10_codes": [
+      "K110",
+      "K111",
+      "K113",
+      "K114",
+      "K116"
+    ],
+    "icd10_diagnoses": [
+      "Atrophy of salivary gland",
+      "Hypertrophy of salivary gland",
+      "Abscess of salivary gland",
+      "Fistula of salivary gland",
+      "Mucocele of salivary gland"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI32A",
+    "gdrg_description": "Hypertension",
+    "condition": ">=12",
+    "icd10_codes": [
+      "K766",
+      "P292",
+      "R203"
+    ],
+    "icd10_diagnoses": [
+      "Portal hypertension",
+      "Neonatal hypertension",
+      "Hyperesthesia"
+    ]
+  },
+  {
+    "gdrg_code": "00MEDI35A",
+    "gdrg_description": "Ulcer of Skin",
+    "condition": ">=12",
+    "icd10_codes": [
+      "N485"
+    ],
+    "icd10_diagnoses": [
+      "Ulcer of penis"
+    ]
+  },
+  {
+    "gdrg_code": "00OBGY10A",
+    "gdrg_description": "Marsupialization of Bartholin's gland",
+    "condition": "none",
+    "icd10_codes": [
+      "N750"
+    ],
+    "icd10_diagnoses": [
+      "Cyst of Bartholin's gland"
+    ]
+  },
+  {
+    "gdrg_code": "00OBGY27A",
+    "gdrg_description": "Correction of Malposition of Uterus",
+    "condition": "none",
+    "icd10_codes": [
+      "N854"
+    ],
+    "icd10_diagnoses": [
+      "Malposition of uterus"
+    ]
+  },
+  {
+    "gdrg_code": "00OBGY38A",
+    "gdrg_description": "Post-Partum Haemorrhage",
+    "condition": "none",
+    "icd10_codes": [
+      "O678"
+    ],
+    "icd10_diagnoses": [
+      "Other intrapartum hemorrhage"
+    ]
+  },
+  {
+    "gdrg_code": "00PAED09C",
+    "gdrg_description": "Neonatal Jaundice \u2013 Simple",
+    "condition": "none",
+    "icd10_codes": [
+      "P599"
+    ],
+    "icd10_diagnoses": [
+      "Neonatal jaundice, unspecified"
+    ]
+  },
+  {
+    "gdrg_code": "00OPHT01A",
+    "gdrg_description": "Enucleation",
+    "condition": ">=12",
+    "icd10_codes": [
+      "R142"
+    ],
+    "icd10_diagnoses": [
+      "Eructation"
+    ]
+  }
+]

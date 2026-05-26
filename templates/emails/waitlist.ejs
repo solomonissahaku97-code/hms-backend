@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to BrandeviaHMS Waitlist</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .content p {
+            margin: 10px 0;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #007bff;
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background: #0056b3;
+        }
+
+        .footer {
+            background: #f9fafb;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .footer a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Welcome to BrandeviaHMS!</h1>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <p>Hi <strong><%= fullname %></strong>,</p>
+            <p>We’re thrilled to welcome you to the exclusive waitlist for <span class="highlight">BrandeviaHMS</span> – the next-generation Hospital Management System designed to transform healthcare operations.</p>
+            <p>As part of our early community, you’ll be the first to experience cutting-edge features that streamline hospital workflows, enhance patient care, and simplify administrative tasks. Stay tuned for:</p>
+            <ul style="margin-left: 20px; list-style-type: disc;">
+                <li><strong>Exclusive Pre-Launch Updates</strong></li>
+                <li><strong>Priority Access to New Features</strong></li>
+                <li><strong>Special Offers for Early Supporters</strong></li>
+            </ul>
+            <p>Thank you for being part of this journey. We can’t wait to share more with you soon!</p>
+            <a href="https://brandeviahms.com" class="cta-button">Explore BrandeviaHMS</a>
+            <p>Best regards,<br>The <strong>BrandeviaHMS</strong> Team</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>You're receiving this email because you joined our waitlist. If this wasn't you, please <a href="#">unsubscribe</a>.</p>
+            <p>© 2024 BrandeviaHMS. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Shift Table</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h2>Shift Schedule</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Day</th>
+        <th>Shift</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% shifts.forEach((shift) => { %>
+        <tr>
+          <td><%= shift.day %></td>
+          <td><%= shift.shift %></td>
+          <td><%= shift.start_time %></td>
+          <td><%= shift.end_time %></td>
+          <td><%= shift.notes %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</body>
+</html>

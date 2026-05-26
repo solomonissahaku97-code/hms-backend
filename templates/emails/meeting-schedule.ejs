@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Scheduled</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #777;
+            font-size: 0.9em;
+        }
+        .button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            color: white;
+            background-color: #4CAF50;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Meeting Scheduled</h1>
+        </div>
+        <div class="content">
+            <p>  Dear <%= recipientName ? recipientName : "Valued Guest" %>,</p>
+            <p>
+                A virtual meeting has been scheduled for you. Please find the details below:
+            </p>
+            <ul>
+                <li><strong>Date & Time:</strong> <%= scheduledTime %></li>
+                <li><strong>Meeting Link:</strong> <a href="<%= meetingLink %>"><%= meetingLink %></a></li>
+                <% if (role === "doctor") { %>
+                    <li><strong>Meeting Alias:</strong> <%= goodLink %></li>
+                <% } %>
+            </ul>
+            <p>
+                Click the button below to join the meeting:
+            </p>
+            <a href="<%= meetingLink %>" class="button">Join Meeting</a>
+        </div>
+        <div class="footer">
+            <p>Thank you,</p>
+            <p>The Virtual Healthcare Team</p>
+        </div>
+    </div>
+</body>
+</html>

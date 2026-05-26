@@ -1,0 +1,7 @@
+sequenceDiagram
+    Patient->>OPD: Register Visit
+    OPD->>System: Create Encounter (Type=OPD)
+    System->>Claims: Auto-attach Base G-DRG Code
+    Claims->>Database: Store with Patient_ID
+    Doctor->>System: Add Diagnosis/Procedures
+    System->>Claims: Append Additional Codes
