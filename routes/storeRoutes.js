@@ -340,6 +340,85 @@ router.post('/issue-items-directly', async (req, res) => {
 });
 
 // ============================================
+// NEW: DEPARTMENT-ISSUE ITEMS (COMPONENT BACKEND)
+// ============================================
+
+// This endpoint issues multiple items to departments in one request.
+// Body:
+// {
+//   institution_id,
+//   department_id,
+//   issued_by,
+//   notes,
+//   items: [{ item_id, batch_id, quantity }]
+// }
+router.post('/issue-items-to-department', async (req, res) => {
+    try {
+        const { institution_id, department_id, issued_by, notes, items } = req.body;
+
+        if (!department_id) return res.status(400).json({ error: 'department_id is required' });
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'items must be a non-empty array' });
+        }
+
+        const issuedResults = [];
+
+        for (const line of items) {
+            const { item_id, batch_id, quantity } = line;
+
+            if (!batch_id || !item_id) {
+                return res.status(400).json({ error: 'Each item must include item_id and batch_id' });
+            }
+            if (!quantity || quantity <= 0) {
+                return res.status(400).json({ error: 'Each item must include a valid quantity' });
+            }
+
+            const batch = await ItemBatch.findByPk(batch_id);
+            if (!batch) return res.status(404).json({ error: `Batch not found: ${batch_id}` });
+
+            if (parseFloat(batch.current_quantity) < parseFloat(quantity)) {
+                return res.status(400).json({ error: `Insufficient stock for batch ${batch_id}` });
+            }
+
+            await batch.update({ current_quantity: batch.current_quantity - quantity });
+            if (batch.current_quantity - quantity === 0) {
+                await batch.update({ status: 'depleted' });
+            }
+
+            const issued = await IssuedItem.create({
+                id: uuidv4(),
+                institution_id,
+                item_id,
+                batch_id,
+                department_id,
+                quantity,
+                issued_by,
+                notes: notes || `Issued to department ${department_id}`,
+            });
+
+            await InventoryRecord.create({
+                id: uuidv4(),
+                institution_id,
+                item_id,
+                batch_id,
+                movement_type: 'issued',
+                quantity: -quantity,
+                reference_type: 'department_issue',
+                reference_id: issued.id,
+                notes: notes || `Issued to department ${department_id}`,
+            });
+
+            issuedResults.push(issued);
+        }
+
+        res.status(201).json({ issuedItems: issuedResults });
+    } catch (error) {
+        console.error('Error issuing items to department:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
 // STOCK REQUESTS (FROM DEPARTMENTS)
 // ============================================
 

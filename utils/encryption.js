@@ -7,7 +7,7 @@ const IV_LENGTH = 16;
 // Encrypt
 const encrypt = (text) => {
   console.log('Key length:', ENCRYPTION_KEY.length); // should print 32
-  console.log(require('crypto').randomBytes(32).toString('hex'))
+  console.log(require('crypto').randomBytes(32).toString('hex')) 
   if (!text) return null;
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);

@@ -363,6 +363,69 @@ exports.getAllStaffByInstitution = async (req, res) => {
     }
 };
 
+exports.getAllStaffsByRoles = async (req, res) => {
+    const { institution_id, role_id } = req.query;
+
+    try {
+        if (!institution_id) {
+            return res.status(400).json({
+                error: "institution_id is required"
+            });
+        }
+
+        const whereClause = { institution_id };
+
+        if (role_id) {
+            whereClause.role_id = role_id;
+        }
+
+        const staffList = await Staff.findAll({
+            where: whereClause,
+            include: [
+                {
+                    model: Role,
+                    as: "role",
+                    attributes: ["id", "name"]
+                },
+                {
+                    model: Department,
+                    as: "department",
+                    attributes: ["id", "name"]
+                }
+            ]
+        });
+
+        const decryptedStaffList = staffList.map(staff => {
+            const staffData = staff.toJSON();
+
+            ["firstName", "middleName", "lastName", "email", "phone_number"]
+                .forEach(field => {
+                    if (staffData[field]) {
+                        try {
+                            staffData[field] = decrypt(staffData[field]);
+                        } catch (err) {
+                            staffData[field] = "Decryption Error";
+                        }
+                    }
+                });
+
+            return staffData;
+        });
+
+        return res.status(200).json({
+            success: true,
+            count: decryptedStaffList.length,
+            staff: decryptedStaffList
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
 exports.getStaffByInstitutionAndId = async (req, res) => {
     const { institution_id, staff_id } = req.query;
 

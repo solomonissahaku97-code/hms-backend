@@ -16,7 +16,7 @@ class FinanceUtil {
       created_by: createdBy,
     });
 
-    return income;
+    return income; 
   }
 
   // Deduct money = record expense

@@ -14,7 +14,6 @@ const { Op } = require('sequelize');
 const db = require('./models');
 const sequelize = require('./config/database');
 const { port } = require('./config/conf');
-const { loadModels } = require("./utils/faceRecognition");
 const NotificationService = require('./service/notificationService');
 
 // Models
@@ -64,6 +63,7 @@ async function runAllSeeders() {
     { name: 'syncMedicines', path: './default-scripts/syncMedicines' },
     { name: 'syncIcd10ToGdrg', path: './default-scripts/syncIcd10ToGdrg' },
     { name: 'syncLabRanges', path: './default-scripts/syncLabRanges' },
+    { name: 'seedLabInvestigations', path: './default-scripts/seedLabInvestigations' },
     { name: 'seedLabTemplates', path: './default-scripts/seedLabTemplates' }
   ];
 
@@ -89,14 +89,18 @@ async function runAllSeeders() {
         continue;
       }
 
+      // For seeders that depend on tables being present (e.g. lab investigations -> lab templates),
+      // ensure Sequelize sync is run in between.
+      await db.sequelize.sync({ alter: true });
+
       await seederFunction();
-      console.log(`✅ ${seeder.name} completed successfully`);
+      console.log(`✅ ${seeder.name} completed successfully`); 
       successful++;
       
     } catch (error) {
-      console.error(`💥 Failed to run ${seeder.name}:`, error.message);
+      console.error(`💥 Failed to run ${seeder.name}:`, error.message);  
       failed++;
-    }
+    } 
   }
 
   console.log(`\n🎉 Seeders Summary: ${successful} successful, ${failed} failed`);
@@ -240,7 +244,7 @@ async function syncTheatre() {
   }
 }
 
-db.sequelize.sync({ alter: true })
+db.sequelize.sync({ alter: true }) 
   .then(() => {
     console.log('✅ Database synchronized successfully.');
   })

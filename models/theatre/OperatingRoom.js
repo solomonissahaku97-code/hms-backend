@@ -40,10 +40,12 @@ const OperatingRoom = sequelize.define('OperatingRoom', {
     allowNull: true,
     defaultValue: 1,
   },
+  // MySQL/MariaDB does not support JSONB; use JSON for compatibility.
+  // Also ensure the default compiles to a valid SQL value across dialects.
   equipment: {
-    type: DataTypes.JSONB,
+    type: DataTypes.JSON,
     allowNull: true,
-    defaultValue: [],
+    defaultValue: {},
   },
   department_id: {
     type: DataTypes.UUID,

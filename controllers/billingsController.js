@@ -19,7 +19,7 @@ exports.createInvoice = async (req, res) => {
             metadata,
             created_by
         } = req.body;
-
+ 
         // Optional: Validation checks
         if (!visit_id || !institution_id || !invoice_number || !created_by) {
             return res.status(400).json({ message: 'visit_id, institution_id, invoice_number, and created_by are required' });

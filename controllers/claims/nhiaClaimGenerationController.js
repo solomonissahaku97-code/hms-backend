@@ -67,9 +67,11 @@ exports.generateXMLReport = async (req, res) => {
         }
 
         // 🏥 Claim Types
+        // NOTE: Claim model does not have `claim_type` column (error: column Claim.claim_type does not exist).
+        // If you need claim-type filtering, it must be backed by an existing column (e.g. claim_status)
+        // or by joining another table that contains claim type.
         if (claimTypes.length) {
-            whereClause.claim_type = { [Op.in]: claimTypes };
-            console.log('🏥 Claim types filter:', claimTypes);
+            console.warn('⚠️ claimTypes filter requested, but Claim.claim_type column does not exist. Ignoring filter.', claimTypes);
         }
 
         // 📊 Statuses

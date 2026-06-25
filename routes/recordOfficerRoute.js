@@ -3,7 +3,7 @@ const router = express.Router();
 const recordOfficer = require('../controllers/records/recordOfficerController')
 const recordsStats = require('../controllers/records/recordStatsController')
 const adminAuthOrUserAuth = require('../middlewares/eitherAuthOrAdminMiddleware')
-// const patientReport = require('../controllers/records/patient_report')
+const patientReport = require('../controllers/records/patient_report')
 
 
 // RECORD OFFICER
@@ -58,7 +58,7 @@ router.get('/visits/statistics/:visit_id',adminAuthOrUserAuth,recordOfficer.getV
 // router.get('/institution/patient/get-patient-by-status',adminAuthOrUserAuth,recordOfficer.getPatientByRecordStatus)
 // // router.get('/institution/patient/get-patient-by-status',recordOfficer.getPatientByRecord
 
-// router.get('/patientReport',adminAuthOrUserAuth,patientReport.getPatientReport)
+router.get('/patientReport',adminAuthOrUserAuth,patientReport.getPatientReport)
 
 
 module.exports = router;

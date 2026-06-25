@@ -33,7 +33,7 @@ router.get('/staffs',checkTrialStatus,adminAuth, getAllDoctors)
 
 
 // GET ALL STAFFS
-router.get('/all-staffs',adminAuth,getAllStaffByInstitution)
+router.get('/all-staffs',adminAuth,getAllStaffByInstitution) 
 
 // GET A SINGLE STAFF
 router.get('/single-staff',getStaffByInstitutionAndId)

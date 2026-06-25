@@ -36,7 +36,7 @@ if (process.env.NODE_ENV === 'production') {
     process.env.DB_PASSWORD,
     {
       host: process.env.DB_LOCAL_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,  
+      port: Number(process.env.DB_PORT) || 5432,
       dialect: process.env.DB_DIALECT || 'postgres',
       logging: false,
     }
@@ -53,4 +53,4 @@ sequelize.authenticate()
     console.error('❌ Unable to connect to the database:', error);
   });
 
-module.exports = sequelize;
+module.exports = sequelize; 

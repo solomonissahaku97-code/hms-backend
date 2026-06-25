@@ -5,6 +5,7 @@ const Patient = require('../../models/patient');
 
 const getPatientReport = async (req, res) => {
     const { institution_id } = req.query;
+    console.log('it is working')
 
     try {
         console.log('[REPORT] Starting report generation for institution:', institution_id);

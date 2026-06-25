@@ -531,6 +531,7 @@ exports.getActiveVisits = async (req, res) => {
                 { model: Institution, as: 'institution' },
                 { model: Department, as: 'department' },
                 { model: Invoice, as: 'invoice' },
+                {model: Diagnosis, as:'diagnosis'}
             ],
             order: [['createdAt', 'DESC']] // Optional: order by creation date
         });

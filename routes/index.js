@@ -74,6 +74,7 @@ const riskAssessmentRoutes = require('./patientRiskAssessment.routes')
 const familyHistoryRoutes = require('./familyHealthHistory.routes')
 const advancedFeaturesRoutes = require('./patientAdvancedFeatures.routes')
 const systemRoutes = require('./systemRoutes')
+const scheduleRoutes = require('./scheduleRoutes')
 
 // middle ware
 
@@ -118,6 +119,8 @@ module.exports = (app) => {
     app.use('/api/v1/records', recordOfficerRoutes);
     app.use('/api/v1', vitalSignsRoutes);
     app.use('/api/v1', appointmentRoutes);
+    app.use('/api/v1', scheduleRoutes);
+
     app.use('/api/v1/prescriptions', prescriptionRoutes);
     app.use('/api/v1', messageTemplate);
     app.use('/api/v1/notifications', notificationRoutes);

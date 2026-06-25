@@ -24,16 +24,51 @@ exports.createPatientNote = async (req, res) => {
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    // Check if patient exists within the institution
-    const patient = await Visit.findOne({ where: { id: visit_id, institution_id } });
-    if (!patient) return res.status(404).json({ error: "Patient not found within this institution" });
+    // Guard: foreign key integrity (fixes SequelizeForeignKeyConstraintError on patient_notes.staff_id)
+    const staff = await Staff.findByPk(staff_id);
+    if (!staff) {
+      return res.status(400).json({
+        error: "Invalid staff_id: staff does not exist",
+      });
+    }
 
-    const newNote = await PatientNote.create({ 
-      visit_id, 
-      staff_id, 
-      institution_id, 
-      note, 
-      tagged_staff_ids: tagged_staff_ids // Store as JSON
+    // Ensure institution matches staff record (prevents hidden FK mismatches)
+    const effectiveInstitutionId = staff.institution_id;
+    if (effectiveInstitutionId !== institution_id) {
+      return res.status(400).json({
+        error: "Invalid institution_id for the given staff_id",
+      });
+    }
+
+    // Check if visit exists within the institution
+    const visit = await Visit.findOne({ where: { id: visit_id, institution_id } });
+    if (!visit) return res.status(404).json({ error: "Patient not found within this institution" });
+
+    // Normalize tagged_staff_ids
+    const normalizedTaggedStaffIds = Array.isArray(tagged_staff_ids) ? tagged_staff_ids : [];
+
+    // Optional: verify tagged staff exist to avoid additional FK errors downstream
+    if (normalizedTaggedStaffIds.length > 0) {
+      const foundTagged = await Staff.findAll({
+        where: { id: normalizedTaggedStaffIds },
+        attributes: ['id'],
+      });
+      const foundIds = new Set(foundTagged.map((s) => s.id));
+      const missing = normalizedTaggedStaffIds.filter((id) => !foundIds.has(id));
+      if (missing.length > 0) {
+        return res.status(400).json({
+          error: "Invalid tagged_staff_ids: some staff do not exist",
+          details: missing,
+        });
+      }
+    }
+
+    const newNote = await PatientNote.create({
+      visit_id,
+      staff_id,
+      institution_id,
+      note,
+      tagged_staff_ids: normalizedTaggedStaffIds, // ARRAY<UUID>
     });
 
     return res.status(201).json({
