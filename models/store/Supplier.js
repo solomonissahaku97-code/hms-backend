@@ -64,6 +64,7 @@ const Supplier = sequelize.define('Supplier', {
 Supplier.associate = (models) => {
     Supplier.hasMany(models.Item, { foreignKey: 'supplier_id', as: 'items' });
     Supplier.hasMany(models.ItemBatch, { foreignKey: 'supplier_id', as: 'batches' });
+    Supplier.hasMany(models.PurchaseOrder, { foreignKey: 'supplier_id', as: 'purchaseOrders' });
 };
 
 module.exports = Supplier;

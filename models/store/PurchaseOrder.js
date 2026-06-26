@@ -67,4 +67,13 @@ const PurchaseOrder = sequelize.define('PurchaseOrder', {
     timestamps: true,
 });
 
+// Associations
+PurchaseOrder.associate = (models) => {
+    PurchaseOrder.belongsTo(models.Supplier, {
+        foreignKey: 'supplier_id',
+        as: 'supplier',
+    });
+};
+
 module.exports = PurchaseOrder;
+
