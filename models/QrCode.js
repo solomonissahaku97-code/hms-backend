@@ -1,6 +1,8 @@
 // models/QrCode.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
+const Staff = require("./staff");
+const Institution = require("./institution");
 
 const QrCode = sequelize.define("QrCode", {
   id: {
@@ -8,19 +10,36 @@ const QrCode = sequelize.define("QrCode", {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
-  token: {
+  qr_code: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     unique: true,
   },
-  expiresAt: {
-    type: DataTypes.DATE,
-    allowNull: false,
+  staff_id:{
+    type:DataTypes.UUID,
+    allowNull:true,
+    unique:true,
+    references:{
+      model:Staff,
+      key:'id'
+    }
   },
-  isUsed: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
+  status: {
+    type: DataTypes.ENUM("ACTIVE", "DISABLED"),
+    defaultValue: "ACTIVE",
   },
+  institution_id:{
+    type:DataTypes.UUID,
+    allowNull:true,
+    unique:true,
+    references:{
+      model:Institution,
+      key:'id'
+    },
+  
+  }
 });
+
+// malaria
 
 module.exports = QrCode;

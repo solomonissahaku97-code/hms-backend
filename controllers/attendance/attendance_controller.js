@@ -6,14 +6,14 @@ const Staff = require("../../models/staff");
 
 exports.scanQrCode = async (req, res) => {
   try {
-    const { token, staffId } = req.body;
+    const { qr_code, staffId } = req.body;
 
-    if (!token || !staffId) {
+    if (!qr_code || !staffId) {
       return res.status(400).json({ success: false, message: "Missing fields" });
     }
 
     // Validate QR code
-    const qrCode = await QrCode.findOne({ where: { token } });
+    const qrCode = await QrCode.findOne({ where: { qr_code } });
     if (!qrCode || new Date() > qrCode.expiresAt) {
       return res.status(400).json({ success: false, message: "Invalid/expired QR code" });
     }
@@ -130,7 +130,7 @@ exports.getAttendanceByDepartment = async (req, res) => {
       console.error("Fetch Department Attendance Error:", error);
       res.status(500).json({ success: false, message: "Failed to fetch attendance records" });
     }
-  };
+  }; 
 
 
   // get attendance by department and date range 

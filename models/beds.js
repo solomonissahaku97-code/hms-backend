@@ -26,7 +26,7 @@ const Bed = sequelize.define('Bed', {
         type: DataTypes.ENUM('available', 'occupied', 'faulty', 'under_maintenance'),
         defaultValue: 'available',
     },
-    institution_id: {
+    institution_id: { 
         type: DataTypes.UUID,
         allowNull: false,
         references: {

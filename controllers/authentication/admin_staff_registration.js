@@ -13,6 +13,7 @@ const LeaveRequest = require("../../models/hr/LeaveManagement");
 const Appointment = require("../../models/appointment");
 const StaffDepartment = require("../../models/controls/StaffDepartment");
 const sequelize = require("../../config/database");
+const generateStaffQrCode = require("../../utils/generateStaffQrCode");
 
 const getInstitutionInitials = (name) => {
     return name.split(' ').map(word => word[0]).join('').toUpperCase();
@@ -101,7 +102,6 @@ exports.registerStaffs = async (req, res) => {
             await transaction.rollback();
             return res.status(400).json({ error: 'Email already exists' });
         }
-
         // Handle profile picture
         let profile_pic = null;
         if (req.file) {
@@ -137,6 +137,11 @@ exports.registerStaffs = async (req, res) => {
             profile_pic,
             is_incharge: is_incharge || false
         }, { transaction });
+        const { qr, qrImage } = await generateStaffQrCode(
+            staff.id,
+            staff.institution_id,
+            transaction
+        );
 
         // Create department assignments if department_ids provided
         if (department_ids && department_ids.length > 0) {
@@ -147,7 +152,7 @@ exports.registerStaffs = async (req, res) => {
             }));
 
             await StaffDepartment.bulkCreate(assignments, { transaction });
-            
+
             // Set the staff's primary department (department_id in Staff table)
             const primaryDept = primary_department_id || department_ids[0];
             await Staff.update({ department_id: primaryDept }, { where: { id: staff.id }, transaction });

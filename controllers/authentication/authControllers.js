@@ -93,6 +93,7 @@ exports.login = async (req, res) => {
 // Step 2: Verify Selected Answer
 exports.verifyLogicAnswer = async (req, res) => {
     const { staffID, selectedAnswer } = req.body;
+    console.log(req.body)
 
     if (!staffID || !selectedAnswer) {
         return res.status(400).json({ error: "StaffID and selected answer are required." });

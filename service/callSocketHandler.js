@@ -129,15 +129,20 @@ class CallSocketHandler {
       });
 
       // Notify target department
+      // NOTE: keep payload compatible with frontend's `incoming-call` handler
       this.io.to(`department:${targetDepartmentId}`).emit('incoming-call', {
         id: call.id,
+        callId: call.id,
         caller_id,
         caller_name,
         caller_department_id,
+        receiver_department_id: targetDepartmentId,
         call_type: call_type || 'video',
         room_name: call.room_name,
-        status: 'ringing'
+        status: 'ringing',
       });
+
+
 
       // Send confirmation to caller
       socket.emit('call-initiated', {
