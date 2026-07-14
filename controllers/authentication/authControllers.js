@@ -127,12 +127,17 @@ exports.verifyLogicAnswer = async (req, res) => {
 
         // Decrypt sensitive information before sending user data
         const decryptedUser = decryptStaffData(user.toJSON());
-
+        console.log("Decrypted User Data:", {
+            message: "Login successful!", 
+            token, 
+            user: decryptedUser 
+        });
         return res.status(200).json({ 
             message: "Login successful!", 
             token, 
             user: decryptedUser 
         });
+        
 
     } catch (err) {
         console.error("Error verifying logic answer:", err);

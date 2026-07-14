@@ -137,11 +137,11 @@ exports.registerStaffs = async (req, res) => {
             profile_pic,
             is_incharge: is_incharge || false
         }, { transaction });
-        const { qr, qrImage } = await generateStaffQrCode(
-            staff.id,
-            staff.institution_id,
-            transaction
-        );
+        // const { qr, qrImage } = await generateStaffQrCode(
+        //     staff.id,
+        //     staff.institution_id,
+        //     transaction
+        // );
 
         // Create department assignments if department_ids provided
         if (department_ids && department_ids.length > 0) {

@@ -1,5 +1,5 @@
 const express = require("express");
-const { scanQrCode,getAllAttendance,getStaffAttendance,getAttendanceByDepartment,getAttendanceByDepartmentAndDate } = require("../controllers/attendance/attendance_controller");
+const { scanQrCode,getAllAttendance,getStaffAttendance,getAttendanceByDepartment,getAttendanceByDepartmentAndDate,getStaffQrCode, getStaffQrCodeImage } = require("../controllers/attendance/attendance_controller");
 // const { generateQrCode,getLatestQrCode } = require("../controllers/attendance/qrController");
 
 
@@ -13,6 +13,7 @@ router.get("/all", getAllAttendance);
 router.get("/staff/:staffId", getStaffAttendance);
 router.get("/department/:departmentId",getAttendanceByDepartment)
 router.get("/department/:departmentId/date/:date", getAttendanceByDepartmentAndDate);
+router.get("/get-staff-qrcode/:staffId", getStaffQrCode);
 
 
 

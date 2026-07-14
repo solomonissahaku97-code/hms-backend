@@ -55,7 +55,7 @@ exports.scanQrCode = async (req, res) => {
     console.error("QR Scan Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
-};
+}; 
 
 exports.getAllAttendance = async (req, res) => {
     try {
@@ -164,7 +164,33 @@ exports.getAttendanceByDepartmentAndDate = async (req, res) => {
       console.error("Fetch Department Attendance by Date Error:", error);
       res.status(500).json({ success: false, message: "Failed to fetch attendance records" });
     }
+  }; 
+
+  // display staff qrcode for scanning
+  exports.getStaffQrCode = async (req, res) => {
+    try {
+      const { staffId } = req.params;
+  
+      if (!staffId) {
+        return res.status(400).json({ success: false, message: "Staff ID is required" });
+      }
+  
+      const qrCodeRecord = await QrCode.findOne({
+        where: { staff_id: staffId },
+      });
+  
+      if (!qrCodeRecord) {
+        return res.status(404).json({ success: false, message: "QR code not found for this staff" });
+      }
+  
+      return res.json({ success: true, data: qrCodeRecord });
+    } catch (error) {
+      console.error("Fetch Staff QR Code Error:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch QR code" });
+    }
   };
+
+
 
 
 

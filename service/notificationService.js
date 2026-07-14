@@ -29,7 +29,8 @@ class NotificationService {
       console.log(`🔔 Notification socket connected: ${socket.id}`);
 
       // Join staff-specific and department rooms
-      socket.on('join-notification-room', async ({ staffId, departmentId }) => {
+      // Legacy event
+      socket.on('join-notification-room', async ({ staffId, departmentId } = {}) => {
         if (staffId) {
           socket.join(`staff-${staffId}`);
           console.log(`Staff ${staffId} joined notification room`);
@@ -39,6 +40,20 @@ class NotificationService {
           console.log(`Department ${departmentId} joined notification room`);
         }
       });
+
+      // Current client socket registration event (used by socketService.register)
+      socket.on('register', async ({ userId, departmentId, institutionId } = {}) => {
+        // Staff room
+        if (userId) {
+          socket.join(`staff-${userId}`);
+        }
+        // Department room
+        if (departmentId) {
+          socket.join(`department-${departmentId}`);
+        }
+        socket.data.notification = { userId, departmentId, institutionId };
+      });
+
 
       // Leave notification room
       socket.on('leave-notification-room', ({ staffId, departmentId }) => {
@@ -222,6 +237,7 @@ class NotificationService {
     });
   }
 }
+
 
 // Export both the class and the notification types
 module.exports = NotificationService;

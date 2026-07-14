@@ -218,24 +218,39 @@ const updateClaimItem = async (claimId, itemId, updateData, transaction) => {
 
         updateData.description = diagnosis.diagnosis_name;
         updateData.gdrg_code = diagnosis.icd_10_code;
-
-        diagnosis.medication_id = updateData.item_id
       }
+
       if (updateData.quantity === undefined) {
-        updateData.quantity = 1; // Diagnosis items default to quantity 1
+        updateData.quantity = claimItem.quantity || 1;
+      }
+
+      // If caller didn’t provide nhia_amount, keep it from existing record
+      if (updateData.nhia_amount === undefined) {
+        updateData.nhia_amount = claimItem.nhia_amount || 0;
+      }
+
+      // Ensure unit_price is present for correct amount calculation
+      if (updateData.unit_price === undefined) {
+        updateData.unit_price = claimItem.unit_price || 0;
       }
       break;
 
     case 'Procedure':
-      const procedure = await Procedure.findByPk(itemData.item_id, { transaction });
+      if (!updateData.item_id) {
+        // keep existing linkage/values if no new procedure id is provided
+        break;
+      }
+
+      const procedure = await Procedure.findByPk(updateData.item_id, { transaction });
       if (!procedure) throw new Error('Procedure not found');
 
-      itemData.unit_price = procedure.price_ghc || 0;
-      itemData.description = procedure.procedure_name || 'Procedure';
-      itemData.gdrg_code = procedure.procedure_code || null;
-      itemData.quantity = itemData.quantity || 1;
-      itemData.amount = itemData.unit_price * itemData.quantity;
-      itemData.nhia_amount = Math.min(itemData.amount, procedure.nhia_price || 0);
+      updateData.unit_price = procedure.price_ghc || 0;
+      updateData.description = procedure.procedure_name || 'Procedure';
+      updateData.gdrg_code = procedure.procedure_code || null;
+      updateData.quantity = updateData.quantity || claimItem.quantity || 1;
+
+      updateData.amount = updateData.unit_price * updateData.quantity;
+      updateData.nhia_amount = Math.min(updateData.amount, procedure.nhia_price || 0);
       break;
 
     default:

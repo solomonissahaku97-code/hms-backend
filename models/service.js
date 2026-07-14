@@ -42,7 +42,8 @@ const Service = sequelize.define('Service', {
 
 // association
 Service.associate = (models) => {
-    Service.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' }); 
+    Service.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' });
+    Service.hasMany(models.ServiceBill, { foreignKey: 'service_id', as: 'serviceBills' }); 
     // If ServiceBill should be associated, uncomment and adjust the following line:
     // Service.hasMany(models.ServiceBill, { foreignKey: 'service_id', as: 'serviceBills' });
     // Removed hasMany ServiceBill - service_id in ServiceBill is polymorphic (references different tables based on service_type)

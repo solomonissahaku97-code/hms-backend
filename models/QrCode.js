@@ -31,7 +31,6 @@ const QrCode = sequelize.define("QrCode", {
   institution_id:{
     type:DataTypes.UUID,
     allowNull:true,
-    unique:true,
     references:{
       model:Institution,
       key:'id'

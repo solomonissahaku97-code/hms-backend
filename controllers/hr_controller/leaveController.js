@@ -165,7 +165,7 @@ class LeaveController {
       leave.endDate = endDate || leave.endDate;
       leave.reason = reason || leave.reason;
       leave.emergencyContact = emergencyContact || leave.emergencyContact;
-
+ 
       await leave.save({ transaction: t });
 
       await Audit.log("Leave Updated", staff_id, { leaveId: leave.id }, t);
@@ -216,7 +216,7 @@ class LeaveController {
   // Staff view their leave requests
   static async myLeaves(req, res) {
     try {
-      const staff_id = req.user?.id;
+      const staff_id = req.query?.staffId || req.user?.id;
       const leaves = await LeaveRequest.findAll({ 
         where: { staff_id },
         order: [['createdAt', 'DESC']]

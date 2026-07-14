@@ -84,6 +84,23 @@ const getShifts = async (req, res) => {
 };
 
 
+// get staff shifts
+const getStaffShifts = async (req, res) => {
+    const { staffId } = req.params;
+    try {
+        const shifts = await RotationStaff.findAll({
+            where: { staff_id: staffId },
+            order: [['day', 'ASC']],
+        });
+
+        return res.status(200).json(shifts);
+    } catch (error) {
+        console.error("Error fetching staff shifts:", error);
+        return res.status(500).json({ message: "Server error, could not fetch staff shifts." });
+    }
+};
+
+
 const addBulkShifts = async (req, res) => {
     try {
         const shiftsArray = req.body;
@@ -217,4 +234,4 @@ const getAllUsersFromDepartment = async (req, res) => {
 // it works for me and other section of the application..so we have to deal with everything here and also talk about the consultation we had talked about earlier
 
 // it works for me and other section of the application
-module.exports = { addShift, updateShift, getShifts, addBulkShifts, getAllUsersFromDepartment };
+module.exports = { addShift, updateShift, getShifts, addBulkShifts, getAllUsersFromDepartment,getStaffShifts };

@@ -19,7 +19,7 @@ if (process.env.NODE_ENV === 'production') {
       ssl: {
         require: true,
         rejectUnauthorized: false,
-      },
+      }, 
     },
     pool: {
       max: 5,

@@ -37,7 +37,7 @@ class ChatService {
           callback({
             success: false,
             error: 'Failed to save message'
-          });
+          }); 
         }
       });
 
@@ -54,7 +54,7 @@ class ChatService {
       institution_id: messageData.institution_id,
       senderDepartmentId: messageData.senderDepartmentId,
       receiverDepartmentId: messageData.receiverDepartmentId,
-      senderId: messageData.senderId,
+      senderId: messageData.senderId, 
       receiverId: messageData.receiverId,
       senderAdminId: messageData.senderAdminId,
       receiverAdminId: messageData.receiverAdminId,
@@ -76,7 +76,7 @@ class ChatService {
     });
 
     if (messageData.receiverId) {
-      await ChatReadReceipt.create({
+      await ChatReadReceipt.create({ 
         chatId: message.id,
         departmentId: messageData.receiverDepartmentId,
         staffId: messageData.receiverId,

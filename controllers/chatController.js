@@ -101,7 +101,7 @@ async function sendMessage(req, res) {
                 client.send(JSON.stringify({ 
                     type: "new_message", 
                     data: messageData 
-                }));
+                })); 
             }
         });
 
@@ -116,6 +116,7 @@ async function sendMessage(req, res) {
 
 async function getDepartmentsByInstitution(req, res) {
     const { institution_id } = req.query; // Get institution ID from request parameters
+    console.log('Fetching departments for institution ID:', institution_id);
 
     try {
         if (!institution_id) {

@@ -16,66 +16,108 @@ const { handleBilling } = require('../../utils/billingUtil');
 const Department = require('../../models/department');
 const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
-const Notification = require('../../models/notification');
+const Notification = require('../../models/notification'); 
+
 
 // Helper function to notify lab staff
 async function notifyLabStaff(labResult, template, visit, req) {
-  try {
-    // Find lab department
-    const labDepartment = await Department.findOne({ where: { name: { [Op.iLike]: '%lab%' } } });
-    
-    if (!labDepartment) {
-      console.log('Lab department not found for notifications');
-      return;
-    }
+    try {
+        // Find the Lab department for the current institution
+        const labDepartment = await Department.findOne({
+            where: {
+                institution_id: visit.institution_id,
+                departmentType: 'Lab',
+            },
+        });
 
-    // Find staff in the lab department
-    const labStaff = await Staff.findAll({
-      include: [{
-        model: Department,
-        as: 'department',
-        where: { id: labDepartment.id }
-      }]
-    });
-
-    // Get patient info
-    const patient = await Patient.findByPk(visit.patient_id);
-
-    if (!labStaff || labStaff.length === 0) {
-      console.log('No lab staff found for notifications');
-      return;
-    }
-
-    // Create notifications for all lab staff
-    for (const staff of labStaff) {
-      const notification = await Notification.create({
-        title: 'New Lab Request',
-        description: `New lab test requested: ${template?.lab_tarrif?.test_description || 'Lab Test'}. Patient: ${patient?.firstName} ${patient?.lastName}`,
-        from_staff_id: req.body.user,
-        to_staff_id: staff.id,
-        institution_id: visit.institution_id,
-        to_department_id: labDepartment.id,
-        type: 'Alert',
-        priority: 'Medium',
-      });
-
-      // Emit real-time notification
-      try {
-        const notificationService = req.app.get('notificationService');
-        if (notificationService) {
-          notificationService.emitNotification(notification);
+        if (!labDepartment) {
+            console.log(
+                `❌ No Lab department found for institution ${visit.institution_id}`
+            );
+            return;
         }
-      } catch (e) {
-        console.error('Error emitting real-time notification:', e);
-      }
+
+        console.log(
+            `✅ Lab Department Found: ${labDepartment.name} (${labDepartment.id})`
+        );
+
+        // Find all staff assigned to this department
+        const labStaff = await Staff.findAll({
+            where: {
+                institution_id: visit.institution_id,
+                department_id: labDepartment.id,
+            },
+        });
+
+        console.log(
+            `👨‍⚕️ Found ${labStaff.length} lab staff member(s).`
+        );
+
+        if (labStaff.length === 0) {
+            console.log(
+                `❌ No lab staff assigned to department ${labDepartment.name}`
+            );
+
+            // Debugging: Show staff in this institution
+            const institutionStaff = await Staff.findAll({
+                where: {
+                    institution_id: visit.institution_id,
+                },
+                attributes: [
+                    'id',
+                    'firstName',
+                    'lastName',
+                    'department_id',
+                    'institution_id',
+                ],
+                raw: true,
+            });
+
+            console.table(institutionStaff);
+
+            return;
+        }
+
+        // Get patient details
+        const patient = await Patient.findByPk(visit.patient_id);
+
+        // Send notification to every lab staff
+        for (const staff of labStaff) {
+            const notification = await Notification.create({
+                title: 'New Lab Request',
+                description: `New lab test requested: ${
+                    template?.lab_tarrif?.test_description || 'Lab Test'
+                }. Patient: ${patient?.firstName || ''} ${patient?.lastName || ''}`,
+                from_staff_id: req.body.user,
+                to_staff_id: staff.id,
+                institution_id: visit.institution_id,
+                to_department_id: labDepartment.id,
+                type: 'Alert',
+                priority: 'Medium',
+            });
+
+            try {
+                const notificationService =
+                    req.app.get('notificationService');
+
+                if (notificationService) {
+                    notificationService.emitNotification(notification);
+                }
+            } catch (err) {
+                console.error(
+                    'Error emitting real-time notification:',
+                    err
+                );
+            }
+        }
+
+        console.log(
+            `📣 Notifications sent successfully to ${labStaff.length} lab staff member(s).`
+        );
+    } catch (error) {
+        console.error('Error sending lab staff notifications:', error);
     }
-
-    console.log(`📣 Notifications sent to ${labStaff.length} lab staff members`);
-  } catch (error) {
-    console.error('Error sending lab staff notifications:', error);
-  }
 }
-
 // Create a new template
 exports.createTemplate = async (req, res, next) => {
   const transaction = await sequelize.transaction();
@@ -214,6 +256,7 @@ exports.createResult = async (req, res, next) => {
     notifyLabStaff(result, templateForNotify, visitForNotify, req).catch(err => 
       console.error('Error notifying lab staff:', err)
     );
+    console.log(`📣 Notification process initiated for lab staff regarding new test result ID: ${result.id}`);
 
     res.status(201).json({
       status: 'success',

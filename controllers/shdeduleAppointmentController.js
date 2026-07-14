@@ -19,14 +19,14 @@ exports.fetchPatientAppointments = async (req, res) => {
             where: { patient_id, institution_id },
             include: [{
                 model: Staff,
-                as:'doctor'
-               
+                as: 'doctor'
+
             },
             {
-                model:Patient,
-                as:'patient'
+                model: Patient,
+                as: 'patient'
             }
-        ]
+            ]
         });
 
         res.json(appointments);
@@ -62,8 +62,8 @@ exports.createAppointment = async (req, res) => {
         // Create appointment
         const appointment = await Appointment.create(appointmentData);
 
-     
-        return res.status(201).json({ 
+
+        return res.status(201).json({
             message: 'Appointment scheduled successfully',
             appointment: {
                 id: appointment.id,
@@ -75,18 +75,18 @@ exports.createAppointment = async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating appointment:', error);
-        
+
         // Handle specific database errors
         if (error.name === 'SequelizeValidationError') {
             const errors = error.errors.map(err => err.message);
             return res.status(400).json({ message: 'Validation error', errors });
         }
-        
+
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(400).json({ message: 'Appointment conflict or duplicate entry' });
         }
 
-        return res.status(500).json({ 
+        return res.status(500).json({
             message: 'Error creating appointment',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
@@ -114,29 +114,161 @@ exports.getRollStaffs = async (req, res) => {
 exports.getAppointmentByDoctorId = async (req, res) => {
     const { institution_id, doctor_id } = req.query;
 
+    console.log(req.query);
+
     try {
+
         const appointments = await Appointment.findAll({
-            where: { institution_id, staff_id: doctor_id },
-            include:[
+            where: {
+                staff_id: doctor_id,
+                // institution_id: institution_id
+            },
+
+            include: [
                 {
-                    model:Patient,
-                    as:'patient',
-                    include:[
+                    model: Visit,
+                    as: 'patient',
+                    include: [
                         {
-                            model:Diagnosis,
-                            as:'diagnosis',
+                            model: Patient,
+                            as: 'patient',
+                            attributes: [
+                                'id',
+                                'first_name',
+                                'last_name'
+                            ]
                         }
                     ]
                 }
+            ],
+
+            order: [
+                ['appointment_date', 'ASC'],
+                ['appointment_time', 'ASC']
             ]
         });
-        return res.json(appointments);
-        console.log(appointments);
+
+
+        const transformed = appointments.map((apt) => {
+
+            const patientData = apt.patient?.patient;
+
+
+            return {
+
+                id: apt.id,
+
+                doctor_id: apt.staff_id,
+
+                patient_id: patientData?.id ?? null,
+
+
+                patient: patientData
+                    ? `${patientData.first_name} ${patientData.last_name}`
+                    : "Unknown",
+
+
+                date: apt.appointment_date,
+
+                time: apt.appointment_time,
+
+                status: apt.status ?? "pending",
+
+                reason: apt.reason ?? null,
+
+                type: apt.appointment_type ?? null
+
+            };
+
+        });
+
+
+        console.log("Transformed:", transformed);
+
+
+        return res.status(200).json(transformed);
+
+
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching doctor appointments', error });
-        console.log(error);
+
+        console.log(
+            "Error fetching doctor appointments:",
+            error
+        );
+
+
+        return res.status(500).json({
+            message: "Error fetching doctor appointments",
+            error: error.message
+        });
     }
 };
+
+// GET UPCOMING APPOINTMENTS BY DOCTOR
+exports.getUpcomingAppointmentsByDoctorId = async (req, res) => {
+    const {  doctor_id, limit = 10 } = req.query;
+
+    try {
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const appointments = await Appointment.findAll({
+            where: {
+                institution_id,
+                staff_id: doctor_id,
+                appointment_date: {
+                    [Op.gte]: today,
+                },
+                status: {
+                    [Op.ne]: 'completed',
+                },
+            },
+            include: [
+                {
+                    model: Visit,
+                    as: 'patient',
+                    include: [
+                        {
+                            model: Patient,
+                            as: 'patient',
+                        },
+                    ],
+                },
+                {
+                    model: Staff,
+                    as: 'doctor',
+                },
+            ],
+            order: [
+                ['appointment_date', 'ASC'],
+                ['appointment_time', 'ASC'],
+            ],
+            limit: parseInt(limit),
+        });
+
+        const transformedAppointments = appointments.map((apt) => ({
+            id: apt.id,
+            doctor_id: apt.staff_id,
+            patient: apt.patient?.patient?.first_name
+                ? `${apt.patient.patient.first_name} ${apt.patient.patient.last_name}`
+                : 'Unknown',
+            time: apt.appointment_time,
+            status: apt.status || 'pending',
+            date: apt.appointment_date,
+            reason: apt.reason,
+            type: apt.appointment_type,
+        }));
+        console.log('Transformed Upcoming Appointments:', transformedAppointments);
+
+        return res.status(200).json(transformedAppointments);
+    } catch (error) {
+        console.error('Error fetching doctor upcoming appointments:', error);
+        return res.status(500).json({ error: 'An error occurred while fetching doctor upcoming appointments' });
+    }
+};
+
+
 
 
 // GET ALL APPOINTMENT IN AN INSTITUTION
@@ -144,37 +276,39 @@ exports.getAllAppointments = async (req, res) => {
     const { institution_id } = req.query
 
     try {
-        const appointment = await Appointment.findAll({ where: { institution_id: institution_id },include:[
-            {
-                model:Visit,
-                as:'patient',
-                include:[
-                    {
-                        model:Patient,
-                        as:'patient'
-                    }
-                ]
-            },
-            {
-                model:Staff,
-                as:'doctor'
-            }
-        ]})
+        const appointment = await Appointment.findAll({
+            where: { institution_id: institution_id }, include: [
+                {
+                    model: Visit,
+                    as: 'patient',
+                    include: [
+                        {
+                            model: Patient,
+                            as: 'patient'
+                        }
+                    ]
+                },
+                {
+                    model: Staff,
+                    as: 'doctor'
+                }
+            ]
+        })
         if (!appointment) return res.status(404).json({ error: 'appointment does not exist' });
         return res.status(200).json(appointment)
     } catch (error) {
         console.log(error)
-        return res.status(404).json({error:error})
+        return res.status(404).json({ error: error })
     }
 }
 
 
 // DELETE AN APPOINTMENT
 exports.deleteAppointment = async (req, res) => {
-    const { id,institution_id } = req.query;
+    const { id, institution_id } = req.query;
 
     try {
-        const result = await Appointment.destroy({ where: { id,institution_id } });
+        const result = await Appointment.destroy({ where: { id, institution_id } });
 
         if (result === 0) {
             return res.status(404).json({ message: 'Appointment not found' });
@@ -192,14 +326,14 @@ exports.deleteAppointment = async (req, res) => {
 exports.approveAppointment = async (req, res) => {
     const { patient_id, appointmentId, department_id, institution_id } = req.body; // Can be from req.body for a more RESTful approach
     console.log(req.body)
-    
+
     try {
         // Check if department exists
         const department = await Department.findOne({ where: { id: department_id, institution_id } });
         if (!department) return res.status(404).json({ error: 'Department does not exist' });
 
         // Check if patient exists in the institution
-        const patient = await Patient.findOne({ where: { id: patient_id, institution_id:institution_id } });
+        const patient = await Patient.findOne({ where: { id: patient_id, institution_id: institution_id } });
         if (!patient) return res.status(404).json({ error: 'Patient does not exist in the institution' });
 
         // Check if appointment exists for the patient
@@ -209,12 +343,12 @@ exports.approveAppointment = async (req, res) => {
         // Update appointment status to 'approved'
         await appointment.update({ status: "completed" });
 
-            // Update patient's department
+        // Update patient's department
         await patient.update({ department_id: department_id });
 
         // Send success response
         return res.status(200).json({ message: 'Appointment approved successfully' });
-        
+
     } catch (error) {
         console.error('Error approving appointment:', error); // Log the error for debugging
         return res.status(500).json({ error: 'An error occurred while approving the appointment' });
@@ -265,8 +399,8 @@ exports.getUpcomingAppointments = async (req, res) => {
         // Transform to match frontend expected format
         const transformedAppointments = appointments.map(apt => ({
             id: apt.id,
-            patient: apt.patient && apt.patient.patient 
-                ? `${apt.patient.patient.first_name} ${apt.patient.patient.last_name}` 
+            patient: apt.patient && apt.patient.patient
+                ? `${apt.patient.patient.first_name} ${apt.patient.patient.last_name}`
                 : 'Unknown',
             time: apt.appointment_time,
             department: 'General',

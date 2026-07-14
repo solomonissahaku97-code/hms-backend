@@ -17,6 +17,8 @@ router.put('/notification/markAsRead',authenticateToken,notificationController.m
 // Mark all notifications as read
 router.put('/notification/markAllAsRead', authenticateToken, notificationController.markAllAsRead)
 
+router.get('/notification/my-unread', authenticateToken, notificationController.getMyUnreadNotifications)
+
 
 
 module.exports = router;

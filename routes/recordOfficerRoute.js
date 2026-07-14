@@ -19,7 +19,8 @@ router.post('/patient/initiate',adminAuthOrUserAuth,recordOfficer.initializeNewP
 // Get all active visits in an institution
 router.get('/visit/active',adminAuthOrUserAuth,recordOfficer.getActiveVisits)
 router.get('/insurance',adminAuthOrUserAuth,recordOfficer.getAllInsuranceProviders)
-router.get('/visit/by-type', recordOfficer.getVisitsByType);
+router.get('/visit/by-type',adminAuthOrUserAuth,recordOfficer.getVisitsByType);
+router.get('/visits/:visit_id',adminAuthOrUserAuth,recordOfficer.getVisitDetails);
 
 
 
@@ -34,7 +35,6 @@ router.get('/statistics/',adminAuthOrUserAuth,recordsStats.getRecordStatistics);
 router.get('/patients/:institution_id',adminAuthOrUserAuth,recordOfficer.getAllPatients);
 router.get('/patient/:id',adminAuthOrUserAuth,recordOfficer.getPatientDetails)
 // get visit details
-router.get('/visits/:visit_id',adminAuthOrUserAuth,recordOfficer.getVisitDetails);
 router.patch('/patient/:patient_id',adminAuthOrUserAuth,recordOfficer.updatePatientInformation)
 // update insurance provider
 router.patch('/patient/insurance/:patient_id',adminAuthOrUserAuth,recordOfficer.updateInsuranceInformation);

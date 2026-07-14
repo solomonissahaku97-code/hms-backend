@@ -460,44 +460,49 @@ exports.getPatientVisits = async (req, res) => {
 
 }
 
-// get all visit in an institution where status is active
+// Get all active visits for an institution (optionally filtered by department)
 exports.getActiveVisits = async (req, res) => {
     const { institution_id, department_id } = req.query;
 
-    // Validate the request parameters
+    console.log("Received request for active visits:", req.query);
+
+    // Validate request
     const schema = Joi.object({
-        institution_id: Joi.string().required(),
-        department_id: Joi.string().optional().allow('') // Make department_id optional
+        institution_id: Joi.string().trim().required(),
+        department_id: Joi.string().trim().optional().allow('')
     });
 
     const { error } = schema.validate(req.query);
+
     if (error) {
-        return res.status(400).json({ error: error.details[0].message });
+        return res.status(400).json({
+            success: false,
+            error: error.details[0].message
+        });
     }
 
     try {
-        // Build where clause
+        // Build query filters
         const whereClause = {
             institution_id,
-            status: 'Active'
+            status: "Active"
         };
 
-        // Add department_id to where clause only if provided
-        if (department_id) {
-            whereClause.department_id = department_id;
+        // Apply department filter only if provided
+        if (department_id && department_id.trim() !== "") {
+            whereClause.department_id = department_id.trim();
         }
 
-        // Fetch all active visits for the institution (and department if provided)
         const visits = await Visit.findAll({
             where: whereClause,
             include: [
                 {
                     model: Patient,
-                    as: 'patient',
+                    as: "patient",
                     include: [
                         {
                             model: Insurance,
-                            as: 'insurance',
+                            as: "insurance"
                         }
                     ]
                 },
@@ -509,53 +514,90 @@ exports.getActiveVisits = async (req, res) => {
                             model: ClaimItem,
                             as: "items",
                             include: [
-                                { model: Prescription, as: "prescription" },
+                                {
+                                    model: Prescription,
+                                    as: "prescription"
+                                },
                                 {
                                     model: Diagnosis,
-                                    as: 'diagnosis',
+                                    as: "diagnosis",
                                     include: [
                                         {
                                             model: systemDiagnosis,
-                                            as: 'systemDiagnosis'
+                                            as: "systemDiagnosis"
                                         }
                                     ]
                                 },
-                                { model: LabResult, as: "labTest" },
-                                { model: Staff, as: "staff" }, // performed_by
-                                { model: Procedure, as: "procedure" },
+                                {
+                                    model: LabResult,
+                                    as: "labTest"
+                                },
+                                {
+                                    model: Staff,
+                                    as: "staff"
+                                },
+                                {
+                                    model: Procedure,
+                                    as: "procedure"
+                                }
                             ]
                         }
                     ]
                 },
-                { model: VitalSignsRecord, as: 'vitalSignsRecords' },
-                { model: Institution, as: 'institution' },
-                { model: Department, as: 'department' },
-                { model: Invoice, as: 'invoice' },
-                {model: Diagnosis, as:'diagnosis'}
+                {
+                    model: VitalSignsRecord,
+                    as: "vitalSignsRecords"
+                },
+                {
+                    model: Institution,
+                    as: "institution"
+                },
+                {
+                    model: Department,
+                    as: "department"
+                },
+                {
+                    model: Invoice,
+                    as: "invoice"
+                },
+                {
+                    model: Diagnosis,
+                    as: "diagnosis"
+                }
             ],
-            order: [['createdAt', 'DESC']] // Optional: order by creation date
+            order: [["createdAt", "DESC"]]
         });
+
+        console.log(visits.length, "active visits retrieved for institution:", institution_id, "and department:", department_id || "all departments",visits);
 
         return res.status(200).json({
             success: true,
-            message: department_id
+            message: department_id && department_id.trim() !== ""
                 ? `Active visits retrieved for department ${department_id}`
-                : 'All active visits retrieved',
-            data: visits,
+                : "All active visits retrieved successfully.",
             count: visits.length,
             filters: {
                 institution_id,
-                department_id: department_id || 'all departments'
-            }
+                department_id:
+                    department_id && department_id.trim() !== ""
+                        ? department_id
+                        : "all departments"
+            },
+            data: visits
         });
-    } catch (error) {
-        console.error('Error fetching active visits:', error);
+
+    } catch (err) {
+        console.error("Error fetching active visits:", err);
+
         return res.status(500).json({
             success: false,
-            error: 'An error occurred while fetching active visits'
+            error: "Failed to retrieve active visits.",
+            message: process.env.NODE_ENV === "development"
+                ? err.message
+                : undefined
         });
     }
-}
+};
 
 // get active visit by department_id
 
@@ -563,151 +605,254 @@ exports.getActiveVisits = async (req, res) => {
 
 // get visit details
 exports.getVisitDetails = async (req, res) => {
+    console.log('Received request for visit details with params:', req.params); // Debug log
     const { visit_id } = req.params;
 
-    // Validate the request parameters
     const schema = Joi.object({
         visit_id: Joi.string().required()
     });
 
     const { error } = schema.validate(req.params);
+
     if (error) {
-        return res.status(400).json({ error: error.details[0].message });
+        return res.status(400).json({
+            error: error.details[0].message
+        });
     }
 
     try {
-        // Fetch the visit details
-        const visit = await Visit.findOne({
-            where: { id: visit_id },
-            include: [
-                { model: Patient, as: 'patient' },
-                { model: VitalSignsRecord, as: 'vitalSignsRecords' },
-                { model: Institution, as: 'institution' },
-                { model: Department, as: 'department' },
-                { model: Invoice, as: 'invoice' },
-                {
-                    model: PatientNote, as: 'patientNote', include: [
-                        {
-                            model: Staff,
-                            as: 'staff'
-                        },
-                        {
-                            model: StaffComment,
-                            as: 'comments'
-                        }
-                    ]
-                },
 
+        // ==========================
+        // Visit (Lightweight Query)
+        // ==========================
+
+        const visit = await Visit.findByPk(visit_id, {
+            include: [
                 {
-                    model: Claim,
-                    as: 'claims',
+                    model: Patient,
+                    as: "patient"
+                },
+                {
+                    model: VitalSignsRecord,
+                    as: "vitalSignsRecords",
+                    separate: true
+                },
+                {
+                    model: Institution,
+                    as: "institution"
+                },
+                {
+                    model: Department,
+                    as: "department"
+                },
+                {
+                    model: Invoice,
+                    as: "invoice"
+                }
+            ]
+        });
+
+        if (!visit) {
+            return res.status(404).json({
+                error: "Visit not found"
+            });
+        }
+
+        // ==========================
+        // Patient Notes
+        // ==========================
+
+        const patientNote = await PatientNote.findAll({
+            where: {
+                visit_id
+            },
+            include: [
+                {
+                    model: Staff,
+                    as: "staff"
+                },
+                {
+                    model: StaffComment,
+                    as: "comments",
+                    separate: true
+                }
+            ]
+        });
+
+        // ==========================
+        // Claims
+        // ==========================
+
+        const claims = await Claim.findAll({
+            where: {
+                visit_id
+            },
+            include: [
+                {
+                    model: ClaimItem,
+                    as: "items",
+                    separate: true,
                     include: [
                         {
-                            model: ClaimItem,
-                            as: 'items',                 // ← **alias must match the hasMany**
-                            include: [
-                                { model: LabResult, as: 'labTest' },
-                                { model: Prescription, as: "prescription" },
-                                { model: Procedure, as: 'procedure' },
-                                {
-                                    model: Diagnosis, as: 'diagnosis',
-                                    include: [
-                                        {
-                                            model: systemDiagnosis,
-                                            as: 'systemDiagnosis'
-                                        }
-                                    ]
-
-                                },
-
-
-
-                            ]
-                        }
-                    ]
-                },
-
-                {
-                    model: Prescription, as: 'prescriptions', include: [
-                        {
-                            model: Medicine, as: 'medicine',
+                            model: LabResult,
+                            as: "labTest"
                         },
-                        { model: Staff, as: 'doctor' },
                         {
-                            model: ClinicalIntervention, as: 'clinicalInterventions'
-                        }
-
-                    ]
-                },
-                {
-                    model: LabTestResult, as: 'labTests', include: [
+                            model: Prescription,
+                            as: "prescription"
+                        },
                         {
-                            model: LabTestTemplate, as: 'template',
+                            model: Procedure,
+                            as: "procedure"
+                        },
+                        {
+                            model: Diagnosis,
+                            as: "diagnosis",
                             include: [
                                 {
-                                    model: LabInvestigation,
-                                    as: 'lab_tarrif'
+                                    model: systemDiagnosis,
+                                    as: "systemDiagnosis"
                                 }
                             ]
                         }
-                    ]
-                },
-                {
-                    model: Diagnosis, as: 'diagnosis',
-                    include: [
-                        {
-                            model: systemDiagnosis,
-                            as: 'systemDiagnosis'
-                        },
-                        {
-                            model: Staff,
-                            as: 'staff'
-                        }
-                    ]
-
-                },
-                {
-                    model: Appointment,
-                    as: 'appointments',
-                    include: [
-                        {
-                            model: Staff,
-                            as: 'doctor',
-
-                        },
-                    ]
-                },
-                {
-                    model: Procedure,
-                    as: 'procedure',
-                    include: [
-                        { model: Staff, as: 'primary_doctor' },
-                        { model: Staff, as: 'assisting_staff' },
-                        {
-                            model: GDRGCode,
-                            as: 'procedure_code'
-                        },
-                        {
-                            model: Department,
-                            as: 'department'
-                        },
                     ]
                 }
             ]
         });
 
+        // ==========================
+        // Prescriptions
+        // ==========================
 
-        if (!visit) {
-            return res.status(404).json({ error: 'Visit not found' });
-        }
+        const prescriptions = await Prescription.findAll({
+            where: {
+                visit_id
+            },
+            include: [
+                {
+                    model: Medicine,
+                    as: "medicine"
+                },
+                {
+                    model: Staff,
+                    as: "doctor"
+                },
+                {
+                    model: ClinicalIntervention,
+                    as: "clinicalInterventions",
+                    separate: true
+                }
+            ]
+        });
 
-        return res.status(200).json(visit);
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'An error occurred while fetching the visit details' });
+        // ==========================
+        // Lab Tests
+        // ==========================
+
+        const labTests = await LabTestResult.findAll({
+            where: {
+                visit_id
+            },
+            include: [
+                {
+                    model: LabTestTemplate,
+                    as: "template",
+                    include: [
+                        {
+                            model: LabInvestigation,
+                            as: "lab_tarrif"
+                        }
+                    ]
+                }
+            ]
+        });
+
+        // ==========================
+        // Diagnosis
+        // ==========================
+
+        const diagnosis = await Diagnosis.findAll({
+            where: {
+                visit_id
+            },
+            include: [
+                {
+                    model: systemDiagnosis,
+                    as: "systemDiagnosis"
+                },
+                {
+                    model: Staff,
+                    as: "staff"
+                }
+            ]
+        });
+
+        // ==========================
+        // Appointments
+        // ==========================
+
+        const appointments = await Appointment.findAll({
+            where: {
+                visit_id
+            },
+            include: [
+                {
+                    model: Staff,
+                    as: "doctor"
+                }
+            ]
+        });
+
+        // ==========================
+        // Procedures
+        // ==========================
+
+        const procedures = await Procedure.findAll({
+            where: {
+                visit_id
+            },
+            include: [
+                {
+                    model: Staff,
+                    as: "primary_doctor"
+                },
+                {
+                    model: Staff,
+                    as: "assisting_staff"
+                },
+                {
+                    model: GDRGCode,
+                    as: "procedure_code"
+                },
+                {
+                    model: Department,
+                    as: "department"
+                }
+            ]
+        });
+
+        const response = visit.toJSON();
+
+        response.patientNote = patientNote;
+        response.claims = claims;
+        response.prescriptions = prescriptions;
+        response.labTests = labTests;
+        response.diagnosis = diagnosis;
+        response.appointments = appointments;
+        response.procedure = procedures;
+
+        return res.status(200).json(response);
+
+    } catch (err) {
+
+        console.error(err);
+
+        return res.status(500).json({
+            error: "An error occurred while fetching the visit details."
+        });
+
     }
 };
-
 
 // patch patient information
 exports.updatePatientInformation = async (req, res) => {

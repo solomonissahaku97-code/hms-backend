@@ -5,6 +5,7 @@ const {
     getShifts,
     getAllUsersFromDepartment,
     addBulkShifts,
+    getStaffShifts
 
 } = require('../controllers/rotationController');
 
@@ -22,6 +23,7 @@ router.put('/get-shifts', updateShift);
 // Bulk add shifts
 router.post('/bulk', addBulkShifts);
 
-
+// Get shifts for a specific staff member
+router.get('/staff-shifts/:staffId', getStaffShifts);
 
 module.exports = router;

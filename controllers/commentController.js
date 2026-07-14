@@ -8,6 +8,7 @@ const sendEmail = require('../service/sendEmail');
 async function addComment(req, res) {
   try {
     const { patient_note_id, comment, staff_id } = req.body;
+    console.log(`Adding comment: patient_note_id=${patient_note_id}, staff_id=${staff_id}, comment=${comment}`);
 
     // Validate required fields
     if (!patient_note_id || !comment || !staff_id) {

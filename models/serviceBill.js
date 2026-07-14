@@ -186,7 +186,7 @@ const ServiceBill = sequelize.define('ServiceBill', {
     }
 });
 
-// Associations
+// Associations 
 ServiceBill.associate = (models) => {
     ServiceBill.belongsTo(models.Visit, { foreignKey: 'visit_id', as: 'visit' });
     ServiceBill.belongsTo(models.Patient, { foreignKey: 'patient_id', as: 'patient' });
@@ -197,7 +197,9 @@ ServiceBill.associate = (models) => {
     ServiceBill.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' });
     ServiceBill.hasOne(models.Payment, { foreignKey: 'service_bill_id', as: 'payment' });
     ServiceBill.hasMany(models.ClaimItem, { foreignKey: 'service_bill_id', as: 'claimItems' });
-    // Removed incorrect ServiceBill.hasMany(Service) association - service_id is polymorphic (Medication/LabTest/etc.)
+    ServiceBill.belongsTo(models.Service, { foreignKey: 'service_id', as: 'service' }); // This association is optional and may not always be valid due to polymorphic nature
+    // serviceBill is not associated to service
+
 
 };
 
