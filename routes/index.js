@@ -3,6 +3,8 @@ const recordOfficerRoutes = require('./recordOfficerRoute');
 const vitalSignsRoutes = require('./vitalSignsRoutes');
 const appointmentRoutes = require('./shdeduleAppointmentRoute');
 const lab = require('./labRoutes');
+const patientLabRoutes = require('./patientLabRoutes');
+
 const prescriptionRoutes = require('./prescriptionRoute');
 const notificationRoutes = require('./notificationRoutes');
 const messageRoutes = require('./messageRoute');
@@ -76,8 +78,10 @@ const advancedFeaturesRoutes = require('./patientAdvancedFeatures.routes')
 const systemRoutes = require('./systemRoutes')
 const scheduleRoutes = require('./scheduleRoutes')
 const staffDocumentsRoutes = require('./staffDocuments.route')
+const aiRoutes = require('./aiRoutes');
 
 // middle ware
+
 
 module.exports = (app) => {
     // Define all your routes here
@@ -154,7 +158,11 @@ module.exports = (app) => {
     app.use('/api/v1/messages', messageRoutes);
 
     // LAB TEST ROUTE
-    app.use('/api/v1/lab',lab );
+    app.use('/api/v1/lab', lab );
+
+    // PATIENT LABS
+    app.use('/api/v1/lab', patientLabRoutes);
+
 
     // DEPARTMENT CREATION  
     app.use('/api/v1', departmentRoutes);
@@ -191,4 +199,5 @@ module.exports = (app) => {
     
     // SYSTEM MANAGEMENT (Backup, Health, Dashboard Stats)
     app.use('/api/v1/system', systemRoutes);
+    app.use('/api/v1/ai', aiRoutes);
 };

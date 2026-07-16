@@ -175,6 +175,7 @@ exports.getPatientNotes = async (req, res) => {
   // add comments to patient notes
   exports.addCommentToNote = async (req, res) => {
     const { comment, staff_id, patient_note_id } = req.body;
+    console.log('Received comment:', comment, 'from staff_id:', staff_id, 'for patient_note_id:', patient_note_id);
 
     try {
       const note = await PatientNote.findOne({ where: { id: patient_note_id } });
@@ -210,7 +211,7 @@ exports.getPatientNotes = async (req, res) => {
             from_staff_id: staff_id,
             to_staff_id: noteOwnerId,
             institution_id: currentUser.institution_id,
-            type: 'Patient_Note_Comment',
+            type: 'Comment',
             priority: 'Medium',
           });
 

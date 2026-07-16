@@ -170,6 +170,9 @@ async function syncStoreModels() {
     
     await StockRequest.sync({ alter: true });
     console.log('✅ StockRequest table synced');
+
+    await SuperAdmin.sync({alter:true})
+    console.log('super-admin synced successfully')
     
     await StockRequestItem.sync({ alter: true });
     console.log('✅ StockRequestItem table synced');
@@ -317,6 +320,8 @@ const callSocketHandler = new CallSocketHandler(io);
 
 // Initialize ChatService for messaging
 const ChatService = require('./service/ChatService');
+const SuperAdmin = require('./models/superadmin');
+const { alter } = require('./validators/validateInstitution');
 const chatService = new ChatService(io);
 
 // Start the server

@@ -161,6 +161,7 @@ router.delete('/items/:id', async (req, res) => {
 router.get('/stock-items', async (req, res) => {
     try {
         const { institution_id, store_id, search, category, low_stock } = req.query;
+        console.log('Fetching stock items with params:', { institution_id, store_id, search, category, low_stock });
         
         const where = { institution_id };
         

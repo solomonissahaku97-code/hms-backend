@@ -264,6 +264,39 @@ exports.getAdminDetails = async (req, res) => {
     }
 };
 
+// GET ADMINS FROM VARIOUS INSTITUTION
+
+// GET ALL ADMINS FOR A PARTICULAR INSTITUTION
+exports.getAllInstitutionAdmins = async (req, res) => {
+    const { institution_id } = req.params;
+
+    try {
+        const admins = await Admin.findAll({
+            where: {
+                institution_id
+            },
+            include: [
+                {
+                    model: Institution,
+                    as: 'institution'
+                }
+            ],
+        });
+
+        return res.status(200).json({
+            success: true,
+            count: admins.length,
+            admins
+        });
+    } catch (error) {
+        console.error('Error fetching institution admins:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'An error occurred while fetching institution admins.',
+            error: error.message
+        });
+    }
+};
 
 
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const {  login,  getAllDoctors,  resetPassword,verifyLogicAnswer,updateUserFCMToken,adminLogin,getUserDetails } = require('../controllers/authentication/authControllers');
 const { registerAdmin,registerStaffs,deleteStaff,getAllStaffByInstitution,getStaffByInstitutionAndId,assignedPrimaryDepartment } = require('../controllers/authentication/admin_staff_registration')
+const { registerSuperAdmin,loginSuperAdmin } = require('../controllers/authentication/super_admin.controller')
 const authenticateToken = require('../middlewares/authMiddlewares');
 const { upload, uploadToLocal } = require('../middlewares/profile_multer'); const router = express.Router();
 const { updateStaffInfo } = require('../controllers/updateUserController')
@@ -23,6 +24,8 @@ router.post(
 );
 
 router.post('/register/admin', registerAdmin);
+router.post('/register/super-admin',registerSuperAdmin)
+router.post('/login/super-admin',loginSuperAdmin)
 router.post('/departments/assign', adminAuth,staffDeptCtrl.assignDepartmentsToStaff);
 router.post('/update-user-fcm-token',authenticateToken,updateUserFCMToken)
 

@@ -14,6 +14,7 @@ router.post('/institutions',upload.single('logo'),uploadToLocal('logo'),  instit
 router.get('/institutions',eitherAuthOrAdmin, institutionController.getAllInstitutions);
 router.put('/institutions/:id',eitherAuthOrAdmin,upload.single('logo'),uploadToLocal('logo'),institutionController.updateInstitution)
 router.get('/institutions/:id', institutionController.getInstitutionById);
+router.get('/institution-admins/:institution_id',institutionController.getAllInstitutionAdmins)
 router.get('/admin/:adminId/details',eitherAuthOrAdmin, institutionController.getAdminDetails);
 
 
