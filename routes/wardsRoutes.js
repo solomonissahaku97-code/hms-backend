@@ -16,4 +16,4 @@ router.get('/:institutionId/departments/:departmentId/assignments',authenticateT
 // release nurse assignment
 router.put('/release-assignment/:assignmentId',authenticateToken, wardsController.releaseNurseFromPatient);
 
-module.exports = router;
+module.exports = router; 

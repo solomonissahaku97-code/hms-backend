@@ -40,7 +40,7 @@ const ChatAi = sequelize.define('ChatAi', {
 });
 
 ChatAi.associations = (models) => {
-  ChatAi.belongsTo(models.PatientNote, { foreignKey: 'patient_note_id', as: 'patient_note' });
+  ChatAi.belongsTo(models.patientNote, { foreignKey: 'patient_note_id', as: 'patient_note' });
   ChatAi.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' });
 };
 

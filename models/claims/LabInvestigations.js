@@ -23,7 +23,27 @@ const LabInvestigation = sequelize.define('lab_investigation', {
     market_price: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true,
-        defaultValue:0.0
+        defaultValue: 0.0
+    },
+    specimen_types: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+        comment: 'Allowed specimen types, e.g. ["blood", "urine", "stool"]'
+    },
+    turnaround_time_hours: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 24,
+        comment: 'Expected turnaround time in hours'
+    },
+    department_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'departments',
+            key: 'id'
+        }
     },
     createdAt: {
         type: DataTypes.DATE,
@@ -40,13 +60,15 @@ const LabInvestigation = sequelize.define('lab_investigation', {
     timestamps: true
 });
 
-
 LabInvestigation.associate = (models)=>{
    LabInvestigation.hasMany(models.LabTestTemplate, {
     foreignKey: 'lab_tarrif_id',
     as: 'templates'
   });
-}
-
+  LabInvestigation.belongsTo(models.Department, {
+    foreignKey: 'department_id',
+    as: 'department'
+  });
+};
 
 module.exports = LabInvestigation;

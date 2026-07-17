@@ -58,12 +58,8 @@ const LabTestField = sequelize.define('LabTestField', {
 
 LabTestField.associate = (models) => {
     LabTestField.belongsTo(models.LabTestTemplate, {
-        foreignKey: 'template_id',
-        as: 'template'
-    });  
-    LabTestField.belongsTo(models.LabTestTemplate, {
         foreignKey: 'templateId',
-        as: 'fields'
+        as: 'template'
     });
 };
 module.exports = LabTestField;

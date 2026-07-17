@@ -4,12 +4,20 @@ const departmentController = require('../controllers/departments/departmentContr
 const staffDepartmentController = require('../controllers/departments/staffDepartmentController');
 const verifyAdminMiddleware = require('../middlewares/adminMiddleware');
 const eitherAuthOrAdmin = require('../middlewares/eitherAuthOrAdminMiddleware');
+const subscriptionGuard = require('../middlewares/subscriptionGuard');
+
 
 
 // ==================== 🏥 Department CRUD ====================
 
 // Create a new department
-router.post('/department/create', verifyAdminMiddleware, departmentController.createDepartment);
+router.post(
+  '/department/create',
+  verifyAdminMiddleware,
+  subscriptionGuard({ requiredFeature: 'dept:enabled' }),
+  departmentController.createDepartment
+);
+
 
 // Get a single department
 router.get("/institution/department/", verifyAdminMiddleware, departmentController.getDepartment);

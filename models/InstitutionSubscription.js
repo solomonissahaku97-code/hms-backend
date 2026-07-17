@@ -63,12 +63,12 @@ const InstitutionSubscription = sequelize.define(
   }
 );
 
-InstitutionSubscription.associations = (models) => {
+InstitutionSubscription.associate = (models) => {
   InstitutionSubscription.belongsTo(models.Institution, {
-      foreignKey: 'institutionId', // Correct foreign key
+      foreignKey: 'institutionId',
       as: 'institution',
   }); 
-  InstitutionSubscription.belongsTo(models.Subscription, {
+  InstitutionSubscription.belongsTo(models.subscription, {
       foreignKey: 'subscriptionId',
       as: 'subscription',
   });

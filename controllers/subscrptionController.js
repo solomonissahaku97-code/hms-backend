@@ -4,17 +4,27 @@ const Subscription = require('../models/subscription');
 const { initiatePayment, verifyPayment } = require('../utils/paystack');
 const { sequelize } = require('../models'); // Assuming Sequelize is configured here
 const Payment = require('../models/Payment');
+const SUBSCRIPTION_FEATURES = require('../config/subscriptionFeatures');
+const VALID_FEATURE_KEYS = Object.keys(SUBSCRIPTION_FEATURES);
+
+// Normalize/validate the incoming features array against the known catalog.
+// Unknown keys are dropped; always returns a plain array of valid string keys.
+const normalizeFeatures = (features) => {
+    if (!Array.isArray(features)) return [];
+    return features.filter((f) => typeof f === 'string' && VALID_FEATURE_KEYS.includes(f.trim()));
+};
 
 // Controller to create a subscription
 const createSubscription = async (req, res) => {
     try {
-        const { name, price, duration, features } = req.body;
+        const { name, price, duration, features, isActive } = req.body;
 
         const subscription = await Subscription.create({
             name,
             price,
             duration,
-            features,
+            features: normalizeFeatures(features),
+            status: typeof isActive === 'boolean' ? isActive : true,
         });
 
         res.status(201).json({
@@ -30,19 +40,19 @@ const createSubscription = async (req, res) => {
 // Controller to update a subscription
 const updateSubscription = async (req, res) => {
     try {
-        const {id, name, price, duration, features } = req.body;
+        const {id, name, price, duration, features, isActive } = req.body;
 
         const subscription = await Subscription.findByPk(id);
         if (!subscription) {
             return res.status(404).json({ error: 'Subscription not found' });
         }
 
-        await subscription.update({
-            name,
-            price,
-            duration,
-            features,
-        });
+        const updates = { name, price, duration, features: normalizeFeatures(features) };
+        if (typeof isActive === 'boolean') {
+            updates.status = isActive;
+        }
+
+        await subscription.update(updates);
 
         res.status(200).json({
             message: 'Subscription updated successfully!',
@@ -95,9 +105,6 @@ const paystackCallback = async (req, res) => {
 
     try {
         console.log('Reference received:', reference);
-        const newExpiryDate = new Date();
-        newExpiryDate.setDate(newExpiryDate.getDate() + 30);
-
         // Verify payment status from Paystack
         const paymentData = await verifyPayment(reference);
         console.log('Payment Data:', paymentData);
@@ -134,6 +141,10 @@ const paystackCallback = async (req, res) => {
             }
 
             // Update institution and its subscription
+            const newExpiryDate = subscription.duration
+              ? new Date(Date.now() + subscription.duration * 24 * 60 * 60 * 1000)
+              : null;
+
             await subscribe_institution.update({ subscriptionId }, { transaction });
             await institution_subscription.update({ subscriptionId, expiryDate: newExpiryDate, }, { transaction });
 
@@ -205,6 +216,35 @@ const getAllSubscriptions = async (req, res) => {
 };
 
 
+const deleteSubscription = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const subscription = await Subscription.findByPk(id);
+        if (!subscription) {
+            return res.status(404).json({ error: 'Subscription not found' });
+        }
+
+        // Prevent deleting a plan that institutions are still actively subscribed to
+        const linkedSubs = await InstitutionSubscription.findOne({ where: { subscriptionId: id } });
+        if (linkedSubs) {
+            return res.status(409).json({
+                error: 'Cannot delete this plan because institutions are still subscribed to it.',
+            });
+        }
+
+        await subscription.destroy();
+
+        res.status(200).json({
+            message: 'Subscription deleted successfully!',
+        });
+    } catch (error) {
+        console.error('Error deleting subscription:', error);
+        res.status(500).json({ error: 'Failed to delete subscription' });
+    }
+};
+
+
 const getInstitutionSubscription = async (req, res) => {
     const { institutionId } = req.query;
 
@@ -271,4 +311,5 @@ module.exports = {
     getAllSubscriptions,
     getInstitutionSubscription,
     updateSubscription,
+    deleteSubscription,
 };

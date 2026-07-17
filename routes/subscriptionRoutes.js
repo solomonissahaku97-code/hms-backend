@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { createSubscription, initiateSubscription, paystackCallback, getAllSubscriptions,
-    getInstitutionSubscription,updateSubscription } = require('../controllers/subscrptionController');
+    getInstitutionSubscription,updateSubscription, deleteSubscription } = require('../controllers/subscrptionController');
 
 // Route to create a new subscription
 router.post('/subscriptions', createSubscription);
 
 router.put('/subscription/update',updateSubscription)
+
+router.delete('/subscriptions/:id', deleteSubscription)
 
 
 router.get('/subscriptions', getAllSubscriptions);

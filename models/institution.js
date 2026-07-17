@@ -96,7 +96,7 @@ Institution.associations = (models) => {
     Institution.hasMany(models.Patient, { foreignKey: 'institution_id', as: 'patients' });
     Institution.hasMany(models.Department, { foreignKey: 'institution_id', as: 'departments' });
     Institution.hasMany(models.Staff, { foreignKey: 'institution_id', as: 'staffs' });
-    Institution.belongsTo(models.InstitutionSubAccounts,{ foreignKey:'institution_id',as:'institution_account' })
+    Institution.belongsTo(models.institutionSubscription,{ foreignKey:'institution_id',as:'institution_account' })
 };
 
 module.exports = Institution;

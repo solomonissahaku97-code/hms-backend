@@ -29,9 +29,14 @@ readModelsRecursively(__dirname);
 
 // Set up associations
 Object.keys(db).forEach(modelName => {
-  if (db[modelName] && typeof db[modelName].associate === 'function') {
-    db[modelName].associate(db);
-  }
+  const model = db[modelName];
+  if (!model) return;
+  const init = typeof model.associate === 'function'
+    ? model.associate
+    : typeof model.associations === 'function'
+      ? model.associations
+      : null;
+  if (init) init(db);
 });
 
 db.sequelize = sequelize;

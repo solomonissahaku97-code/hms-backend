@@ -242,6 +242,7 @@ exports.removeStaffFromDepartment = async (req, res) => {
 // Get all staff members from a specific institution
 exports.getStaffByInstitution = async (req, res) => {
     const { institution_id } = req.params;
+    console.log(req.params);
 
     try {
         // Ensure institution exists

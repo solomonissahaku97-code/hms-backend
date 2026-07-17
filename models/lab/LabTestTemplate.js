@@ -3,30 +3,52 @@ const sequelize = require('../../config/database');
 const LabInvestigation = require('../claims/LabInvestigations');
 const Staff = require('../staff');
 
-
-
 const LabTestTemplate = sequelize.define('LabTestTemplate', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   lab_tarrif_id: {
     type: DataTypes.UUID,
     references: {
       model: LabInvestigation,
       key: 'id'
-    }
+    },
+    allowNull: true,
   },
-
   quantity: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 1
   },
   description: DataTypes.TEXT,
+  specimen_types: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of allowed specimen type strings, e.g. ["blood", "urine"]'
+  },
+  turnaround_time_hours: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 24,
+    comment: 'Expected TAT in hours for this template'
+  },
+  department_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'departments',
+      key: 'id'
+    }
+  },
   createdBy: {
-    type: DataTypes.UUID, // Staff ID who created this
+    type: DataTypes.UUID,
     allowNull: true,
     references: {
       model: Staff,
@@ -35,9 +57,9 @@ const LabTestTemplate = sequelize.define('LabTestTemplate', {
   },
   isActive: {
     type: DataTypes.BOOLEAN,
+    allowNull: false,
     defaultValue: true
   },
-
 }, {
   sequelize,
   modelName: 'LabTestTemplate',
@@ -47,7 +69,6 @@ const LabTestTemplate = sequelize.define('LabTestTemplate', {
 });
 
 LabTestTemplate.associate = (models) => {
-  console.log(models)
   LabTestTemplate.hasMany(models.LabTestField, {
     foreignKey: 'templateId',
     as: 'fields'
@@ -61,10 +82,10 @@ LabTestTemplate.associate = (models) => {
     foreignKey: 'lab_tarrif_id',
     as: 'lab_tarrif'
   });
+  LabTestTemplate.belongsTo(models.Department, {
+    foreignKey: 'department_id',
+    as: 'department'
+  });
 };
 
-
-
-
 module.exports = LabTestTemplate;
-
