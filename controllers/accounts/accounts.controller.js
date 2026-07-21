@@ -137,10 +137,23 @@ const AccountsController = {
                 attributes: [
                     [fn("SUM", col("patient_amount")), "total_patient_amount"],
                     [fn("SUM", col("total_amount")), "total_billed_amount"],
+                    [fn("SUM", col("nhia_amount")), "total_nhia_amount"],
+                    [fn("COUNT", col("id")), "items_count"],
+                    [fn("SUM", col("patient_amount")), "total_patient_due"],
                 ],
                 where: { visit_id },
                 raw: true,
             });
+
+            // Patient amount still outstanding (unpaid bills)
+            const dueResult = await ServiceBill.findOne({
+                attributes: [
+                    [fn("SUM", col("patient_amount")), "due"],
+                ],
+                where: { visit_id, has_paid: false },
+                raw: true,
+            });
+            totals.total_patient_due = parseFloat(dueResult?.due || 0);
 
             // 2. Detailed breakdown per service
             const details = await ServiceBill.findAll({

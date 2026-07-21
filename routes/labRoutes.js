@@ -16,9 +16,11 @@ const {
   deleteLabRange,
   getLabTestStats,
   getRecentLabTestsByVisitId,
-  getRecentLabTests
+  getRecentLabTests,
+  updateResultAttachments
 } = require('../controllers/lab/labController');
 const authenticateToken = require('../middlewares/authMiddlewares');
+const { upload, labAttachmentsUpload } = require('../middlewares/profile_multer');
 const labAnalysisController = require('../controllers/lab/labAnalysisController');
 
 
@@ -45,9 +47,30 @@ router.get('/recent-tests', authenticateToken, getRecentLabTests); // recent tes
 router.patch('/templates/:id', authenticateToken, updateTemplate);
 router.delete('/templates/:id', authenticateToken, deleteTemplate);
 router.patch('/results/:id', authenticateToken, updateResult);
+// Upload result attachments (images/PDFs) for a lab test result
+router.post(
+  '/results/:id/attachments',
+  authenticateToken,
+  labAttachmentsUpload.array('attachments', 10),
+  updateResultAttachments
+);
 router.patch('/ranges/:id', authenticateToken, updateLabRange);
 router.delete('/ranges/:id', authenticateToken, deleteLabRange);
 router.get('/test-stats', authenticateToken, getLabTestStats); // stats by department
 router.get('/recent-tests/visit/:visit_id', authenticateToken, getRecentLabTestsByVisitId); // recent tests by visit ID
+
+// Multer error handler -> clean 400 instead of 500 (e.g. file too large / wrong type)
+router.use((err, req, res, next) => {
+  if (err && err.name === 'MulterError') {
+    const msg = err.code === 'LIMIT_FILE_SIZE'
+      ? 'File is too large. Maximum size is 10MB.'
+      : err.message || 'File upload error';
+    return res.status(400).json({ status: 'error', message: msg });
+  }
+  if (err) {
+    return res.status(400).json({ status: 'error', message: err.message || 'Upload failed' });
+  }
+  next();
+});
 
 module.exports = router;

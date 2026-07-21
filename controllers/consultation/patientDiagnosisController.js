@@ -1,5 +1,6 @@
 // patient diagnosis controller here
 
+const { v4: uuidv4 } = require('uuid');
 const systemDiagnosis = require("../../models/claims/systemDiagnosis");
 const Diagnosis = require("../../models/diagnosis");
 const Staff = require("../../models/staff");
@@ -28,6 +29,9 @@ exports.addDiagnosis = async (req, res) => {
       return res.status(400).json({ message: "All fields are required." });
     }
 
+    // Generate a shared group ID so multiple diagnoses added together are linked
+    const groupId = uuidv4();
+
     // Get all diagnoses at once for efficiency
     const diagnoses = await systemDiagnosis.findAll({
       where: { id: system_diagnosis_ids },
@@ -44,7 +48,8 @@ exports.addDiagnosis = async (req, res) => {
           system_diagnosis_id,
           doctor_evaluation,
           chief_complain,
-          department_id
+          department_id,
+          diagnosis_group_id: groupId,
         }, { transaction });
       })
     );
@@ -85,25 +90,32 @@ exports.addDiagnosis = async (req, res) => {
 
 exports.getPatientDiagnosis = async (req, res) => {
   try {
-    const { patient_id, institution_id } = req.query;
+    const { visit_id, institution_id } = req.query;
 
-    if (!patient_id) {
-      return res.status(400).json({ error: 'Patient or institution does not exist' });
+    if (!visit_id) {
+      return res.status(400).json({ error: 'Visit ID is required' });
     }
 
-    // Find the diagnosis records - removed institution_id from where since column doesn't exist
+    // Find the diagnosis records for this visit
     const patientDiagnoses = await Diagnosis.findAll({
-      where: { patient_id },
+      where: { visit_id },
+      include: [
+        {
+          model: Staff,
+          as: 'staff',
+          attributes: ['id', 'firstName', 'middleName', 'lastName', 'profile_pic'],
+        },
+        {
+          model: require("../../models/claims/systemDiagnosis"),
+          as: 'systemDiagnosis',
+          attributes: ['id', 'diagnosis_name', 'icd_10_code'],
+        }
+      ]
     });
 
     if (!patientDiagnoses || patientDiagnoses.length === 0) {
-      return res.status(404).json({ error: 'Diagnosis record not found for the specified patient and institution.' });
+      return res.status(404).json({ error: 'No diagnosis records found for this visit.' });
     }
-
-    // Get the staff information for the first diagnosis record
-    const staff = await Staff.findByPk(patientDiagnoses[0].staff_id, {
-      attributes: ['id', 'firstName', 'middleName', 'lastName', 'profile_pic'],
-    });
 
     // Format the response
     const response = patientDiagnoses.map((diagnosis) => ({
@@ -112,18 +124,18 @@ exports.getPatientDiagnosis = async (req, res) => {
       patient_complaints: diagnosis.chief_complain,
       doctors_note: diagnosis.doctor_evaluation,
       department_id: diagnosis.department_id,
-      patientId: diagnosis.patient_id,
-      institutionId: diagnosis.institution_id,
+      visitId: diagnosis.visit_id,
+      diagnosis_group_id: diagnosis.diagnosis_group_id,
       diagnosisDetails: diagnosis.doctor_evaluation,
       createdAt: diagnosis.createdAt,
       updatedAt: diagnosis.updatedAt,
-      staff: staff
+      staff: diagnosis.staff
         ? {
-          id: staff.id,
-          firstName: staff.firstName,
-          middleName: staff.middleName,
-          lastName: staff.lastName,
-          profilePicture: staff.profile_pic,
+          id: diagnosis.staff.id,
+          firstName: diagnosis.staff.firstName,
+          middleName: diagnosis.staff.middleName,
+          lastName: diagnosis.staff.lastName,
+          profilePicture: diagnosis.staff.profile_pic,
         }
         : null,
     }));
@@ -177,4 +189,3 @@ exports.updateDiagnosis = async (req, res) => {
     return res.status(500).json({ message: "Failed to update diagnosis.", error: error.message });
   }
 };
-

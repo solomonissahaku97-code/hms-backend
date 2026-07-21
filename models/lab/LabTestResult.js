@@ -60,6 +60,12 @@ const LabTestResult = sequelize.define('LabTestResult', {
         type: DataTypes.JSON,
         allowNull: true
     },
+    attachments: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+        comment: 'Array of uploaded result file objects: { name, url, type }'
+    },
     abnormal_flags: {
         type: DataTypes.JSON,
         allowNull: true,
@@ -67,6 +73,16 @@ const LabTestResult = sequelize.define('LabTestResult', {
         comment: 'Array of abnormal field flags computed against LabRanges'
     },
     notes: DataTypes.TEXT,
+    request_notes: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Comment from the doctor/requester when ordering the test'
+    },
+    technician_notes: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Comment from the lab technician when entering results'
+    },
     specimen_type: {
         type: DataTypes.STRING,
         allowNull: true,

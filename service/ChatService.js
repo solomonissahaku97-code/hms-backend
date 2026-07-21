@@ -15,35 +15,49 @@ class ChatService {
     this.io.on('connection', (socket) => {
       console.log(`New chat connection: ${socket.id}`);
 
-      // Join room for private messaging
-      socket.on('join-chat-room', async ({ userId, departmentId }) => {
+      // Support both register (legacy) and join-chat-room events
+      const joinChatRoom = ({ userId, departmentId }) => {
         if (userId) socket.join(`user-${userId}`);
         if (departmentId) socket.join(`department-${departmentId}`);
         console.log(`User ${userId} joined chat rooms`);
-      });
+      };
+
+      socket.on('join-chat-room', joinChatRoom);
+      socket.on('register', joinChatRoom);
 
       // Send message handler
       socket.on('send-message', async (messageData, callback) => {
         try {
           const savedMessage = await this.saveMessageToDatabase(messageData);
           this.distributeMessage(savedMessage);
-          callback({
-            success: true,
-            messageId: savedMessage.id
-          });
+          if (typeof callback === 'function') {
+            callback({
+              success: true,
+              messageId: savedMessage.id
+            });
+          }
         } catch (error) {
           console.error('Error sending message:', error);
           socket.emit('message-error', { error: 'Failed to send message' });
-          callback({
-            success: false,
-            error: 'Failed to save message'
-          }); 
+          if (typeof callback === 'function') {
+            callback({
+              success: false,
+              error: 'Failed to save message'
+            }); 
+          }
         }
       });
 
       // Mark messages as read
-      socket.on('mark-as-read', async ({ messageIds, readerId }) => {
-        await this.handleReadReceipts(messageIds, readerId);
+      socket.on('mark-as-read', async ({ messageIds, readerId, departmentId }) => {
+        if (messageIds && messageIds.length > 0) {
+          await this.handleReadReceipts(messageIds, readerId);
+        } else if (departmentId && readerId) {
+          await ChatReadReceipt.update(
+            { readAt: new Date() },
+            { where: { departmentId, staffId: readerId, readAt: null } }
+          );
+        }
       });
     });
   }
@@ -154,6 +168,8 @@ class ChatService {
   }
 
   async handleReadReceipts(messageIds, readerId) {
+    if (!messageIds || messageIds.length === 0) return;
+
     await ChatReadReceipt.update(
       { readAt: new Date() },
       { where: { chatId: messageIds, staffId: readerId } }

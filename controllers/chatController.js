@@ -4,9 +4,9 @@ const sequelize = require('../config/database');
 const Staff = require('../models/staff');
 const Department = require('../models/department');
 const Admin = require('../models/admin');
+const ChatReadReceipt = require('../models/ChatReadReceipt');
 const { sendNotificationToDepartment,sendNotificationToAdmin,sendNotificationToUser } = require("../helpers/sendPushNotification");
 const { createNotification } = require("../helpers/notificationService");
-const WebSocket = require('ws'); // Add this at the top of the file
 
 
 async function getRecentChats(userId, departmentId, isAdmin = false) {
@@ -91,21 +91,8 @@ async function sendMessage(req, res) {
             text,
             createdAt: message.createdAt
         };
- 
-        // Get WebSocket server from app
-        const wss = req.app.get('ws');
 
-        // Send WebSocket message to all clients
-        wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ 
-                    type: "new_message", 
-                    data: messageData 
-                })); 
-            }
-        });
-
-        return res.status(201).json({ success: true, message });
+        return res.status(201).json({ success: true, message: messageData });
     } catch (error) {
         console.error("Error sending message:", error);
         return res.status(500).json({ success: false, message: "Failed to send message" });
@@ -135,8 +122,18 @@ async function getDepartmentsByInstitution(req, res) {
     }
 }
 
+async function getUnreadCounts(userId, departmentIds) {
+    const counts = {};
+    for (const departmentId of departmentIds) {
+        counts[departmentId] = await ChatReadReceipt.count({
+            where: {
+                staffId: userId,
+                departmentId,
+                readAt: null
+            }
+        });
+    }
+    return counts;
+}
 
-
-
-
-module.exports = { getRecentChats,sendMessage,getDepartmentsByInstitution };
+module.exports = { getRecentChats,sendMessage,getDepartmentsByInstitution,getUnreadCounts };

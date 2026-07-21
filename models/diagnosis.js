@@ -48,7 +48,7 @@ const Diagnosis = sequelize.define('Diagnosis', {
         defaultValue: 'Active', // Default status
         allowNull: true,
         validate: {
-            isIn: [['Active', 'Resolved', 'Pending']] // Ensure the value is one of the allowed statuses
+            isIn: [['Active', 'Resolved', 'Pending']] // Ensure the value is one of the allowed values
         }
     },
     chief_complain: {
@@ -68,10 +68,12 @@ const Diagnosis = sequelize.define('Diagnosis', {
     diagnosis_type: {
         type: DataTypes.ENUM('provisional_diagnosis', 'confirmed_diagnosis'),
         defaultValue: 'confirmed_diagnosis'
+    },
+    diagnosis_group_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'Links multiple diagnoses added together in one encounter'
     }
-
-
-
 
 }, {
     tableName: 'diagnosis', // Table name

@@ -16,6 +16,8 @@ const NOTIFICATION_TYPES = {
   PRESCRIPTION: 'Prescription',
   APPOINTMENT: 'Appointment',
   ASSIGNMENT: 'Assignment',
+  STOCK_REQUEST: 'Stock_Request',
+  STOCK_ISSUE: 'Stock_Issue',
 };
 
 class NotificationService {

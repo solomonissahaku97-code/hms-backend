@@ -122,21 +122,33 @@ async function notifyLabStaff(labResult, template, visit, req) {
 exports.createTemplate = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   try {
-    const { lab_tarrif_id, description, fields, createdBy } = req.body;
-    console.log(req.body)
+    const {
+      lab_tarrif_id,
+      labInvestigationId,
+      name,
+      description,
+      fields,
+      createdBy,
+    } = req.body;
+
+    const tarrifId = lab_tarrif_id || labInvestigationId;
 
     // Validate input
-    if (!lab_tarrif_id || !fields || !Array.isArray(fields)) {
+    if (!tarrifId || !fields || !Array.isArray(fields) || fields.length === 0) {
       await transaction.rollback();
-      return next(new AppError('Please provide template name and fields', 400));
+      return next(new AppError('Please provide a lab investigation (kit) and at least one field', 400));
     }
 
-    const lab_tarrif = await LabInvestigation.findByPk(lab_tarrif_id);
-    if (!lab_tarrif) return res.status({ error: 'Tarrif not found' })
+    const lab_tarrif = await LabInvestigation.findByPk(tarrifId, { transaction });
+    if (!lab_tarrif) {
+      await transaction.rollback();
+      return next(new AppError('Lab investigation (kit) not found', 404));
+    }
 
     const template = await LabTestTemplate.create({
-      lab_tarrif_id,
-      description,
+      name: name || lab_tarrif.test_description,
+      lab_tarrif_id: tarrifId,
+      description: description || '',
       createdBy
     }, { transaction });
 
@@ -202,8 +214,7 @@ exports.getTemplates = async (req, res, next) => {
 exports.createResult = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   try {
-    const { templateId, visit_id, note, user, department_id } = req.body;
-    console.log(req.body)
+    const { templateId, visit_id, note, request_notes, user, department_id } = req.body;
 
     // Validate required fields
     if (!templateId || !visit_id || !user) {
@@ -234,10 +245,13 @@ exports.createResult = async (req, res, next) => {
     const resultData = {
       templateId,
       visit_id,
-      notes: note || null, // Handle optional notes
+      patient_id: visit.patient_id,
+      institution_id: visit.institution_id,
+      department_id: department_id || visit.department_id || null,
+      notes: note || request_notes || null, // legacy combined notes
+      request_notes: request_notes || note || null, // doctor/requester comment
       createdBy: user,
-      department_id
-      // Add any other required fields from your model
+      status: 'pending'
     };
 
     // 3) Create result
@@ -285,7 +299,7 @@ exports.createResult = async (req, res, next) => {
 };
 
 // Get results with filtering
-exports.getResults = async (req, res) => {
+exports.getResults = async (req, res,next) => {
   try {
     const data = await LabTestResult.findAll({
       include: [
@@ -343,12 +357,12 @@ exports.updateTemplate = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { name, description, fields } = req.body;
+    const { name, description, fields, lab_tarrif_id } = req.body;
 
     // Validate input
-    if (!name || !fields || !Array.isArray(fields)) {
+    if (!fields || !Array.isArray(fields)) {
       await transaction.rollback();
-      return next(new AppError('Please provide template name and fields', 400));
+      return next(new AppError('Please provide fields array', 400));
     }
 
     const template = await LabTestTemplate.findByPk(id, { transaction });
@@ -358,8 +372,9 @@ exports.updateTemplate = async (req, res, next) => {
     }
 
     // Update template
-    template.name = name;
-    template.description = description;
+    if (name) template.name = name;
+    if (description !== undefined) template.description = description;
+    if (lab_tarrif_id) template.lab_tarrif_id = lab_tarrif_id;
     await template.save({ transaction });
 
     // Update fieldshandleBilling
@@ -462,7 +477,35 @@ exports.updateResult = async (req, res, next) => {
   const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const { values, notes, verifiedBy, claim_id, lab_investigation_id } = req.body;
+    const {
+      values,
+      fieldValues,
+      notes,
+      verifiedBy,
+      claim_id,
+      lab_investigation_id,
+      attachments,
+    } = req.body;
+
+    // Accept values from either `values` or `fieldValues` (frontend sends fieldValues)
+    let resultValues = values || fieldValues || null;
+
+    // Sanitize values to JSON-safe primitives (antd DatePicker returns dayjs/Moment objects)
+    const sanitizeValue = (v) => {
+      if (v && typeof v === 'object' && !(v instanceof Date)) {
+        if (typeof v.toISOString === 'function') return v.toISOString();
+        if (typeof v.format === 'function') return v.format('YYYY-MM-DD');
+        if (Array.isArray(v)) return v.map(sanitizeValue);
+        try { return JSON.parse(JSON.stringify(v)); } catch { return String(v); }
+      }
+      if (v instanceof Date) return v.toISOString();
+      return v;
+    };
+    if (resultValues && typeof resultValues === 'object') {
+      resultValues = Object.fromEntries(
+        Object.entries(resultValues).map(([k, v]) => [k, sanitizeValue(v)])
+      );
+    }
 
     // 1. Fetch and update lab result
     const result = await LabTestResults.findByPk(id, { transaction });
@@ -471,9 +514,40 @@ exports.updateResult = async (req, res, next) => {
       return next(new AppError('No result found with that ID', 404));
     }
 
-    result.values = values;
-    result.notes = notes;
-    result.verifiedBy = verifiedBy;
+    result.values = resultValues;
+    // Keep legacy `notes` in sync; store technician comment separately so it
+    // does not overwrite the doctor's request comment.
+    result.technician_notes = notes ?? result.technician_notes;
+    result.notes = notes ?? result.notes;
+    result.verifiedBy = verifiedBy ?? result.verifiedBy;
+    if (Array.isArray(attachments)) {
+      result.attachments = attachments;
+    }
+
+    // 4. Compute abnormal flags against LabRanges (by test/parameter name)
+    if (resultValues && typeof resultValues === 'object') {
+      const abnormalFlags = [];
+      const rangeRows = await LabRanges.findAll({ transaction });
+      for (const [param, rawValue] of Object.entries(resultValues)) {
+        const numeric = parseFloat(rawValue);
+        if (isNaN(numeric)) continue;
+        const range = rangeRows.find(
+          (r) => r.test_name && r.test_name.toLowerCase() === String(param).toLowerCase()
+        );
+        if (range && range.min_value !== null && range.max_value !== null) {
+          if (numeric < range.min_value || numeric > range.max_value) {
+            abnormalFlags.push({
+              parameter: param,
+              value: numeric,
+              flag: numeric < range.min_value ? 'low' : 'high',
+              reference_range: range.reference_range,
+            });
+          }
+        }
+      }
+      result.abnormal_flags = abnormalFlags;
+    }
+
     result.status = 'completed';
     await result.save({ transaction });
 
@@ -537,6 +611,48 @@ exports.updateResult = async (req, res, next) => {
       }
     });
 
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ updateResult error:', error.message);
+    console.error(error.stack);
+    next(error);
+  }
+};
+
+
+// Upload result attachments (images/scans/PDFs) for an existing lab result
+exports.updateResultAttachments = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+
+    const result = await LabTestResults.findByPk(id, { transaction });
+    if (!result) {
+      await transaction.rollback();
+      return next(new AppError('No result found with that ID', 404));
+    }
+
+    if (!req.files || req.files.length === 0) {
+      await transaction.rollback();
+      return next(new AppError('No attachment files were uploaded', 400));
+    }
+
+    const uploaded = req.files.map((file) => ({
+      name: file.originalname,
+      url: `/uploads/${file.filename}`,
+      type: file.mimetype,
+    }));
+
+    const existing = Array.isArray(result.attachments) ? result.attachments : [];
+    result.attachments = [...existing, ...uploaded];
+    await result.save({ transaction });
+
+    await transaction.commit();
+
+    res.status(200).json({
+      status: 'success',
+      data: { result, message: 'Attachments uploaded successfully' }
+    });
   } catch (error) {
     await transaction.rollback();
     next(error);

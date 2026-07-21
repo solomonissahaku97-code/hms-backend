@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const util = require('util');
+const { create } = require('xmlbuilder2');
 const Institution = require('../models/institution');
 const execPromise = util.promisify(exec);
 
@@ -21,9 +22,10 @@ if (!fs.existsSync(BACKUP_DIR)) {
 // Create database backup
 exports.createBackup = async (req, res) => {
   try {
-    const { institution_id } = req.body;
+    const { institution_id, format = 'json' } = req.body;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupFileName = `hms_backup_${timestamp}.json`;
+    const isXml = format === 'xml';
+    const backupFileName = `hms_backup_${timestamp}.${isXml ? 'xml' : 'json'}`;
     const backupPath = path.join(BACKUP_DIR, backupFileName);
 
     // Get database name from config
@@ -32,47 +34,51 @@ exports.createBackup = async (req, res) => {
     const dbUser = dbConfig.development.username;
     const dbHost = dbConfig.development.host || 'localhost';
 
-    // For PostgreSQL, use pg_dump
-    // For MySQL, use mysqldump
-    // For this example, we'll create a JSON export of key tables
+    let backupData = null;
+    let fileSize = 0;
 
-    const backupData = {
-      timestamp: new Date().toISOString(),
-      institution_id,
-      version: '1.0.0',
-      data: {}
-    };
+    if (isXml) {
+      backupData = await exports.exportSystemToXml(institution_id);
+      fileSize = Buffer.byteLength(backupData, 'utf8');
+      fs.writeFileSync(backupPath, backupData);
+    } else {
+      const backupJson = {
+        timestamp: new Date().toISOString(),
+        institution_id,
+        version: '1.0.0',
+        data: {}
+      };
 
-    // Export key tables (example - would need to be expanded based on actual models)
-    try {
-      // Get Patient count
-      const Patient = require('../models/patient');
-      const patients = await Patient.findAll({
-        where: institution_id ? { institution_id } : {},
-        // attributes: ['id', 'first_name', 'last_name', 'phone', 'created_at'],
-        limit: 1000 // Limit for demo
-      });
-      backupData.data.patients = patients.map(p => p.toJSON());
-      console.log(`Exported ${backupData.data.patients.length} patients for backup`);
-    } catch (e) {
-      console.log('Error backing up patients:', e.message);
+      // Export key tables
+      try {
+        const Patient = require('../models/patient');
+        const patients = await Patient.findAll({
+          where: institution_id ? { institution_id } : {},
+          limit: 1000
+        });
+        backupJson.data.patients = patients.map(p => p.toJSON());
+        console.log(`Exported ${backupJson.data.patients.length} patients for backup`);
+      } catch (e) {
+        console.log('Error backing up patients:', e.message);
+      }
+
+      backupData = JSON.stringify(backupJson, null, 2);
+      fileSize = Buffer.byteLength(backupData, 'utf8');
+      fs.writeFileSync(backupPath, backupData);
     }
-
-    // Write backup file
-    fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2));
 
     // Save backup metadata
     const backupRecord = {
       id: require('uuid').v4(),
       filename: backupFileName,
       path: backupPath,
-      size: fs.statSync(backupPath).size,
+      size: fileSize,
       institution_id,
       created_at: new Date(),
-      status: 'completed'
+      status: 'completed',
+      format: isXml ? 'xml' : 'json'
     };
 
-    // Store backup info (would need a Backup model in production)
     const backups = loadBackupMetadata();
     backups.push(backupRecord);
     saveBackupMetadata(backups);
@@ -82,8 +88,9 @@ exports.createBackup = async (req, res) => {
       message: 'Backup created successfully',
       data: {
         filename: backupFileName,
-        size: backupRecord.size,
-        created_at: backupRecord.created_at
+        size: fileSize,
+        created_at: backupRecord.created_at,
+        format: isXml ? 'xml' : 'json'
       }
     });
 
@@ -264,7 +271,8 @@ const defaultSettings = {
   retentionDays: 30,
   location: '/backups',
   compression: true,
-  autoBackup: true
+  autoBackup: true,
+  format: 'json'
 };
 
 // Load backup settings
@@ -603,6 +611,81 @@ exports.getDashboardStats = async (req, res) => {
       details: error.message
     });
   }
+};
+
+// ==================== XML BACKUP EXPORT ====================
+
+// Export entire system to XML format
+exports.exportSystemToXml = async (institution_id) => {
+  const root = create({ version: '1.0', encoding: 'UTF-8' })
+    .ele('HMSBackup')
+    .ele('Metadata', () => {
+      root.ele('Timestamp', new Date().toISOString());
+      root.ele('InstitutionId', institution_id || 'all');
+      root.ele('Version', '1.0.0');
+      root.ele('Format', 'XML');
+      root.ele('ExportedAt', new Date().toISOString());
+    })
+    .up()
+    .ele('Data');
+
+  const exportTable = async (modelName, elementName, whereClause = {}) => {
+    try {
+      const Model = require(`../models/${modelName}`);
+      const records = await Model.findAll({ where: whereClause });
+      const section = root.ele(elementName);
+      for (const record of records) {
+        const data = record.toJSON();
+        const item = section.ele(elementName.slice(0, -1));
+        for (const [key, value] of Object.entries(data)) {
+          if (value !== null && value !== undefined) {
+            if (value instanceof Date) {
+              item.ele(key, value.toISOString());
+            } else if (typeof value === 'object' && !Array.isArray(value)) {
+              const nested = item.ele(key);
+              for (const [nk, nv] of Object.entries(value)) {
+                if (nv !== null && nv !== undefined) {
+                  nested.ele(nk, nv instanceof Date ? nv.toISOString() : nv);
+                }
+              }
+            } else {
+              item.ele(key, String(value));
+            }
+          }
+        }
+      }
+      console.log(`Exported ${records.length} ${elementName}`);
+    } catch (e) {
+      console.log(`Error exporting ${elementName}:`, e.message);
+    }
+  };
+
+  // Export core system data
+  await exportTable('institution', 'Institutions');
+  await exportTable('department', 'Departments', institution_id ? { institution_id } : {});
+  await exportTable('staff', 'Staff', institution_id ? { institution_id } : {});
+  await exportTable('patient', 'Patients', institution_id ? { institution_id } : {});
+  await exportTable('visit', 'Visits', institution_id ? { institution_id } : {});
+  await exportTable('appointment', 'Appointments', institution_id ? { institution_id } : {});
+  await exportTable('diagnosis', 'Diagnoses', institution_id ? { institution_id } : {});
+  await exportTable('prescription', 'Prescriptions', institution_id ? { institution_id } : {});
+  await exportTable('medication', 'Medications', institution_id ? { institution_id } : {});
+  await exportTable('lab/LabTestResult', 'LabResults', institution_id ? { institution_id } : {});
+  await exportTable('Invoice', 'Invoices', institution_id ? { institution_id } : {});
+  await exportTable('Payment', 'Payments', institution_id ? { institution_id } : {});
+  await exportTable('claim', 'Claims', institution_id ? { institution_id } : {});
+  await exportTable('vital_signs_records', 'VitalSigns', institution_id ? { institution_id } : {});
+  await exportTable('admission', 'Admissions', institution_id ? { institution_id } : {});
+  await exportTable('serviceBill', 'ServiceBills', institution_id ? { institution_id } : {});
+  await exportTable('service', 'Services');
+  await exportTable('payment_method', 'PaymentMethods');
+  await exportTable('bed', 'Beds', institution_id ? { institution_id } : {});
+  await exportTable('User', 'Users', institution_id ? { institution_id } : {});
+  await exportTable('role', 'Roles');
+  await exportTable('permission', 'Permissions');
+
+  root.up();
+  return root.end({ prettyPrint: true, indent: '  ' });
 };
 
 // ==================== HELPER FUNCTIONS ====================

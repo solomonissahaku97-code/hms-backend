@@ -5,7 +5,7 @@ const { Op } = require('sequelize');
 
 // Import db to get all models with associations properly set up
 const db = require('../models');
-const { Item, ItemBatch, Supplier, StockRequest, StockRequestItem, StockTransfer, StockTransferItem, StockAdjustment, StockAlert, PurchaseOrder, PurchaseOrderItem, InventoryRecord, IssuedItem, ExpiredItem } = db;
+const { Item, ItemBatch, Supplier, StockRequest, StockRequestItem, StockTransfer, StockTransferItem, StockAdjustment, StockAlert, PurchaseOrder, PurchaseOrderItem, InventoryRecord, IssuedItem, ExpiredItem, Department, Notification } = db;
 
 // ============================================
 // STORE STATISTICS & DASHBOARD
@@ -333,6 +333,21 @@ router.post('/issue-items-directly', async (req, res) => {
             });
         }
 
+        // Notify receiving department
+        const notificationService = req.app.get('notificationService');
+        if (notificationService && department_id) {
+            const itemName = batch.item?.name || 'Item';
+            await notificationService.createNotification({
+                title: 'Items Issued to Your Department',
+                description: `${quantity} unit(s) of ${itemName} have been issued to your department.`,
+                from_department_id: department_id,
+                to_department_id: department_id,
+                institution_id,
+                type: 'Stock_Issue',
+                priority: 'High',
+            });
+        }
+
         res.status(201).json(issued);
     } catch (error) {
         console.error('Error issuing items:', error);
@@ -412,6 +427,21 @@ router.post('/issue-items-to-department', async (req, res) => {
             issuedResults.push(issued);
         }
 
+        // Notify receiving department
+        const notificationService = req.app.get('notificationService');
+        if (notificationService && department_id) {
+            const itemNames = issuedResults.map(i => i.item?.name).filter(Boolean).join(', ');
+            await notificationService.createNotification({
+                title: 'Items Issued to Your Department',
+                description: `${issuedResults.length} item(s) have been issued to your department: ${itemNames || 'Stock items'}.`,
+                from_department_id: department_id,
+                to_department_id: department_id,
+                institution_id,
+                type: 'Stock_Issue',
+                priority: 'High',
+            });
+        }
+
         res.status(201).json({ issuedItems: issuedResults });
     } catch (error) {
         console.error('Error issuing items to department:', error);
@@ -471,6 +501,26 @@ router.post('/request-items', async (req, res) => {
                     quantity_requested: item.quantity,
                     quantity_issued: 0,
                     status: 'pending'
+                });
+            }
+        }
+
+        // Send notification to store department
+        const storeDepartment = await Department.findOne({
+            where: { institution_id, departmentType: 'Store' }
+        });
+
+        if (storeDepartment) {
+            const notificationService = req.app.get('notificationService');
+            if (notificationService) {
+                await notificationService.createNotification({
+                    title: 'New Stock Request',
+                    description: `Department has requested ${items?.length || 0} item(s) from the store.`,
+                    from_department_id: department_id,
+                    to_department_id: storeDepartment.id,
+                    institution_id,
+                    type: 'Stock_Request',
+                    priority: 'Medium',
                 });
             }
         }
@@ -546,6 +596,20 @@ router.post('/requested-items/approve', async (req, res) => {
             }
         }
 
+        // Notify requesting department
+        const notificationService = req.app.get('notificationService');
+        if (notificationService) {
+            await notificationService.createNotification({
+                title: 'Stock Request Approved',
+                description: `Your stock request has been approved and items have been issued.`,
+                from_department_id: request.department_id,
+                to_department_id: request.department_id,
+                institution_id: request.institution_id,
+                type: 'Stock_Issue',
+                priority: 'High',
+            });
+        }
+
         res.json({ message: 'Request approved and items issued', request });
     } catch (error) {
         console.error('Error approving request:', error);
@@ -572,6 +636,20 @@ router.put('/requested-items/reject', async (req, res) => {
             { status: 'rejected' },
             { where: { stock_request_id: request_id } }
         );
+
+        // Notify requesting department
+        const notificationService = req.app.get('notificationService');
+        if (notificationService) {
+            await notificationService.createNotification({
+                title: 'Stock Request Rejected',
+                description: `Your stock request has been rejected.${reason ? ` Reason: ${reason}` : ''}`,
+                from_department_id: request.department_id,
+                to_department_id: request.department_id,
+                institution_id: request.institution_id,
+                type: 'Stock_Request',
+                priority: 'High',
+            });
+        }
 
         res.json({ message: 'Request rejected', request });
     } catch (error) {

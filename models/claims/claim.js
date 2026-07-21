@@ -37,6 +37,18 @@ const Claim = sequelize.define('Claim', {
         type: DataTypes.FLOAT,
         defaultValue: 0
     },
+    total_nhia_amount: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+        comment: 'Sum of NHIA-covered amounts across all claim items'
+    },
+    total_patient_amount: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+        comment: 'Sum of patient co-payments across all claim items'
+    },
     claim_reference_number: {
         type: DataTypes.STRING,
         allowNull: false,

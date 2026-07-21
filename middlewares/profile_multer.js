@@ -45,4 +45,20 @@ const uploadToLocal = (fieldName) => {
     };
 };
 
-module.exports = { upload, uploadToLocal };
+// Dedicated uploader for lab result attachments (images / scans / PDFs), 10MB limit
+const labAttachmentsUpload = multer({
+    storage,
+    limits: { fileSize: 1024 * 1024 * 10 }, // 10MB
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|pdf|webp|gif/;
+        const extname = allowed.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowed.test(file.mimetype);
+        if (mimetype && extname) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only JPG, JPEG, PNG, WEBP, GIF and PDF files are allowed.'));
+        }
+    },
+});
+
+module.exports = { upload, uploadToLocal, labAttachmentsUpload };

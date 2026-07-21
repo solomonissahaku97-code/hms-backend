@@ -19,10 +19,11 @@ const LabTestField = sequelize.define('LabTestField', {
             'text',
             'number',
             'select',
-            'checkbox', 
+            'checkbox',
             'radio',
             'date',
-            'textarea'
+            'textarea',
+            'file'
         ),
         allowNull: false
     },
