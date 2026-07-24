@@ -1,8 +1,8 @@
 const { Op, fn, col, literal } = require("sequelize");
-const { ServiceBill, Patient, Procedure, Prescription, LabTestResult } = require("../../models");
+const { ServiceBill, Patient, Procedure, Prescription, LabTestResult, Invoice, Visit } = require("../../models");
 const Department = require("../../models/department");
 const Staff = require("../../models/staff");
-const Invoice = require("../../models/Invoice");
+const Institution = require("../../models/institution");
 
 const AccountsController = {
     /**
@@ -490,11 +490,426 @@ const AccountsController = {
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
-    }
+    },
 
     // verify payments can be added here
 
+    /**
+     * Daily Cash Flow - patient-specific invoices and total amounts collected per day
+     */
+    async getDailyCashFlow(req, res) {
+        try {
+            const { start_date, end_date, institution_id } = req.query;
 
+            const whereClause = {};
+            if (institution_id) {
+                whereClause.institution_id = institution_id;
+            }
+            if (start_date && end_date) {
+                whereClause.invoice_date = {
+                    [Op.between]: [new Date(start_date), new Date(end_date)]
+                }; 
+            }
+
+            const dateFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+
+            // 1. Detailed invoice lines with patient info and service bills
+            const invoices = await Invoice.findAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: Visit,
+                        as: 'visit',
+                        include: [
+                            {
+                                model: Patient,
+                                as: 'patient',
+                                attributes: ['id', 'first_name', 'last_name', ]
+                            }
+                        ]
+                    },
+                    {
+                        model: Institution,
+                        as: 'institution',
+                        attributes: ['id', 'name']
+                    },
+                    {
+                        model: ServiceBill,
+                        as: 'service_bills',
+                        attributes: ['id', 'service_type', 'description', 'total_amount', 'patient_amount', 'nhia_amount', 'has_paid', 'payment_status', 'created_at'],
+                        include: [
+                            { model: Department, as: 'department', attributes: ['id', 'name'] }
+                        ]
+                    }
+                ],
+                order: [['invoice_date', 'DESC']]
+            });
+
+            // Format invoice details with computed totals from service bills
+            const formattedInvoices = invoices.map(inv => {
+                const bills = inv.service_bills || [];
+                const computedTotalPatient = bills.reduce((s, sb) => s + parseFloat(sb.patient_amount || 0), 0);
+                const computedTotalNhia = bills.reduce((s, sb) => s + parseFloat(sb.nhia_amount || 0), 0);
+                const computedTotal = computedTotalPatient + computedTotalNhia;
+                const computedCollected = bills.filter(b => b.has_paid).reduce((s, b) => s + parseFloat(b.patient_amount || 0), 0);
+
+                return {
+                    id: inv.id,
+                    invoice_number: inv.invoice_number,
+                    invoice_date: inv.invoice_date,
+                    due_date: inv.due_date,
+                    total_amount: computedTotal,
+                    patient_amount: computedTotalPatient,
+                    nhia_amount: computedTotalNhia,
+                    amount_paid: computedCollected,
+                    balance_due: computedTotal - computedCollected,
+                    status: inv.status,
+                    payment_method: inv.payment_method,
+                    patient: inv.visit?.patient ? {
+                        id: inv.visit.patient.id,
+                        name: `${inv.visit.patient.first_name || ''} ${inv.visit.patient.last_name || ''}`.trim(),
+                        patient_id: inv.visit.patient.patient_id
+                    } : null,
+                    institution: inv.institution?.name || '',
+                    service_bills: bills.map(sb => ({
+                        id: sb.id,
+                        service_type: sb.service_type,
+                        description: sb.description,
+                        total_amount: parseFloat(sb.total_amount || 0),
+                        patient_amount: parseFloat(sb.patient_amount || 0),
+                        nhia_amount: parseFloat(sb.nhia_amount || 0),
+                        has_paid: sb.has_paid,
+                        payment_status: sb.payment_status,
+                        department: sb.department?.name || '',
+                        created_at: sb.created_at
+                    }))
+                };
+            });
+
+            // 2. Daily totals grouped by date (using computed values from service bills)
+            const dailyTotalsMap = {};
+            formattedInvoices.forEach(inv => {
+                const dateKey = inv.invoice_date ? new Date(inv.invoice_date).toISOString().split('T')[0] : 'unknown';
+                if (!dailyTotalsMap[dateKey]) {
+                    dailyTotalsMap[dateKey] = {
+                        date: dateKey,
+                        total_invoiced: 0,
+                        total_collected: 0,
+                        total_balance_due: 0,
+                        invoice_count: 0,
+                        display_date: inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', dateFormatOptions) : 'N/A'
+                    };
+                }
+                dailyTotalsMap[dateKey].total_invoiced += inv.total_amount;
+                dailyTotalsMap[dateKey].total_collected += inv.amount_paid;
+                dailyTotalsMap[dateKey].total_balance_due += inv.balance_due;
+                dailyTotalsMap[dateKey].invoice_count += 1;
+            });
+
+            const formattedDailyTotals = Object.values(dailyTotalsMap).map(row => ({
+                date: row.date,
+                total_invoiced: parseFloat(row.total_invoiced.toFixed(2)),
+                total_collected: parseFloat(row.total_collected.toFixed(2)),
+                total_balance_due: parseFloat(row.total_balance_due.toFixed(2)),
+                invoice_count: row.invoice_count,
+                display_date: row.display_date
+            })).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // 3. Daily flow transactions compatible with cashflow table
+            const categories = ['OPD', 'Pharmacy', 'Laboratory', 'Ward', 'Surgery', 'Maternity', 'NHIS', 'Consultation', 'Ambulance', 'Other'];
+            const dailyFlow = [];
+            formattedInvoices.forEach(inv => {
+                const date = inv.invoice_date ? inv.invoice_date.toISOString() : new Date().toISOString();
+                inv.service_bills.forEach((sb, idx) => {
+                    dailyFlow.push({
+                        key: `CF-${inv.id}-${idx}`,
+                        date: date,
+                        id: `TXN-${inv.invoice_number}-${idx}`,
+                        category: categories[idx % categories.length],
+                        description: `${sb.service_type}: ${sb.description || 'Service'}`,
+                        amount: parseFloat(sb.patient_amount || 0),
+                        type: 'In',
+                        paymentMethod: inv.payment_method || 'cash',
+                        status: inv.status === 'paid' ? 'Completed' : inv.status === 'unpaid' ? 'Pending' : 'Processing',
+                        invoiceId: inv.id,
+                        patientName: inv.patient?.name || 'Unknown',
+                        totalAmount: inv.total_amount,
+                        amountPaid: inv.amount_paid,
+                        balanceDue: inv.balance_due,
+                    });
+                });
+                if (inv.service_bills.length === 0) {
+                    dailyFlow.push({
+                        key: `CF-${inv.id}-0`,
+                        date: date,
+                        id: `TXN-${inv.invoice_number}`,
+                        category: 'Other',
+                        description: `Invoice ${inv.invoice_number}`,
+                        amount: parseFloat(inv.total_amount || 0),
+                        type: inv.total_amount > 0 ? 'In' : 'Out',
+                        paymentMethod: inv.payment_method || 'cash',
+                        status: inv.status === 'paid' ? 'Completed' : inv.status === 'unpaid' ? 'Pending' : 'Processing',
+                        invoiceId: inv.id,
+                        patientName: inv.patient?.name || 'Unknown',
+                        totalAmount: inv.total_amount,
+                        amountPaid: inv.amount_paid,
+                        balanceDue: inv.balance_due,
+                    });
+                }
+            });
+
+            // 4. Group invoices by date for easy frontend consumption
+            const invoicesByDate = formattedInvoices.reduce((acc, inv) => {
+                const dateKey = inv.invoice_date ? new Date(inv.invoice_date).toISOString().split('T')[0] : 'unknown';
+                if (!acc[dateKey]) {
+                    acc[dateKey] = {
+                        date: dateKey,
+                        display_date: inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', dateFormatOptions) : 'N/A',
+                        invoices: [],
+                        daily_total_collected: 0,
+                        daily_total_invoiced: 0
+                    };
+                }
+                acc[dateKey].invoices.push(inv);
+                acc[dateKey].daily_total_collected += inv.amount_paid;
+                acc[dateKey].daily_total_invoiced += inv.total_amount;
+                return acc;
+            }, {});
+
+            res.json({
+                success: true,
+                data: {
+                    dailyTotals: formattedDailyTotals,
+                    invoicesByDate: Object.values(invoicesByDate),
+                    allInvoices: formattedInvoices,
+                    dailyFlow: dailyFlow,
+                    summary: {
+                        total_collected: formattedDailyTotals.reduce((sum, d) => sum + d.total_collected, 0),
+                        total_invoiced: formattedDailyTotals.reduce((sum, d) => sum + d.total_invoiced, 0),
+                        total_balance_due: formattedDailyTotals.reduce((sum, d) => sum + d.total_balance_due, 0),
+                        total_invoices: formattedDailyTotals.reduce((sum, d) => sum + d.invoice_count, 0),
+                        day_count: formattedDailyTotals.length
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error fetching daily cash flow:", error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
+    /**
+     * Accounts Report - clean financial summary with revenue, collections, and outstanding
+     */
+    async getAccountsReport(req, res) {
+        try {
+            const { start_date, end_date, institution_id } = req.query;
+
+            const whereClause = {};
+            if (institution_id) {
+                whereClause.institution_id = institution_id;
+            }
+            if (start_date && end_date) {
+                whereClause.invoice_date = {
+                    [Op.between]: [new Date(start_date), new Date(end_date)]
+                };
+            }
+
+            const dateFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+
+            const invoices = await Invoice.findAll({
+                where: whereClause,
+                attributes: ['id', 'invoice_number', 'invoice_date', 'total_amount', 'amount_paid', 'balance_due', 'status', 'payment_method'],
+                include: [
+                    {
+                        model: Visit,
+                        as: 'visit',
+                        include: [
+                            {
+                                model: Patient,
+                                as: 'patient',
+                                attributes: ['id', 'first_name', 'last_name', 'patient_id']
+                            }
+                        ]
+                    },
+                    {
+                        model: Institution,
+                        as: 'institution',
+                        attributes: ['id', 'name']
+                    }
+                ],
+                order: [['invoice_date', 'DESC']]
+            });
+
+            const formattedInvoices = invoices.map(inv => ({
+                id: inv.id,
+                invoice_number: inv.invoice_number,
+                invoice_date: inv.invoice_date,
+                total_amount: parseFloat(inv.total_amount || 0),
+                amount_paid: parseFloat(inv.amount_paid || 0),
+                balance_due: parseFloat(inv.balance_due || 0),
+                status: inv.status,
+                payment_method: inv.payment_method,
+                patient: inv.visit?.patient ? {
+                    id: inv.visit.patient.id,
+                    name: `${inv.visit.patient.first_name || ''} ${inv.visit.patient.last_name || ''}`.trim(),
+                    patient_id: inv.visit.patient.patient_id
+                } : null,
+                institution: inv.institution?.name || ''
+            }));
+
+            const totalInvoiced = formattedInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+            const totalCollected = formattedInvoices.reduce((sum, inv) => sum + inv.amount_paid, 0);
+            const totalOutstanding = formattedInvoices.reduce((sum, inv) => sum + inv.balance_due, 0);
+            const totalPaid = formattedInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.amount_paid, 0);
+            const totalPartiallyPaid = formattedInvoices.filter(inv => inv.status === 'partially_paid').reduce((sum, inv) => sum + inv.amount_paid, 0);
+            const totalUnpaid = formattedInvoices.filter(inv => inv.status === 'unpaid').reduce((sum, inv) => sum + inv.balance_due, 0);
+
+            const paidCount = formattedInvoices.filter(inv => inv.status === 'paid').length;
+            const partiallyPaidCount = formattedInvoices.filter(inv => inv.status === 'partially_paid').length;
+            const unpaidCount = formattedInvoices.filter(inv => inv.status === 'unpaid').length;
+
+            const paymentMethods = {};
+            formattedInvoices.forEach(inv => {
+                if (inv.payment_method) {
+                    paymentMethods[inv.payment_method] = (paymentMethods[inv.payment_method] || 0) + inv.amount_paid;
+                }
+            });
+
+            const topPatients = formattedInvoices
+                .sort((a, b) => b.total_amount - a.total_amount)
+                .slice(0, 10)
+                .map(inv => ({
+                    patient_name: inv.patient?.name || 'Unknown',
+                    total_amount: inv.total_amount,
+                    amount_paid: inv.amount_paid,
+                    balance_due: inv.balance_due
+                }));
+
+            const categories = ['OPD', 'Pharmacy', 'Laboratory', 'Ward', 'Surgery', 'Maternity', 'NHIS', 'Consultation', 'Ambulance', 'Other'];
+            const dailyFlow = [];
+            formattedInvoices.forEach(inv => {
+                const date = inv.invoice_date ? inv.invoice_date.toISOString() : new Date().toISOString();
+                const methodLabel = inv.payment_method ? inv.payment_method.replace('_', ' ').toUpperCase() : 'Cash';
+                dailyFlow.push({
+                    key: `RPT-${inv.id}`,
+                    date: date,
+                    id: inv.invoice_number,
+                    category: 'Other',
+                    description: `Invoice #${inv.invoice_number} - ${inv.patient?.name || 'Unknown'}`,
+                    amount: parseFloat(inv.total_amount || 0),
+                    type: inv.amount_paid > 0 ? 'In' : 'Out',
+                    paymentMethod: methodLabel,
+                    status: inv.status === 'paid' ? 'Completed' : inv.status === 'unpaid' ? 'Pending' : 'Processing',
+                    invoiceId: inv.id,
+                    patientName: inv.patient?.name || 'Unknown',
+                    totalAmount: inv.total_amount,
+                    amountPaid: inv.amount_paid,
+                    balanceDue: inv.balance_due,
+                });
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    summary: {
+                        total_invoices: formattedInvoices.length,
+                        total_invoiced: totalInvoiced,
+                        total_collected: totalCollected,
+                        total_outstanding: totalOutstanding,
+                        total_paid: totalPaid,
+                        total_partially_paid: totalPartiallyPaid,
+                        total_unpaid: totalUnpaid,
+                        collection_rate: totalInvoiced > 0 ? ((totalCollected / totalInvoiced) * 100).toFixed(1) : 0,
+                        paid_count: paidCount,
+                        partially_paid_count: partiallyPaidCount,
+                        unpaid_count: unpaidCount
+                    },
+                    payment_methods: paymentMethods,
+                    top_patients: topPatients,
+                    invoices: formattedInvoices,
+                    dailyFlow: dailyFlow
+                }
+            });
+        } catch (error) {
+            console.error("Error fetching accounts report:", error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
+
+    /**
+     * Pay full invoice - marks all service bills and invoice as paid
+     */
+    async payInvoice(req, res) {
+        try {
+            const { invoice_id } = req.params;
+            const { payment_method, paid_by, notes } = req.body;
+
+            if (!invoice_id || !payment_method) {
+                return res.status(400).json({ success: false, error: "invoice_id and payment_method are required" });
+            }
+
+            const invoice = await Invoice.findByPk(invoice_id, {
+                include: [
+                    { model: ServiceBill, as: 'service_bills' }
+                ]
+            });
+
+            if (!invoice) {
+                return res.status(404).json({ success: false, error: "Invoice not found" });
+            }
+
+            if (invoice.balance_due <= 0) {
+                return res.status(400).json({ success: false, error: "Invoice already fully paid" });
+            }
+
+            const paymentAmount = parseFloat(invoice.balance_due);
+            const now = new Date();
+
+            // Mark all unpaid service bills as paid
+            let totalPatientPaid = 0;
+            let totalNhiaPaid = 0;
+            for (const bill of invoice.service_bills || []) {
+                if (!bill.has_paid) {
+                    bill.has_paid = true;
+                    bill.payment_status = 'Paid';
+                    bill.payment_method = payment_method;
+                    bill.paid_at = now;
+                    bill.paid_by = paid_by || null;
+                    totalPatientPaid += parseFloat(bill.patient_amount || 0);
+                    totalNhiaPaid += parseFloat(bill.nhia_amount || 0);
+                    await bill.save();
+                }
+            }
+
+            // Update invoice
+            invoice.amount_paid = parseFloat(invoice.total_amount);
+            invoice.balance_due = 0;
+            invoice.status = 'paid';
+            invoice.payment_method = payment_method;
+            invoice.paid_at = now;
+            invoice.paid_by = paid_by || null;
+            invoice.notes = notes || '';
+            await invoice.save();
+
+            res.json({
+                success: true,
+                message: "Invoice fully paid",
+                data: {
+                    invoice_id: invoice.id,
+                    invoice_number: invoice.invoice_number,
+                    amount_paid: paymentAmount,
+                    total_patient_amount: totalPatientPaid,
+                    total_nhia_amount: totalNhiaPaid,
+                    payment_method,
+                    paid_at: now
+                }
+            });
+        } catch (error) {
+            console.error("Error paying invoice:", error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
 };
 
 module.exports = AccountsController;

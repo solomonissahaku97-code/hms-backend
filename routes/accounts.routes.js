@@ -13,8 +13,12 @@ router.get("/staff-billing", AccountsController.getStaffBilling);
 router.get("/aging-report", AccountsController.getAgingReport);
 router.get("/dashboard", AccountsController.getDashboard);
 
+router.get("/daily-cash-flow", AccountsController.getDailyCashFlow);
+router.get("/report", AccountsController.getAccountsReport);
+
 router.get("/patient-collections/:visit_id", AccountsController.getPatientCollections);
 router.patch("/bills/mark-payment/:bill_id", AccountsController.markBillAsPaid);
+router.patch("/invoices/pay/:invoice_id", AccountsController.payInvoice);
 
 // Patient Billing - NEW ENDPOINTS
 router.get("/patients-billing", billingController.getAllPatientsWithBillingSummary);

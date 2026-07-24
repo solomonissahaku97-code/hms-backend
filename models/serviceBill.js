@@ -154,35 +154,44 @@ const ServiceBill = sequelize.define('ServiceBill', {
                     break;
             }
             
-            // 2. Auto-calculate amounts if not provided
-            if (!serviceBill.total_amount) {
-                serviceBill.total_amount = serviceBill.unit_price * serviceBill.quantity;
+// 2. Ensure total_amount = patient_amount + nhia_amount
+            const pa = parseFloat(serviceBill.patient_amount || 0);
+            const na = parseFloat(serviceBill.nhia_amount || 0);
+
+            if (serviceBill.total_amount) {
+              // If total_amount is set, derive patient_amount from total - nhia
+              serviceBill.patient_amount = parseFloat(serviceBill.total_amount) - na;
+              if (serviceBill.patient_amount < 0) serviceBill.patient_amount = 0;
+            } else if (serviceBill.patient_amount !== undefined) {
+              // If patient_amount is set, compute total = patient + nhia
+              serviceBill.total_amount = pa + na;
+            } else if (na > 0) {
+              // If only nhia is set, total = nhia (patient pays 0)
+              serviceBill.total_amount = na;
+              serviceBill.patient_amount = 0;
             }
-            
-            if (!serviceBill.patient_amount) {
-                serviceBill.patient_amount = serviceBill.total_amount - serviceBill.nhia_amount;
-            }
-            
-            // Ensure patient_amount is not negative
-            if (serviceBill.patient_amount < 0) {
-                serviceBill.patient_amount = 0;
+
+            // Ensure patient_amount is never negative
+            if (parseFloat(serviceBill.patient_amount || 0) < 0) {
+              serviceBill.patient_amount = 0;
             }
         },
         
-        beforeUpdate: async (serviceBill, options) => {
-            // Recalculate amounts if relevant fields change
-            if (serviceBill.changed('unit_price') || serviceBill.changed('quantity')) {
-                serviceBill.total_amount = serviceBill.unit_price * serviceBill.quantity;
+beforeUpdate: async (serviceBill, options) => {
+            const pa = parseFloat(serviceBill.patient_amount || 0);
+            const na = parseFloat(serviceBill.nhia_amount || 0);
+
+            if (serviceBill.total_amount) {
+              serviceBill.patient_amount = parseFloat(serviceBill.total_amount) - na;
+              if (serviceBill.patient_amount < 0) serviceBill.patient_amount = 0;
+            } else {
+              serviceBill.total_amount = pa + na;
             }
-            
-            if (serviceBill.changed('total_amount') || serviceBill.changed('nhia_amount')) {
-                serviceBill.patient_amount = serviceBill.total_amount - serviceBill.nhia_amount;
-            }
-            
+
             if (serviceBill.patient_amount < 0) {
-                serviceBill.patient_amount = 0;
+              serviceBill.patient_amount = 0;
             }
-        }
+        },
     }
 });
 
