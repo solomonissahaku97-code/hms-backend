@@ -3,6 +3,7 @@ const Chat = require('../models/Chats');
 const Staff = require('../models/staff');
 const Department = require('../models/department');
 const Admin = require('../models/admin');
+const Institution = require('../models/institution');
 const ChatReadReceipt = require('../models/ChatReadReceipt');
 
 class ChatService {
@@ -25,6 +26,44 @@ class ChatService {
       socket.on('join-chat-room', joinChatRoom);
       socket.on('register', joinChatRoom);
 
+      // Join institution room
+      socket.on('join-institution-room', ({ institutionId }) => {
+        if (institutionId) {
+          socket.join(`institution-${institutionId}`);
+          console.log(`Institution ${institutionId} joined institution room`);
+        }
+      });
+
+      socket.on('leave-institution-room', ({ institutionId }) => {
+        if (institutionId) {
+          socket.leave(`institution-${institutionId}`);
+          console.log(`Institution ${institutionId} left institution room`);
+        }
+      });
+
+      // Send institution message handler
+      socket.on('send-institution-message', async (messageData, callback) => {
+        try {
+          const savedMessage = await this.saveInstitutionMessageToDatabase(messageData);
+          this.distributeInstitutionMessage(savedMessage);
+          if (typeof callback === 'function') {
+            callback({
+              success: true,
+              messageId: savedMessage.id
+            });
+          }
+        } catch (error) {
+          console.error('Error sending institution message:', error);
+      socket.emit('message-error', { error: 'Failed to send institution message' });
+      if (typeof callback === 'function') {
+        callback({
+          success: false,
+          error: error.message || 'Failed to save institution message'
+        });
+      }
+        }
+      });
+
       // Send message handler
       socket.on('send-message', async (messageData, callback) => {
         try {
@@ -43,7 +82,7 @@ class ChatService {
             callback({
               success: false,
               error: 'Failed to save message'
-            }); 
+            });
           }
         }
       });
@@ -63,12 +102,11 @@ class ChatService {
   }
 
   async saveMessageToDatabase(messageData) {
-    console.log(messageData)
     const message = await Chat.create({
       institution_id: messageData.institution_id,
       senderDepartmentId: messageData.senderDepartmentId,
       receiverDepartmentId: messageData.receiverDepartmentId,
-      senderId: messageData.senderId, 
+      senderId: messageData.senderId,
       receiverId: messageData.receiverId,
       senderAdminId: messageData.senderAdminId,
       receiverAdminId: messageData.receiverAdminId,
@@ -78,7 +116,6 @@ class ChatService {
       patientTag: messageData.patientTag
     });
 
-    // Fetch the message with associations for notification
     const messageWithAssociations = await Chat.findByPk(message.id, {
       include: [
         { model: Staff, as: 'Sender' },
@@ -90,13 +127,77 @@ class ChatService {
     });
 
     if (messageData.receiverId) {
-      await ChatReadReceipt.create({ 
+      await ChatReadReceipt.create({
         chatId: message.id,
         departmentId: messageData.receiverDepartmentId,
         staffId: messageData.receiverId,
         readAt: null
       });
     }
+
+    return messageWithAssociations;
+  }
+
+  async saveInstitutionMessageToDatabase(messageData) {
+    // Validate that senderId and receiverId actually exist in Staff table
+    // to prevent FK constraint violations when admin IDs are passed as staff IDs
+    let validatedSenderId = messageData.sender_staff_id || null;
+    let validatedReceiverId = messageData.receiver_staff_id || null;
+    let validatedSenderAdminId = messageData.sender_admin_id || null;
+    let validatedReceiverAdminId = messageData.receiver_admin_id || null;
+
+    if (validatedSenderId) {
+      const staffExists = await Staff.findByPk(validatedSenderId, { attributes: ['id'] });
+      if (!staffExists) {
+        validatedSenderId = null;
+      }
+    }
+
+    if (validatedReceiverId) {
+      const staffExists = await Staff.findByPk(validatedReceiverId, { attributes: ['id'] });
+      if (!staffExists) {
+        validatedReceiverId = null;
+      }
+    }
+
+    if (validatedSenderAdminId) {
+      const adminExists = await Admin.findByPk(validatedSenderAdminId, { attributes: ['id'] });
+      if (!adminExists) {
+        validatedSenderAdminId = null;
+      }
+    }
+
+    if (validatedReceiverAdminId) {
+      const adminExists = await Admin.findByPk(validatedReceiverAdminId, { attributes: ['id'] });
+      if (!adminExists) {
+        validatedReceiverAdminId = null;
+      }
+    }
+
+    const message = await Chat.create({
+      institution_id: messageData.sender_institution_id,
+      senderInstitutionId: messageData.sender_institution_id,
+      receiverInstitutionId: messageData.receiver_institution_id,
+      senderAdminId: validatedSenderAdminId,
+      senderId: validatedSenderId,
+      receiverAdminId: validatedReceiverAdminId,
+      receiverId: validatedReceiverId,
+      text: messageData.text || null,
+      mediaUrl: messageData.media_url || null,
+      mediaType: messageData.media_type || null,
+      patientTag: messageData.patient_tag || null
+    });
+
+    const messageWithAssociations = await Chat.findByPk(message.id, {
+      include: [
+        { model: Institution, as: 'SenderInstitution', attributes: ['id', 'name'] },
+        { model: Institution, as: 'ReceiverInstitution', attributes: ['id', 'name'] },
+        { model: Admin, as: 'SenderAdmin', attributes: ['id', 'username'] },
+        { model: Admin, as: 'ReceiverAdmin', attributes: ['id', 'username'] },
+        { model: Staff, as: 'Sender', attributes: ['id', 'firstName', 'lastName'] },
+        { model: Staff, as: 'Receiver', attributes: ['id', 'firstName', 'lastName'] }
+      ]
+    });
 
     return messageWithAssociations;
   }
@@ -114,22 +215,19 @@ class ChatService {
     if (message.receiverDepartmentId) {
       console.log(`Sending to department-${message.receiverDepartmentId}`);
       this.io.to(`department-${message.receiverDepartmentId}`).emit('new-department-message', message);
-      
-      // Get sender name
+
       let senderName = 'Unknown';
       if (message.Sender) {
-        senderName = message.Sender.firstName ? 
+        senderName = message.Sender.firstName ?
           `${message.Sender.firstName} ${message.Sender.lastName || ''}` : 'Staff';
       } else if (message.SenderAdmin) {
         senderName = 'Admin';
       }
 
-      // Get sender department name
       let senderDepartmentName = 'Unknown Department';
       if (message.SenderDepartment) {
         senderDepartmentName = message.SenderDepartment.name;
       } else if (message.senderDepartmentId) {
-        // Try to fetch department if not included
         try {
           const dept = await Department.findByPk(message.senderDepartmentId);
           if (dept) {
@@ -140,7 +238,6 @@ class ChatService {
         }
       }
 
-      // Emit notification event with department info for toast notifications
       this.io.to(`department-${message.receiverDepartmentId}`).emit('department-message-notification', {
         id: message.id,
         text: message.text,
@@ -167,6 +264,52 @@ class ChatService {
     }
   }
 
+  async distributeInstitutionMessage(message) {
+    console.log('Distributing institution message:', message.id);
+
+    const senderInstitutionId = message.senderInstitutionId;
+    const receiverInstitutionId = message.receiverInstitutionId;
+
+    // Send to receiver institution room
+    if (receiverInstitutionId) {
+      console.log(`Sending institution message to institution-${receiverInstitutionId}`);
+      this.io.to(`institution-${receiverInstitutionId}`).emit('new-institution-message', message);
+
+      let senderName = 'Unknown';
+      if (message.SenderAdmin) {
+        senderName = message.SenderAdmin.username;
+      } else if (message.Sender) {
+        senderName = `${message.Sender.firstName || ''} ${message.Sender.lastName || ''}`.trim() || 'Staff';
+      }
+
+      const senderInstitutionName = message.SenderInstitution?.name || 'Unknown Institution';
+
+      this.io.to(`institution-${receiverInstitutionId}`).emit('institution-message-notification', {
+        id: message.id,
+        text: message.text,
+        senderInstitutionId: senderInstitutionId,
+        senderInstitutionName: senderInstitutionName,
+        senderName: senderName,
+        receiverInstitutionId: receiverInstitutionId,
+        timestamp: message.createdAt
+      });
+    }
+
+    // Send to sender institution room so they can see their own messages
+    if (senderInstitutionId) {
+      console.log(`Sending institution message to sender institution-${senderInstitutionId}`);
+      this.io.to(`institution-${senderInstitutionId}`).emit('new-institution-message', message);
+    }
+
+    // Send confirmation to the sender (user room)
+    if (message.senderId) {
+      this.io.to(`user-${message.senderId}`).emit('message-sent', {
+        ...message.toJSON(),
+        status: 'delivered'
+      });
+    }
+  }
+
   async handleReadReceipts(messageIds, readerId) {
     if (!messageIds || messageIds.length === 0) return;
 
@@ -175,7 +318,6 @@ class ChatService {
       { where: { chatId: messageIds, staffId: readerId } }
     );
 
-    // Optional: notify sender about read status
     messageIds.forEach((id) => {
       this.io.emit('message-read', { messageId: id, readerId });
     });
@@ -192,9 +334,6 @@ class ChatService {
     return count;
   }
 
-
-
-  // In ChatService.js
   async getChatHistory({ userId, departmentId, limit = 50 }) {
     const where = {
       [Op.or]: [
@@ -220,4 +359,3 @@ class ChatService {
 }
 
 module.exports = ChatService;
-

@@ -4,8 +4,8 @@ const Subscription = require('../models/subscription');
 const { initiatePayment, verifyPayment } = require('../utils/paystack');
 const { sequelize } = require('../models'); // Assuming Sequelize is configured here
 const Payment = require('../models/Payment');
-const SUBSCRIPTION_FEATURES = require('../config/subscriptionFeatures');
-const VALID_FEATURE_KEYS = Object.keys(SUBSCRIPTION_FEATURES);
+const SUBSCRIPTION_FEATURES = require('../config/subscriptionFeatures'); 
+const VALID_FEATURE_KEYS = Object.keys(SUBSCRIPTION_FEATURES); 
 
 // Normalize/validate the incoming features array against the known catalog.
 // Unknown keys are dropped; always returns a plain array of valid string keys.
@@ -93,8 +93,9 @@ const initiateSubscription = async (req, res) => {
             authorization_url,
         });
     } catch (error) {
-        console.error('Error initiating subscription:', error);
-        res.status(500).json({ error: 'Failed to initiate subscription' });
+        console.error('Error initiating subscription:', error.message);
+        // Return the actual error message from Paystack for better debugging
+        res.status(500).json({ error: error.message || 'Failed to initiate subscription' });
     }
 };
 
@@ -102,53 +103,48 @@ const initiateSubscription = async (req, res) => {
 
 const paystackCallback = async (req, res) => {
     const { reference } = req.query;
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
     try {
         console.log('Reference received:', reference);
-        // Verify payment status from Paystack
         const paymentData = await verifyPayment(reference);
         console.log('Payment Data:', paymentData);
 
         if (paymentData.data.status !== 'success') {
-            return res.status(400).json({ error: 'Payment failed or was unsuccessful' });
+            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
         }
 
-        console.log('meta data printing ==', paymentData.data.metadata)
+        console.log('meta data printing ==', paymentData.data.metadata);
 
         const { subscriptionId, email, institutionId, admin_id } = paymentData.data.metadata;
         if (!subscriptionId || !email || !institutionId) {
-            return res.status(400).json({ error: 'Invalid metadata in payment data' });
+            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
         }
 
-        // Start transaction
         const transaction = await sequelize.transaction();
 
         try {
-            // Check subscription
             const subscription = await Subscription.findByPk(subscriptionId);
             if (!subscription) {
                 await transaction.rollback();
-                return res.status(404).json({ error: 'Subscription not found' });
+                return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
             }
 
-            // Check institution and its subscription
             const subscribe_institution = await Institution.findByPk(institutionId);
             const institution_subscription = await InstitutionSubscription.findOne({ where: { institutionId } });
 
             if (!subscribe_institution || !institution_subscription) {
                 await transaction.rollback();
-                return res.status(404).json({ error: 'Error processing payment: Institution or subscription not found' });
+                return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
             }
 
-            // Update institution and its subscription
             const newExpiryDate = subscription.duration
               ? new Date(Date.now() + subscription.duration * 24 * 60 * 60 * 1000)
               : null;
 
             await subscribe_institution.update({ subscriptionId }, { transaction });
-            await institution_subscription.update({ subscriptionId, expiryDate: newExpiryDate, }, { transaction });
+            await institution_subscription.update({ subscriptionId, expiryDate: newExpiryDate }, { transaction });
 
-            // Save payment data
             const {
                 id,
                 status,
@@ -164,7 +160,7 @@ const paystackCallback = async (req, res) => {
                 authorization,
             } = paymentData.data;
 
-            console.log(paymentData)
+            console.log(paymentData);
 
             await Payment.create({
                 transactionId: id,
@@ -181,21 +177,19 @@ const paystackCallback = async (req, res) => {
                 authorization,
             }, { transaction });
 
-            // Commit transaction
             await transaction.commit();
 
-            res.status(200).render('success', {
-                message: 'Payment successful, subscription updated.',
-            });
+            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=success&reference=${reference}`);
         } catch (error) {
-            console.log('Error in Paystack callback:', error); // Log the actual error
-            res.status(500).render('error', {
-                message: 'Failed to process Paystack callback. Please try again.',
-            });
+            console.log('Error in Paystack callback:', error);
+            if (transaction && !transaction.finished) {
+                await transaction.rollback();
+            }
+            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
         }
     } catch (error) {
         console.error('Error in Paystack callback:', error);
-        res.status(500).json({ error: 'Failed to process Paystack callback' });
+        return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
     }
 };
 

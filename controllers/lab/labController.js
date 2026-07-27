@@ -17,6 +17,7 @@ const Department = require('../../models/department');
 const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
 const Notification = require('../../models/notification'); 
+const { sendPushEngageNotification } = require('../../service/pushEngageService');
 
 
 // Helper function to notify lab staff
@@ -271,6 +272,31 @@ exports.createResult = async (req, res, next) => {
       console.error('Error notifying lab staff:', err)
     );
     console.log(`📣 Notification process initiated for lab staff regarding new test result ID: ${result.id}`);
+
+    Patient.findByPk(visitForNotify.patient_id).then(async patient => {
+      try {
+        const labDepartment = await Department.findOne({
+          where: {
+            institution_id: visitForNotify.institution_id,
+            departmentType: 'Lab'
+          }
+        });
+
+        const payload = {
+          title: 'New Lab Request',
+          message: `New lab test requested: ${templateForNotify?.lab_tarrif?.test_description || 'Lab Test'}. Patient: ${patient ? `${patient.first_name || ''} ${patient.last_name || ''}` : 'Unknown'}`,
+          url: `${process.env.FRONTEND_URL || ''}/lab`
+        };
+
+        if (labDepartment) {
+          await sendPushEngageDepartmentNotification({ departmentId: labDepartment.id, ...payload });
+        } else {
+          await sendPushEngageNotification({ ...payload, tag: 'lab-request' });
+        }
+      } catch (err) {
+        console.error('Error sending PushEngage notification:', err);
+      }
+    }).catch(err => console.error('Error fetching patient for PushEngage notification:', err));
 
     res.status(201).json({
       status: 'success',

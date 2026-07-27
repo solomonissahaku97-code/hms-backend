@@ -13,6 +13,7 @@ const { handleBilling } = require('../../utils/billingUtil');
 const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
 const Notification = require('../../models/notification');
+const { sendPushEngageNotification } = require('../../service/pushEngageService');
 
 // Helper function to find Pharmacy department
 async function findPharmacyDepartment(institution_id) {
@@ -191,6 +192,19 @@ async function createMultiplePrescriptions(prescriptionsData, res, req) {
         // Send notification to Pharmacy department
         await notifyPharmacyDepartment(prescription, patient, medication, doctor, io);
 
+        // Send browser push notification for prescription request
+        const pharmacyDepartment = await findPharmacyDepartment(prescription.institution_id);
+        const pharmacyPayload = {
+          title: 'New Pharmacy Request',
+          message: `New prescription for patient ${patient?.first_name || 'Unknown'} ${patient?.last_name || ''} - Medication: ${medication?.generic_name || 'N/A'}. Dosage: ${prescription.dosage}, Frequency: ${prescription.frequency}`,
+          url: `${process.env.FRONTEND_URL || ''}/pharmacy`
+        };
+
+        (pharmacyDepartment
+          ? sendPushEngageDepartmentNotification({ departmentId: pharmacyDepartment.id, ...pharmacyPayload })
+          : sendPushEngageNotification({ ...pharmacyPayload, tag: 'pharmacy-request' })
+        ).catch(err => console.error('Error sending PushEngage pharmacy notification:', err));
+
         createdPrescriptions.push(prescription);
     }
 
@@ -267,6 +281,19 @@ async function createSinglePrescription(prescriptionData, res, req) {
 
     // Send notification to Pharmacy department
     await notifyPharmacyDepartment(prescription, patient, medication, doctor, io);
+
+    // Send browser push notification for prescription request
+    const pharmacyDepartment = await findPharmacyDepartment(prescription.institution_id);
+    const pharmacyPayload = {
+      title: 'New Pharmacy Request',
+      message: `New prescription for patient ${patient?.first_name || 'Unknown'} ${patient?.last_name || ''} - Medication: ${medication?.generic_name || 'N/A'}. Dosage: ${prescription.dosage}, Frequency: ${prescription.frequency}`,
+      url: `${process.env.FRONTEND_URL || ''}/pharmacy`
+    };
+
+    (pharmacyDepartment
+      ? sendPushEngageDepartmentNotification({ departmentId: pharmacyDepartment.id, ...pharmacyPayload })
+      : sendPushEngageNotification({ ...pharmacyPayload, tag: 'pharmacy-request' })
+    ).catch(err => console.error('Error sending PushEngage pharmacy notification:', err));
 
     console.log(prescription);
     res.status(201).json(prescription);

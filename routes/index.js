@@ -11,6 +11,7 @@ const messageRoutes = require('./messageRoute');
 const messageTemplate = require('./messageTempRoute')
 const departmentRoutes = require('./departmentRoutes');
 const institutionRoutes = require('./institutionRoutes');
+const institutionChatRoutes = require('./institutionChatRoutes');
 const diagnosisRoutes = require('./patientDiagnosisRoutes');
 const transferRoutes = require('./transferRoutes');
 const accessControlRoutes = require('./accessControlRoutes');
@@ -169,6 +170,9 @@ module.exports = (app) => {
 
     // INSTITUTION ROUTES
     app.use('/api/v1', institutionRoutes);
+
+    // INSTITUTION CHAT ROUTES
+    app.use('/api/v1/institution-chats', institutionChatRoutes);
 
     // DIAGNOSIS
     app.use('/api/v1/diagnosis', diagnosisRoutes);

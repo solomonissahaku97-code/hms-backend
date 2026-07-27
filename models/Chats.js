@@ -72,6 +72,24 @@ const Chat = sequelize.define('Chat', {
             key: 'id'
         }
     },
+    senderInstitutionId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: Institution,
+            key: 'id'
+        },
+        onDelete: 'CASCADE'
+    },
+    receiverInstitutionId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: Institution,
+            key: 'id'
+        },
+        onDelete: 'CASCADE'
+    },
     text: {
         type: DataTypes.STRING,
         allowNull: true
@@ -96,6 +114,8 @@ const Chat = sequelize.define('Chat', {
 // ✅ Associations
 Chat.associate = (models) => {
     Chat.belongsTo(models.Institution, { foreignKey: 'institution_id' });
+    Chat.belongsTo(models.Institution, { foreignKey: 'senderInstitutionId', as: 'SenderInstitution' });
+    Chat.belongsTo(models.Institution, { foreignKey: 'receiverInstitutionId', as: 'ReceiverInstitution' });
     Chat.belongsTo(models.Department, { as: 'SenderDepartment', foreignKey: 'senderDepartmentId' });
     Chat.belongsTo(models.Department, { as: 'ReceiverDepartment', foreignKey: 'receiverDepartmentId' });
     Chat.belongsTo(models.Staff, { as: 'Sender', foreignKey: 'senderId', onDelete: 'CASCADE' });

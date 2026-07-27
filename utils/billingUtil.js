@@ -123,13 +123,12 @@ async function handleBilling({
         has_paid: false
     }, { transaction });
 
-    // ✅ Update invoice totals with financial rounding (Option 3)
-    const currentTotal = parseFloat(invoice.total_amount);
-    const currentBalance = parseFloat(invoice.balance_due);
+    // ✅ Update invoice totals with financial rounding
+    // Invoice total_amount should only reflect what the patient is responsible for,
+    // not the full market price which includes amounts NHIA covers.
+    const currentPatientTotal = parseFloat(invoice.total_amount) || 0;
     await invoice.update({
-        total_amount: Math.round((currentTotal + totalAmount) * 100) / 100,
-        amount_paid: Math.round((currentTotal - currentBalance) * 100) / 100,
-        balance_due: Math.round((currentBalance + patientAmount) * 100) / 100
+        total_amount: Math.round((currentPatientTotal + patientAmount) * 100) / 100,
     }, { transaction });
 
     // update and compute claims total amount here
@@ -137,7 +136,7 @@ async function handleBilling({
         const claim = await Claim.findByPk(claim_id, { transaction });
         if (claim) {
             const claimItems = await claim.getItems({ transaction });
-            const totalClaimAmount = claimItems.reduce((sum, item) => sum + (item.nhia_amount || 0) + (item.amount || 0), 0);
+            const totalClaimAmount = claimItems.reduce((sum, item) => sum + (item.amount || 0), 0);
             await claim.update({ total_amount: totalClaimAmount }, { transaction });
         }
     }

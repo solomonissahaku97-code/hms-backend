@@ -13,8 +13,14 @@ const paystackInstance = axios.create({
 });
 
 const initiatePayment = async (amount, email, metadata, subAccountCode = null) => {
+    // Validate Paystack secret key before making the request
+    if (!PAYSTACK_SECRET_KEY) {
+        throw new Error('Paystack payment initiation failed: PAYSTACK_SECRET_KEY is not configured in environment variables');
+    }
+
+    const backendPort = process.env.PORT || 5008;
     const callbackUrl = NODE_ENV === 'development'
-        ? 'http://localhost:7000/api/v1/subscriptions/paystack/callback'
+        ? `http://localhost:${backendPort}/api/v1/subscriptions/paystack/callback`
         : 'https://hms-backend-v1.onrender.com/api/v1/subscriptions/paystack/callback';
 
     const options = {
@@ -33,8 +39,13 @@ const initiatePayment = async (amount, email, metadata, subAccountCode = null) =
         const response = await paystackInstance.post('/transaction/initialize', options);
         return response.data.data;
     } catch (error) {
-        console.error("Error Response:", error.response?.data || error.message);
-        throw new Error('Paystack payment initiation failed');
+        const paystackError = error.response?.data || {};
+        console.error("Paystack Error Response:", JSON.stringify(paystackError, null, 2));
+        // Propagate the actual Paystack error message so callers get meaningful feedback
+        const errorMessage = paystackError.message
+            ? `Paystack payment initiation failed: ${paystackError.message}`
+            : 'Paystack payment initiation failed';
+        throw new Error(errorMessage);
     }
 };
 
