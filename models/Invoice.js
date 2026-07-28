@@ -92,7 +92,11 @@ const Invoice = sequelize.define('Invoice', {
     tableName: 'invoices',
     timestamps: true,
     underscored: true,
-
+    hooks: {
+        beforeSave: (invoice) => {
+            invoice.balance_due = Math.round((invoice.total_amount - invoice.amount_paid) * 100) / 100;
+        }
+    }
 });
 
 // Associations

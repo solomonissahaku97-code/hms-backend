@@ -1,46 +1,141 @@
-const { Invoice, ServiceBill, Visit, Patient, Staff, Institution } = require('../../models');
+const { Invoice, ServiceBill, Visit, Patient, Staff, Institution, Service, Prescription, LabTestResult, Procedure } = require('../../models');
 const { Op } = require('sequelize');
 
 exports.createInvoice = async (req, res) => {
+  const transaction = await Invoice.sequelize.transaction();
   try {
     const { visit_id, institution_id, services, notes, discount_amount, tax_amount } = req.body;
-    
-    // Calculate totals
-    const subtotal = services.reduce((sum, service) => sum + (service.unit_price * service.quantity), 0);
-    const total_amount = subtotal - discount_amount + tax_amount;
-    
+
+    if (!visit_id || !institution_id || !services || !Array.isArray(services) || services.length === 0) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'visit_id, institution_id, and a non-empty services array are required'
+      });
+    }
+
+    // Validate visit exists
+    const visit = await Visit.findByPk(visit_id, { transaction });
+    if (!visit) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Visit not found'
+      });
+    }
+
+    // Validate institution exists
+    const institution = await Institution.findByPk(institution_id, { transaction });
+    if (!institution) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Institution not found'
+      });
+    }
+
+    // Validate each service exists and compute totals
+    let subtotal = 0;
+    const validatedServices = [];
+
+    for (const service of services) {
+      const unitPrice = parseFloat(service.unit_price) || 0;
+      const quantity = parseInt(service.quantity, 10) || 1;
+
+      // Validate service existence based on service_type
+      switch (service.service_type) {
+        case 'Medication':
+          if (service.service_id) {
+            const medication = await Prescription.findByPk(service.service_id, { transaction });
+            if (!medication) {
+              await transaction.rollback();
+              return res.status(404).json({
+                success: false,
+                message: `Medication with ID ${service.service_id} not found`
+              });
+            }
+            if (!service.description) service.description = medication.generic_name;
+          }
+          break;
+        case 'LabTest':
+          if (service.service_id) {
+            const labTest = await LabTestResult.findByPk(service.service_id, { transaction });
+            if (!labTest) {
+              await transaction.rollback();
+              return res.status(404).json({
+                success: false,
+                message: `LabTest with ID ${service.service_id} not found`
+              });
+            }
+            if (!service.description) service.description = labTest.test_name;
+          }
+          break;
+        case 'Procedure':
+          if (service.service_id) {
+            const procedure = await Procedure.findByPk(service.service_id, { transaction });
+            if (!procedure) {
+              await transaction.rollback();
+              return res.status(404).json({
+                success: false,
+                message: `Procedure with ID ${service.service_id} not found`
+              });
+            }
+            if (!service.description) service.description = procedure.procedure_name;
+          }
+          break;
+        default:
+          break;
+      }
+
+      const lineTotal = unitPrice * quantity;
+      subtotal += lineTotal;
+      validatedServices.push({
+        ...service,
+        unit_price: unitPrice,
+        quantity,
+        total_amount: lineTotal,
+        patient_amount: lineTotal,
+        nhia_amount: 0,
+        payment_status: 'Pending',
+        has_paid: false
+      });
+    }
+
+    const total_amount = Math.round((subtotal - (discount_amount || 0) + (tax_amount || 0)) * 100) / 100;
+
     // Generate invoice number
-    const invoiceCount = await Invoice.count({ where: { institution_id } });
+    const invoiceCount = await Invoice.count({ where: { institution_id }, transaction });
     const invoice_number = `INV-${new Date().getFullYear()}-${(invoiceCount + 1).toString().padStart(4, '0')}`;
-    
+
     const invoice = await Invoice.create({
       visit_id,
       institution_id,
       invoice_number,
       invoice_date: new Date(),
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      subtotal,
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      subtotal: Math.round(subtotal * 100) / 100,
       discount_amount: discount_amount || 0,
       tax_amount: tax_amount || 0,
       total_amount,
       balance_due: total_amount,
       status: 'draft',
       notes,
-      created_by: req.user.id // Assuming you have user authentication
-    });
-    
+      created_by: req.user.id
+    }, { transaction });
+
     // Create service bills and associate with invoice
-    for (const service of services) {
+    for (const service of validatedServices) {
       await ServiceBill.create({
         ...service,
         invoice_id: invoice.id,
         visit_id,
-        patient_id: service.patient_id,
+        patient_id: service.patient_id || visit.patient_id,
         institution_id,
-        total_amount: service.unit_price * service.quantity
-      });
+      }, { transaction });
     }
-    
+
+    await transaction.commit();
+
     // Fetch the complete invoice with associations
     const completeInvoice = await Invoice.findByPk(invoice.id, {
       include: [
@@ -50,12 +145,13 @@ exports.createInvoice = async (req, res) => {
         { model: ServiceBill, as: 'serviceBills' }
       ]
     });
-    
+
     res.status(201).json({
       success: true,
       data: completeInvoice
     });
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       success: false,
       message: 'Error creating invoice',

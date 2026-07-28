@@ -41,7 +41,7 @@ const ServiceBill = sequelize.define('ServiceBill', {
     },
     service_id: {
         type: DataTypes.UUID,
-        allowNull: true  // Changed to allowNull since service_id is polymorphic (references different tables)
+        allowNull: true
     },
     service_type: {
         type: DataTypes.ENUM('Medication', 'LabTest', 'Procedure', 'Consultation', 'Other'),
@@ -111,89 +111,33 @@ const ServiceBill = sequelize.define('ServiceBill', {
     modelName: 'ServiceBill',
     tableName: 'service_bills',
     hooks: {
-        beforeCreate: async (serviceBill, options) => {
-            const { transaction } = options;
-            
-            // 1. Validate that the service exists based on service_type
-            switch (serviceBill.service_type) {
-                case 'Medication':
-                    const medication = await Prescription.findByPk(serviceBill.service_id, { transaction });
-                    if (!medication) {
-                        throw new Error(`Medication with ID ${serviceBill.service_id} not found`);
-                    }
-                    // Auto-populate description if not provided
-                    if (!serviceBill.description) {
-                        serviceBill.description = `${medication.generic_name} ${medication.strength}`;
-                    }
-                    break;
-                    
-                case 'LabTest':
-                    const labTest = await LabTestResult.findByPk(serviceBill.service_id, { transaction });
-                    if (!labTest) {
-                        throw new Error(`LabTest with ID ${serviceBill.service_id} not found`);
-                    }
-                    if (!serviceBill.description) {
-                        serviceBill.description = labTest.test_name;
-                    }
-                    break;
-                    
-                case 'Procedure':
-                    const procedure = await Procedure.findByPk(serviceBill.service_id, { transaction });
-                    if (!procedure) {
-                        throw new Error(`Procedure with ID ${serviceBill.service_id} not found`);
-                    }
-                    if (!serviceBill.description) {
-                        serviceBill.description = procedure.procedure_name;
-                    }
-                    break;
-                    
-    
-                    
-                default:
-                    // For 'Other' service types, no validation needed
-                    break;
-            }
-            
-// 2. Ensure total_amount = patient_amount + nhia_amount
-            const pa = parseFloat(serviceBill.patient_amount || 0);
-            const na = parseFloat(serviceBill.nhia_amount || 0);
-
-            if (serviceBill.total_amount) {
-              // If total_amount is set, derive patient_amount from total - nhia
-              serviceBill.patient_amount = parseFloat(serviceBill.total_amount) - na;
-              if (serviceBill.patient_amount < 0) serviceBill.patient_amount = 0;
-            } else if (serviceBill.patient_amount !== undefined) {
-              // If patient_amount is set, compute total = patient + nhia
-              serviceBill.total_amount = pa + na;
-            } else if (na > 0) {
-              // If only nhia is set, total = nhia (patient pays 0)
-              serviceBill.total_amount = na;
-              serviceBill.patient_amount = 0;
-            }
-
-            // Ensure patient_amount is never negative
-            if (parseFloat(serviceBill.patient_amount || 0) < 0) {
-              serviceBill.patient_amount = 0;
-            }
+        beforeCreate: (serviceBill, options) => {
+            computeAmounts(serviceBill);
         },
-        
-beforeUpdate: async (serviceBill, options) => {
-            const pa = parseFloat(serviceBill.patient_amount || 0);
-            const na = parseFloat(serviceBill.nhia_amount || 0);
-
-            if (serviceBill.total_amount) {
-              serviceBill.patient_amount = parseFloat(serviceBill.total_amount) - na;
-              if (serviceBill.patient_amount < 0) serviceBill.patient_amount = 0;
-            } else {
-              serviceBill.total_amount = pa + na;
-            }
-
-            if (serviceBill.patient_amount < 0) {
-              serviceBill.patient_amount = 0;
-            }
+        beforeUpdate: (serviceBill, options) => {
+            computeAmounts(serviceBill);
         },
     }
 });
+
+function computeAmounts(serviceBill) {
+    const pa = parseFloat(serviceBill.patient_amount || 0);
+    const na = parseFloat(serviceBill.nhia_amount || 0);
+
+    if (serviceBill.total_amount) {
+        serviceBill.patient_amount = parseFloat(serviceBill.total_amount) - na;
+        if (serviceBill.patient_amount < 0) serviceBill.patient_amount = 0;
+    } else if (serviceBill.patient_amount !== undefined) {
+        serviceBill.total_amount = pa + na;
+    } else if (na > 0) {
+        serviceBill.total_amount = na;
+        serviceBill.patient_amount = 0;
+    }
+
+    if (parseFloat(serviceBill.patient_amount || 0) < 0) {
+        serviceBill.patient_amount = 0;
+    }
+}
 
 // Associations 
 ServiceBill.associate = (models) => {
@@ -206,10 +150,6 @@ ServiceBill.associate = (models) => {
     ServiceBill.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' });
     ServiceBill.hasOne(models.Payment, { foreignKey: 'service_bill_id', as: 'payment' });
     ServiceBill.hasMany(models.ClaimItem, { foreignKey: 'service_bill_id', as: 'claimItems' });
-    ServiceBill.belongsTo(models.Service, { foreignKey: 'service_id', as: 'service' }); // This association is optional and may not always be valid due to polymorphic nature
-    // serviceBill is not associated to service
-
-
 };
 
 // Instance method to get the related service
@@ -218,11 +158,9 @@ ServiceBill.prototype.getService = async function() {
         case 'Medication':
             return await Prescription.findByPk(this.service_id);
         case 'LabTest':
-            return await LabTest.findByPk(this.service_id);
+            return await LabTestResult.findByPk(this.service_id);
         case 'Procedure':
             return await Procedure.findByPk(this.service_id);
-        case 'Consultation':
-            return await Consultation.findByPk(this.service_id);
         default:
             return null;
     }

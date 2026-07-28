@@ -1,13 +1,28 @@
 const Institution = require("../models/institution");
-const Service = require("../models/service");
 const ServiceBill = require("../models/serviceBill");
 const Patient = require("../models/patient");
 const Department = require("../models/department");
 const Admin = require("../models/admin");
+const Prescription = require("../models/prescription");
+const LabTestResult = require("../models/lab/LabTestResult");
+const Procedure = require("../models/procedure/procedure");
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const sendEmail = require('../service/sendEmail');
 const Notification = require("../models/notification");
+
+async function resolveService(serviceBill) {
+    switch (serviceBill.service_type) {
+        case 'Medication':
+            return await Prescription.findByPk(serviceBill.service_id);
+        case 'LabTest':
+            return await LabTestResult.findByPk(serviceBill.service_id);
+        case 'Procedure':
+            return await Procedure.findByPk(serviceBill.service_id);
+        default:
+            return null;
+    }
+}
 
 
 
@@ -77,11 +92,19 @@ exports.deleteServiceBill = async (req, res) => {
 
 exports.createPatientInvoice = async (req, res) => {
     const { patient_id, department_id, service_id, staff_id, has_paid, institution_id } = req.body;
+    const transaction = await ServiceBill.sequelize.transaction();
     try {
-        // CREATE SERVICE BILL (INVOICE)
-        const patient = await Patient.findByPk(patient_id, { where: { department_id } })
-        if (!patient) return res.status(404).json({ error: "patient does not exist" })
+        const patient = await Patient.findByPk(patient_id, { transaction });
+        if (!patient) {
+            await transaction.rollback();
+            return res.status(404).json({ error: "patient does not exist" });
+        }
 
+        const service = await Service.findByPk(service_id, { transaction });
+        if (!service) {
+            await transaction.rollback();
+            return res.status(404).json({ error: "service does not exist" });
+        }
 
         const invoice = await ServiceBill.create({
             patient_id,
@@ -89,13 +112,22 @@ exports.createPatientInvoice = async (req, res) => {
             service_id,
             staff_id,
             has_paid,
-            institution_id
+            institution_id,
+            description: service.name,
+            unit_price: service.cost,
+            total_amount: service.cost,
+            patient_amount: service.cost,
+            nhia_amount: 0,
+            payment_status: 'Pending',
+            has_paid: false
+        }, { transaction });
 
-        });
+        await transaction.commit();
 
         res.status(201).json({ success: "Invoice created successfully", data: invoice });
 
     } catch (error) {
+        await transaction.rollback();
         console.error(error);
         res.status(500).json({ error: 'An error occurred while creating the invoice' });
     }
@@ -107,19 +139,23 @@ exports.getPatientInvoices = async (req, res) => {
     console.log(req.query)
     try {
         const invoices = await ServiceBill.findAll({
-            where: { 'patient_id': patient_id, 'institution_id': institution_id }, include: [
-                {
-                    model: Service,
-                    as: 'service'
-                }
-            ]
+            where: { patient_id, institution_id },
         });
 
-        if (!invoices) {
+        if (!invoices || invoices.length === 0) {
             return res.status(404).json({ error: "No invoices found for this patient" });
         }
 
-        res.status(200).json({ success: "Invoices retrieved successfully", data: invoices });
+        const invoicesWithServices = [];
+        for (const invoice of invoices) {
+            const service = await resolveService(invoice);
+            invoicesWithServices.push({
+                ...invoice.toJSON(),
+                service: service
+            });
+        }
+
+        res.status(200).json({ success: "Invoices retrieved successfully", data: invoicesWithServices });
 
     } catch (error) {
         console.error(error);
@@ -128,43 +164,58 @@ exports.getPatientInvoices = async (req, res) => {
 };
 
 exports.updatePatientInvoice = async (req, res) => {
+    const transaction = await ServiceBill.sequelize.transaction();
     try {
         const { invoice_id } = req.params;
         const { amount, is_free } = req.body;
 
-        const invoice = await ServiceBill.findByPk(invoice_id);
+        const invoice = await ServiceBill.findByPk(invoice_id, { transaction });
 
         if (!invoice) {
+            await transaction.rollback();
             return res.status(404).json({ error: "Invoice not found" });
         }
 
-        invoice.amount = amount !== undefined ? amount : invoice.amount;
-        invoice.is_free = is_free !== undefined ? is_free : invoice.is_free;
-        await invoice.save();
+        if (amount !== undefined) {
+            invoice.total_amount = amount;
+            invoice.patient_amount = amount;
+        }
+        if (is_free !== undefined) {
+            invoice.is_free = is_free;
+        }
+        await invoice.save({ transaction });
+
+        await transaction.commit();
 
         res.status(200).json({ success: "Invoice updated successfully", data: invoice });
 
     } catch (error) {
+        await transaction.rollback();
         console.error(error);
         res.status(500).json({ error: 'An error occurred while updating the invoice' });
     }
 };
 
 exports.deletePatientInvoice = async (req, res) => {
+    const transaction = await ServiceBill.sequelize.transaction();
     try {
         const { invoice_id } = req.params;
 
-        const invoice = await ServiceBill.findByPk(invoice_id);
+        const invoice = await ServiceBill.findByPk(invoice_id, { transaction });
 
         if (!invoice) {
+            await transaction.rollback();
             return res.status(404).json({ error: "Invoice not found" });
         }
 
-        await invoice.destroy();
+        await invoice.destroy({ transaction });
+
+        await transaction.commit();
 
         res.status(200).json({ success: "Invoice deleted successfully" });
 
     } catch (error) {
+        await transaction.rollback();
         console.error(error);
         res.status(500).json({ error: 'An error occurred while deleting the invoice' });
     }
@@ -173,14 +224,16 @@ exports.deletePatientInvoice = async (req, res) => {
 
 // MAKE PATIENT PAYMENT
 exports.makePatientPayment = async (req, res) => {
-    const { bill_ids, patient_id } = req.body; // Changed to req.body for better handling of arrays
-    
+    const { bill_ids, patient_id } = req.body;
+    const transaction = await ServiceBill.sequelize.transaction();
     try {
         // Validate input
         if (!Array.isArray(bill_ids)) {
+            await transaction.rollback();
             return res.status(400).json({ error: 'bill_ids must be an array' });
         }
         if (!patient_id) {
+            await transaction.rollback();
             return res.status(400).json({ error: 'patient_id is required' });
         }
 
@@ -189,11 +242,13 @@ exports.makePatientPayment = async (req, res) => {
             where: {
                 id: bill_ids,
                 patient_id: patient_id,
-                has_paid: false // Only update unpaid bills
-            }
+                has_paid: false
+            },
+            transaction
         });
 
         if (!bills || bills.length === 0) {
+            await transaction.rollback();
             return res.status(404).json({ 
                 error: 'No unpaid bills found for this patient with the provided IDs' 
             });
@@ -205,6 +260,7 @@ exports.makePatientPayment = async (req, res) => {
         // Check if any requested bills weren't found
         const missingBillIds = bill_ids.filter(id => !foundBillIds.includes(id));
         if (missingBillIds.length > 0) {
+            await transaction.rollback();
             return res.status(404).json({ 
                 error: 'Some bills not found or already paid',
                 missing_bill_ids: missingBillIds,
@@ -219,16 +275,20 @@ exports.makePatientPayment = async (req, res) => {
                 where: {
                     id: foundBillIds,
                     patient_id: patient_id
-                }
+                },
+                transaction
             }
         );
 
+        await transaction.commit();
+
         return res.status(200).json({ 
             success: 'Payments updated successfully',
-            updated_count: updatedBills[0], // Number of affected rows
+            updated_count: updatedBills[0],
             bill_ids: foundBillIds
         });
     } catch (error) {
+        await transaction.rollback();
         console.error('Error updating payments:', error);
         res.status(500).json({ 
             error: 'Failed to update payments',
@@ -297,13 +357,6 @@ exports.sendInvoiceToPatient = async (req, res) => {
 
         const invoices = await ServiceBill.findAll({
             where: { patient_id },
-            include: [
-                {
-                    model: Service,
-                    as: 'service',
-                    attributes: ['name', 'cost'],
-                },
-            ],
         });
 
         if (!invoices.length) return res.status(404).json({ error: 'No invoices found for this patient' });
@@ -311,10 +364,12 @@ exports.sendInvoiceToPatient = async (req, res) => {
         let totalAmount = 0;
         let paidAmount = 0;
 
-        invoices.forEach((invoice) => {
-            totalAmount += invoice.service.cost;
-            if (invoice.has_paid) paidAmount += invoice.service.cost;
-        });
+        for (const invoice of invoices) {
+            const service = await resolveService(invoice);
+            invoice.service = service;
+            totalAmount += service ? service.cost : 0;
+            if (invoice.has_paid) paidAmount += service ? service.cost : 0;
+        }
 
         const remainingAmount = totalAmount - paidAmount;
 
@@ -339,8 +394,8 @@ exports.sendInvoiceToPatient = async (req, res) => {
         // Table Headers and Data
         const headers = ['Service', 'Cost (₵)', 'Status'];
         const rows = invoices.map((invoice) => [
-            invoice.service.name,
-            invoice.service.cost,
+            invoice.service ? invoice.service.name : 'Unknown Service',
+            invoice.service ? invoice.service.cost : 0,
             invoice.has_paid ? 'Paid' : 'Unpaid',
         ]);
 

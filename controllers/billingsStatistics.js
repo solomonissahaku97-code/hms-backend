@@ -2,7 +2,6 @@ const { sequelize } = require("../models");
 const Department = require("../models/department");
 const Institution = require("../models/institution");
 const Patient = require("../models/patient");
-const Service = require("../models/service");
 const ServiceBill = require("../models/serviceBill");
 const { Op } = require('sequelize');
 
@@ -12,13 +11,11 @@ exports.getBillingStatistics = async (req, res) => {
     const { institution_id, time_range = 'monthly' } = req.query;
     
     try {
-        // Validate institution exists
         const institution = await Institution.findByPk(institution_id);
         if (!institution) {
             return res.status(404).json({ error: 'Institution not found' });
         }
 
-        // Base query for all statistics
         const bills = await ServiceBill.findAll({
             where: { institution_id },
             include: [
@@ -29,7 +26,6 @@ exports.getBillingStatistics = async (req, res) => {
             nest: true
         });
 
-
         if (!bills || bills.length === 0) {
             return res.status(200).json({ 
                 message: 'No billing data found',
@@ -37,19 +33,16 @@ exports.getBillingStatistics = async (req, res) => {
             });
         }
 
-        // Current date calculations
         const now = new Date();
         const currentMonth = now.getMonth() + 1;
         const currentYear = now.getFullYear();
         const currentDay = now.getDate();
         const currentWeek = getWeekNumber(now);
 
-        // Process statistics
         const statistics = {
             overview: {
                 total_bills: bills.length,
                 total_revenue: bills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0),
-
                 paid_bills: bills.filter(b => b.has_paid).length,
                 unpaid_bills: bills.filter(b => !b.has_paid).length,
                 payment_success_rate: (bills.filter(b => b.has_paid).length / bills.length) * 100 || 0
@@ -83,8 +76,6 @@ exports.getBillingStatistics = async (req, res) => {
     }
 };
 
-// Helper functions
-
 async function getTimeBasedStats(bills, time_range, institution_id) {
     const stats = {
         daily: [],
@@ -93,7 +84,6 @@ async function getTimeBasedStats(bills, time_range, institution_id) {
         yearly: []
     };
 
-    // Get daily stats (last 30 days)
     const dailyDates = [];
     for (let i = 29; i >= 0; i--) {
         const date = new Date();
@@ -111,20 +101,17 @@ async function getTimeBasedStats(bills, time_range, institution_id) {
                         new Date(`${date}T23:59:59.999Z`)
                     ]
                 }
-            },
-            include: [{ model: Service, as: 'service' }]
+            }
         });
 
         return {
             date,
             count: dayBills.length,
             revenue: dayBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0),
-
             paid: dayBills.filter(b => b.has_paid).length
         };
     }));
 
-    // Get weekly stats (last 12 weeks)
     const weeklyStats = [];
     for (let i = 11; i >= 0; i--) {
         const weekStart = new Date();
@@ -142,13 +129,12 @@ async function getTimeBasedStats(bills, time_range, institution_id) {
             week: weekNumber,
             year,
             count: weekBills.length,
-            revenue: weekBills.reduce((sum, bill) => sum + (bill.service?.cost || 0), 0),
+            revenue: weekBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0),
             paid: weekBills.filter(b => b.has_paid).length
         });
     }
     stats.weekly = weeklyStats;
 
-    // Get monthly stats (last 12 months)
     const monthlyStats = [];
     for (let i = 11; i >= 0; i--) {
         const date = new Date();
@@ -166,13 +152,12 @@ async function getTimeBasedStats(bills, time_range, institution_id) {
             month,
             year,
             count: monthBills.length,
-            revenue: monthBills.reduce((sum, bill) => sum + (bill.service?.cost || 0), 0),
+            revenue: monthBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0),
             paid: monthBills.filter(b => b.has_paid).length
         });
     }
     stats.monthly = monthlyStats;
 
-    // Get yearly stats (last 5 years)
     const yearlyStats = [];
     const currentYear = new Date().getFullYear();
     for (let year = currentYear - 4; year <= currentYear; year++) {
@@ -184,7 +169,7 @@ async function getTimeBasedStats(bills, time_range, institution_id) {
         yearlyStats.push({
             year,
             count: yearBills.length,
-            revenue: yearBills.reduce((sum, bill) => sum + (bill.service?.cost || 0), 0),
+            revenue: yearBills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0),
             paid: yearBills.filter(b => b.has_paid).length
         });
     }
@@ -208,7 +193,7 @@ function getDepartmentStats(bills) {
         }
         
         deptMap[deptId].count++;
-        deptMap[deptId].revenue += bill.service?.cost || 0;
+        deptMap[deptId].revenue += bill.total_amount || 0;
         if (bill.has_paid) deptMap[deptId].paid++;
     });
 
@@ -221,31 +206,32 @@ function getDepartmentStats(bills) {
 }
 
 function getServiceStats(bills) {
-    const serviceMap = {};
+    const serviceTypeMap = {};
     
     bills.forEach(bill => {
-        const serviceId = bill.service?.id || 'unknown';
-        if (!serviceMap[serviceId]) {
-            serviceMap[serviceId] = {
-                name: bill.service?.name || 'Unknown Service',
-                cost: bill.service?.cost || 0,
+        const type = bill.service_type || 'Other';
+        if (!serviceTypeMap[type]) {
+            serviceTypeMap[type] = {
+                service_type: type,
                 count: 0,
                 revenue: 0,
                 paid: 0
             };
         }
         
-        serviceMap[serviceId].count++;
-        serviceMap[serviceId].revenue += bill.service?.cost || 0;
-        if (bill.has_paid) serviceMap[serviceId].paid++;
+        serviceTypeMap[type].count++;
+        serviceTypeMap[type].revenue += bill.total_amount || 0;
+        if (bill.has_paid) serviceTypeMap[type].paid++;
     });
 
-    const services = Object.values(serviceMap);
+    const serviceTypes = Object.values(serviceTypeMap);
     return {
-        most_requested: [...services].sort((a, b) => b.count - a.count).slice(0, 5),
-        highest_revenue: [...services].sort((a, b) => b.revenue - a.revenue).slice(0, 5),
-        average_service_cost: services.reduce((sum, s) => sum + s.cost, 0) / services.length,
-        total_services: services.length
+        most_requested: [...serviceTypes].sort((a, b) => b.count - a.count).slice(0, 5),
+        highest_revenue: [...serviceTypes].sort((a, b) => b.revenue - a.revenue).slice(0, 5),
+        average_service_cost: serviceTypes.length > 0 
+            ? serviceTypes.reduce((sum, s) => sum + s.revenue, 0) / serviceTypes.length 
+            : 0,
+        total_service_types: serviceTypes.length
     };
 }
 
@@ -255,10 +241,9 @@ async function getDailyTrends(institution_id) {
             [sequelize.fn('DATE', sequelize.col('ServiceBill.created_at')), 'date'],
             [sequelize.fn('COUNT', sequelize.col('ServiceBill.id')), 'count'],
             [sequelize.fn('SUM', sequelize.literal('CASE WHEN "has_paid" = true THEN 1 ELSE 0 END')), 'paid'],
-            [sequelize.fn('SUM', sequelize.col('service.cost')), 'revenue']
+            [sequelize.fn('SUM', sequelize.col('total_amount')), 'revenue']
         ],
         where: { institution_id },
-        include: [{ model: Service, as: 'service', attributes: [] }],
         group: ['date'],
         order: [['date', 'ASC']],
         raw: true
@@ -278,10 +263,9 @@ async function getWeeklyTrends(institution_id) {
             [sequelize.fn('DATE_TRUNC', 'week', sequelize.col('ServiceBill.created_at')), 'week'],
             [sequelize.fn('COUNT', sequelize.col('ServiceBill.id')), 'count'],
             [sequelize.fn('SUM', sequelize.literal('CASE WHEN "has_paid" = true THEN 1 ELSE 0 END')), 'paid'],
-            [sequelize.fn('SUM', sequelize.col('service.cost')), 'revenue']
+            [sequelize.fn('SUM', sequelize.col('total_amount')), 'revenue']
         ],
         where: { institution_id },
-        include: [{ model: Service, as: 'service', attributes: [] }],
         group: ['week'],
         order: [['week', 'ASC']],
         raw: true
@@ -301,10 +285,9 @@ async function getMonthlyTrends(institution_id) {
             [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('ServiceBill.created_at')), 'month'],
             [sequelize.fn('COUNT', sequelize.col('ServiceBill.id')), 'count'],
             [sequelize.fn('SUM', sequelize.literal('CASE WHEN "has_paid" = true THEN 1 ELSE 0 END')), 'paid'],
-            [sequelize.fn('SUM', sequelize.col('service.cost')), 'revenue']
+            [sequelize.fn('SUM', sequelize.col('total_amount')), 'revenue']
         ],
         where: { institution_id },
-        include: [{ model: Service, as: 'service', attributes: [] }],
         group: ['month'],
         order: [['month', 'ASC']],
         raw: true
@@ -323,7 +306,7 @@ async function getPeriodStats(institution_id, period, value, month = null, year 
     let attributes = [
         [sequelize.fn('COUNT', sequelize.col('ServiceBill.id')), 'count'],
         [sequelize.fn('SUM', sequelize.literal('CASE WHEN "has_paid" = true THEN 1 ELSE 0 END')), 'paid'],
-        [sequelize.fn('SUM', sequelize.col('service.cost')), 'revenue']
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'revenue']
     ];
 
     if (period === 'day') {
@@ -356,7 +339,6 @@ async function getPeriodStats(institution_id, period, value, month = null, year 
     const result = await ServiceBill.findOne({
         attributes,
         where,
-        include: [{ model: Service, as: 'service', attributes: [] }],
         raw: true
     });
 
@@ -380,7 +362,7 @@ function getTopPatientsByBills(bills) {
             };
         }
         patientMap[patientId].count++;
-        patientMap[patientId].revenue += bill.service?.cost || 0;
+        patientMap[patientId].revenue += bill.total_amount || 0;
     });
 
     return Object.values(patientMap)
@@ -401,7 +383,7 @@ function getTopPatientsBySpending(bills) {
             };
         }
         patientMap[patientId].count++;
-        patientMap[patientId].revenue += bill.service?.cost || 0;
+        patientMap[patientId].revenue += bill.total_amount || 0;
     });
 
     return Object.values(patientMap)
@@ -441,7 +423,7 @@ function getEmptyStatsTemplate() {
             most_requested: [],
             highest_revenue: [],
             average_service_cost: 0,
-            total_services: 0
+            total_service_types: 0
         },
         trends: {
             daily: [],

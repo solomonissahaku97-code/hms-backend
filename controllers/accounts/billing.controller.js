@@ -242,12 +242,14 @@ exports.getPatientBillingHistory = async (req, res) => {
 
 // Make payment for a patient's bill
 exports.makePatientPayment = async (req, res) => {
+  const transaction = await Invoice.sequelize.transaction();
   try {
     const { patient_id } = req.params;
     const { visit_id, bill_id, amount, payment_method, notes } = req.body;
     const { institution_id, staff_id } = req.query;
 
     if (!patient_id || !amount || !payment_method) {
+      await transaction.rollback();
       return res.status(400).json({ 
         success: false, 
         message: 'patient_id, amount, and payment_method are required' 
@@ -257,7 +259,7 @@ exports.makePatientPayment = async (req, res) => {
     // Find the bill
     let bill;
     if (bill_id) {
-      bill = await ServiceBill.findByPk(bill_id);
+      bill = await ServiceBill.findByPk(bill_id, { transaction });
     } else if (visit_id) {
       // Get the oldest unpaid bill for this visit
       bill = await ServiceBill.findOne({
@@ -266,11 +268,13 @@ exports.makePatientPayment = async (req, res) => {
           patient_id,
           payment_status: { [Op.in]: ['Pending', 'Partial', 'Overdue'] }
         },
-        order: [['createdAt', 'ASC']]
+        order: [['createdAt', 'ASC']],
+        transaction
       });
     }
 
     if (!bill) {
+      await transaction.rollback();
       return res.status(404).json({ success: false, message: 'No pending bill found' });
     }
 
@@ -288,11 +292,11 @@ exports.makePatientPayment = async (req, res) => {
     } else if (newPaid > 0) {
       bill.payment_status = 'Partial';
     }
-    await bill.save();
+    await bill.save({ transaction });
 
     // If bill has an invoice, update the invoice too
     if (bill.invoice_id) {
-      const invoice = await Invoice.findByPk(bill.invoice_id);
+      const invoice = await Invoice.findByPk(bill.invoice_id, { transaction });
       if (invoice) {
         invoice.amount_paid = parseFloat(invoice.amount_paid) + paymentAmount;
         invoice.balance_due = parseFloat(invoice.total_amount) - invoice.amount_paid;
@@ -303,9 +307,11 @@ exports.makePatientPayment = async (req, res) => {
         } else {
           invoice.status = 'partially_paid';
         }
-        await invoice.save();
+        await invoice.save({ transaction });
       }
     }
+
+    await transaction.commit();
 
     res.json({
       success: true,
@@ -319,6 +325,7 @@ exports.makePatientPayment = async (req, res) => {
       }
     });
   } catch (error) {
+    await transaction.rollback();
     console.error('Error processing payment:', error);
     res.status(500).json({
       success: false,
