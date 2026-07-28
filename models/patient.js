@@ -48,6 +48,10 @@ const Patient = sequelize.define('Patient', {
         allowNull: true,
         unique: true
     },
+    phone: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     date_of_birth: {
         type: DataTypes.DATEONLY,
         allowNull: true
