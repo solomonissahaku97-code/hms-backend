@@ -12,11 +12,7 @@ const Insurance = sequelize.define('Insurance', {
         defaultValue: DataTypes.UUIDV4
     },
     patient_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
     insurance_provider: {
         type: DataTypes.ENUM('NHIS', 'PRIVATE'),
@@ -32,11 +28,7 @@ const Insurance = sequelize.define('Insurance', {
     },
 
     institution_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
     insured: {
         type: DataTypes.BOOLEAN,

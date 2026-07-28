@@ -18,11 +18,7 @@ const Group = sequelize.define('Group', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'institutions',
-            key: 'id'
-        }
+        allowNull: false
 
     }
 

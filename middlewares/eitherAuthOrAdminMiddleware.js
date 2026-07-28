@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const { Admin, Staff } = require("../models");
 const SuperAdmin = require("../models/superadmin");
+const InstitutionSubscription = require("../models/InstitutionSubscription");
+const moment = require("moment");
 
 const eitherAuthOrAdmin = async (req, res, next) => {
     try {
@@ -53,6 +55,23 @@ const eitherAuthOrAdmin = async (req, res, next) => {
             req.admin = admin;
             req.user = admin;
 
+            const institutionId = admin.institution_id;
+            if (institutionId) {
+                const activeSub = await InstitutionSubscription.findOne({
+                    where: { institutionId },
+                    order: [['createdAt', 'DESC']],
+                });
+
+                if (activeSub && activeSub.expiryDate && moment().isAfter(activeSub.expiryDate)) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Your subscription has expired. Please renew to continue.',
+                        code: 'SUBSCRIPTION_EXPIRED',
+                        expiryDate: activeSub.expiryDate,
+                    });
+                }
+            }
+
             return next();
         }
 
@@ -64,6 +83,23 @@ const eitherAuthOrAdmin = async (req, res, next) => {
 
             req.staff = staff;
             req.user = staff;
+
+            const institutionId = staff.institution_id;
+            if (institutionId) {
+                const activeSub = await InstitutionSubscription.findOne({
+                    where: { institutionId },
+                    order: [['createdAt', 'DESC']],
+                });
+
+                if (activeSub && activeSub.expiryDate && moment().isAfter(activeSub.expiryDate)) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Your subscription has expired. Please renew to continue.',
+                        code: 'SUBSCRIPTION_EXPIRED',
+                        expiryDate: activeSub.expiryDate,
+                    });
+                }
+            }
 
             return next();
         }

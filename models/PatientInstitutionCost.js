@@ -11,11 +11,7 @@ const PatientInstitutionCost = sequelize.define('PatientInstitutionCost', {
         defaultValue: DataTypes.UUIDV4
     },
     institution_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
     total_cost: {
         type: DataTypes.DECIMAL(10, 2),

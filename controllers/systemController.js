@@ -7,6 +7,7 @@ const { exec } = require('child_process');
 const util = require('util');
 const { create } = require('xmlbuilder2');
 const Institution = require('../models/institution');
+const SystemSetting = require('../models/SystemSetting');
 const execPromise = util.promisify(exec);
 
 // Backup directory path
@@ -763,24 +764,65 @@ exports.getSystemConfig = async (req, res) => {
 // Get system configuration
 exports.getSystemConfig = async (req, res) => {
   try {
-    const institution = req.query.institution_id || 'default';
-    const institution_infor = await Institution.findOne({
-      where: { id: institution }
+    const institutionId = req.query.institution_id;
+    let institution_infor = null;
+    
+    if (institutionId && institutionId !== 'default') {
+      institution_infor = await Institution.findOne({
+        where: { id: institutionId }
+      });
+    }
+
+    const settings = await SystemSetting.findAll();
+    const settingsMap = {};
+    settings.forEach(s => {
+      try {
+        settingsMap[s.key] = s.type === 'json' ? JSON.parse(s.value || '{}') : (s.type === 'number' ? Number(s.value) : (s.type === 'boolean' ? s.value === 'true' : s.value));
+      } catch (e) {
+        settingsMap[s.key] = s.value;
+      }
     });
 
     const config = {
       general: {
-        institution_name: institution_infor ? institution_infor.name : 'Default Institution',
-        institution_logo: institution_infor ? institution_infor.logo_url : null,
-        timezone: 'UTC',
-        logo: institution_infor ? institution_infor.logo_url : null
+        institution_name: institution_infor ? institution_infor.name : (settingsMap['institution_name'] || 'Default Institution'),
+        institution_logo: institution_infor ? institution_infor.logo_url : (settingsMap['institution_logo'] || null),
+        timezone: settingsMap['timezone'] || 'UTC',
+        language: settingsMap['language'] || 'en',
+        date_format: settingsMap['date_format'] || 'YYYY-MM-DD',
+        currency: settingsMap['currency'] || 'GHS',
+        enable_maintenance_mode: settingsMap['enable_maintenance_mode'] || false,
+        institution_id: institutionId || null
       },
       email: {
-        smtp_host: process.env.SMTP_HOST || 'mail.brandeviahms.com',
-        smtp_port: process.env.SMTP_PORT || 465,
-        smtp_user: process.env.SMTP_USER || 'support@brandeviahms.com',
-        smtp_from: process.env.SMTP_FROM || 'support@brandeviahms.com',
-        smtp_secure: true
+        smtp_host: settingsMap['smtp_host'] || '',
+        smtp_port: settingsMap['smtp_port'] || 587,
+        smtp_user: settingsMap['smtp_user'] || '',
+        smtp_password: settingsMap['smtp_password'] || '',
+        smtp_from: settingsMap['smtp_from'] || '',
+        smtp_secure: settingsMap['smtp_secure'] || false,
+        enable_email_notifications: settingsMap['enable_email_notifications'] !== false
+      },
+      security: {
+        session_timeout: settingsMap['session_timeout'] || 30,
+        password_min_length: settingsMap['password_min_length'] || 8,
+        require_special_char: settingsMap['require_special_char'] !== false,
+        require_number: settingsMap['require_number'] !== false,
+        require_uppercase: settingsMap['require_uppercase'] !== false,
+        max_login_attempts: settingsMap['max_login_attempts'] || 5,
+        lockout_duration: settingsMap['lockout_duration'] || 15,
+        enable_2fa: settingsMap['enable_2fa'] || false,
+        enforce_password_change: settingsMap['enforce_password_change'] || 90
+      },
+      notifications: {
+        enable_email_notifications: settingsMap['enable_email_notifications'] !== false,
+        enable_sms_notifications: settingsMap['enable_sms_notifications'] || false,
+        enable_push_notifications: settingsMap['enable_push_notifications'] !== false,
+        notify_new_patient: settingsMap['notify_new_patient'] !== false,
+        notify_appointment: settingsMap['notify_appointment'] !== false,
+        notify_lab_results: settingsMap['notify_lab_results'] !== false,
+        notify_prescription: settingsMap['notify_prescription'] !== false,
+        notify_payment: settingsMap['notify_payment'] !== false
       },
       backup: loadBackupSettings()
     };
@@ -803,17 +845,64 @@ exports.getSystemConfig = async (req, res) => {
 exports.updateSystemConfig = async (req, res) => {
   try {
     const newConfig = req.body;
-    const { general, email, backup } = newConfig;
+    const { general, email, security, notifications, backup } = newConfig;
 
     // Update institution info if provided
-    if (general && general.institution_id) {
-      await Institution.update(
-        {
-          name: general.institution_name,
-          logo_url: general.institution_logo
-        },
-        { where: { id: general.institution_id } }
-      );
+    const institutionId = general?.institution_id;
+    if (institutionId && institutionId !== 'default') {
+      const updateData = {};
+      if (general.institution_name) updateData.name = general.institution_name;
+      if (general.institution_logo) updateData.logo_url = general.institution_logo;
+      
+      if (Object.keys(updateData).length > 0) {
+        await Institution.update(updateData, { where: { id: institutionId } });
+      }
+    }
+
+    // Persist settings to database
+    const settingsToSave = [];
+
+    if (general) {
+      if (general.institution_name) settingsToSave.push({ key: 'institution_name', value: String(general.institution_name), type: 'string', category: 'general' });
+      if (general.institution_logo) settingsToSave.push({ key: 'institution_logo', value: String(general.institution_logo), type: 'string', category: 'general' });
+      if (general.timezone) settingsToSave.push({ key: 'timezone', value: String(general.timezone), type: 'string', category: 'general' });
+      if (general.language) settingsToSave.push({ key: 'language', value: String(general.language), type: 'string', category: 'general' });
+      if (general.date_format) settingsToSave.push({ key: 'date_format', value: String(general.date_format), type: 'string', category: 'general' });
+      if (general.currency) settingsToSave.push({ key: 'currency', value: String(general.currency), type: 'string', category: 'general' });
+      settingsToSave.push({ key: 'enable_maintenance_mode', value: String(!!general.enable_maintenance_mode), type: 'boolean', category: 'general' });
+    }
+
+    if (email) {
+      if (email.smtp_host) settingsToSave.push({ key: 'smtp_host', value: String(email.smtp_host), type: 'string', category: 'email' });
+      if (email.smtp_port) settingsToSave.push({ key: 'smtp_port', value: String(email.smtp_port), type: 'number', category: 'email' });
+      if (email.smtp_user) settingsToSave.push({ key: 'smtp_user', value: String(email.smtp_user), type: 'string', category: 'email' });
+      if (email.smtp_password) settingsToSave.push({ key: 'smtp_password', value: String(email.smtp_password), type: 'string', category: 'email' });
+      if (email.smtp_from) settingsToSave.push({ key: 'smtp_from', value: String(email.smtp_from), type: 'string', category: 'email' });
+      settingsToSave.push({ key: 'smtp_secure', value: String(!!email.smtp_secure), type: 'boolean', category: 'email' });
+      settingsToSave.push({ key: 'enable_email_notifications', value: String(!!email.enable_email_notifications), type: 'boolean', category: 'email' });
+    }
+
+    if (security) {
+      if (security.session_timeout) settingsToSave.push({ key: 'session_timeout', value: String(security.session_timeout), type: 'number', category: 'security' });
+      if (security.password_min_length) settingsToSave.push({ key: 'password_min_length', value: String(security.password_min_length), type: 'number', category: 'security' });
+      settingsToSave.push({ key: 'require_special_char', value: String(!!security.require_special_char), type: 'boolean', category: 'security' });
+      settingsToSave.push({ key: 'require_number', value: String(!!security.require_number), type: 'boolean', category: 'security' });
+      settingsToSave.push({ key: 'require_uppercase', value: String(!!security.require_uppercase), type: 'boolean', category: 'security' });
+      if (security.max_login_attempts) settingsToSave.push({ key: 'max_login_attempts', value: String(security.max_login_attempts), type: 'number', category: 'security' });
+      if (security.lockout_duration) settingsToSave.push({ key: 'lockout_duration', value: String(security.lockout_duration), type: 'number', category: 'security' });
+      settingsToSave.push({ key: 'enable_2fa', value: String(!!security.enable_2fa), type: 'boolean', category: 'security' });
+      if (security.enforce_password_change) settingsToSave.push({ key: 'enforce_password_change', value: String(security.enforce_password_change), type: 'number', category: 'security' });
+    }
+
+    if (notifications) {
+      settingsToSave.push({ key: 'enable_email_notifications', value: String(!!notifications.enable_email_notifications), type: 'boolean', category: 'notifications' });
+      settingsToSave.push({ key: 'enable_sms_notifications', value: String(!!notifications.enable_sms_notifications), type: 'boolean', category: 'notifications' });
+      settingsToSave.push({ key: 'enable_push_notifications', value: String(!!notifications.enable_push_notifications), type: 'boolean', category: 'notifications' });
+      settingsToSave.push({ key: 'notify_new_patient', value: String(!!notifications.notify_new_patient), type: 'boolean', category: 'notifications' });
+      settingsToSave.push({ key: 'notify_appointment', value: String(!!notifications.notify_appointment), type: 'boolean', category: 'notifications' });
+      settingsToSave.push({ key: 'notify_lab_results', value: String(!!notifications.notify_lab_results), type: 'boolean', category: 'notifications' });
+      settingsToSave.push({ key: 'notify_prescription', value: String(!!notifications.notify_prescription), type: 'boolean', category: 'notifications' });
+      settingsToSave.push({ key: 'notify_payment', value: String(!!notifications.notify_payment), type: 'boolean', category: 'notifications' });
     }
 
     // Update backup settings if provided
@@ -823,9 +912,16 @@ exports.updateSystemConfig = async (req, res) => {
       saveBackupSettings(updatedSettings);
     }
 
-    // For sensitive email config, we don't store passwords in plain text
-    // These would typically be set via environment variables
-    // but we can validate the connection
+    // Upsert all settings
+    for (const setting of settingsToSave) {
+      await SystemSetting.upsert({
+        key: setting.key,
+        value: setting.value,
+        type: setting.type,
+        category: setting.category,
+        description: `${setting.category} setting`
+      });
+    }
 
     return res.status(200).json({
       success: true,

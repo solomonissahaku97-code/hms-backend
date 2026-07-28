@@ -24,18 +24,10 @@ const PatientBloodGroup = sequelize.define('patient_blood_group', {
         allowNull: true,
     },
     patient_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
     institution_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
     allergies: {
         type: DataTypes.JSON,

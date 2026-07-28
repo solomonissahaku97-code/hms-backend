@@ -23,13 +23,9 @@ const Admin = sequelize.define('Admin', {
     allowNull: false
   },
   institution_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Institution,
-      key: 'id'
-    }
-  },
+        type: DataTypes.UUID,
+        allowNull: false
+    },
   role_manager: {
     type: DataTypes.STRING(10),
     defaultValue: 'admin',

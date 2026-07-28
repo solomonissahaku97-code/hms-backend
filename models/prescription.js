@@ -14,19 +14,11 @@ const Prescription = sequelize.define('Prescription', {
     },
     medication_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'medicines',
-            key: 'id'
-        }
+        allowNull: true
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: true
     },
     is_dispensed: {
         type: DataTypes.BOOLEAN,
@@ -38,11 +30,7 @@ const Prescription = sequelize.define('Prescription', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Visit,
-            key: 'id'
-        }
+        allowNull: true
     },
     dosage: {
         type: DataTypes.STRING,
@@ -67,19 +55,11 @@ const Prescription = sequelize.define('Prescription', {
     },
     prescribing_staff_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: true
     },
     doctor_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: true
     },
     refill: {
         type: DataTypes.INTEGER,
@@ -111,11 +91,7 @@ const Prescription = sequelize.define('Prescription', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     route: {
         type: DataTypes.STRING,

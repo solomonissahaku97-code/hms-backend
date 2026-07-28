@@ -14,35 +14,19 @@ const TreatmentPlan = sequelize.define('treatmentPlan', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: false
     },
     treatment_description: {
         type: DataTypes.TEXT,

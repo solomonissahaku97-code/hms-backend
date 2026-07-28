@@ -11,18 +11,10 @@ const Ultrasound = sequelize.define('Ultrasound', {
   visit_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: 'visits',
-      key: 'id',
-    },
   },
   department_id:{
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: 'departments',
-      key: 'id',
-    },
   },
   gestational_age: {
     type: DataTypes.INTEGER, // weeks
@@ -51,10 +43,6 @@ const Ultrasound = sequelize.define('Ultrasound', {
   },
   performed_by: {
     type: DataTypes.UUID,
-    references: {
-      model: 'staffs',
-      key: 'id',
-    },
   },
   date: {
     type: DataTypes.DATEONLY,

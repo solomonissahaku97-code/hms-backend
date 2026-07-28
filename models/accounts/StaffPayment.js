@@ -13,27 +13,15 @@ const StaffPayment = sequelize.define('StaffPayment', {
     staff_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: true
     },
     basic_salary: {
         type: DataTypes.DECIMAL(12, 2),

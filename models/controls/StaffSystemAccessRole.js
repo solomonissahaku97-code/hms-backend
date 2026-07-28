@@ -10,13 +10,11 @@ const StaffSystemAccessRole = sequelize.define('StaffSystemAccessRole', {
   },
   staff_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'staffs', key: 'id' }
+    allowNull: false
   },
   role_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'roles', key: 'id' }
+    allowNull: false
   }
 }, {
   tableName: 'staff_system_access_roles',

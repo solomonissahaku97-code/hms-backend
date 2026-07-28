@@ -12,8 +12,8 @@ const Permission = sequelize.define('Permission', {
 // models/rolePermission.js
 const RolePermission = sequelize.define('RolePermission', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    role_id: { type: DataTypes.UUID, allowNull: false, references: { model: 'roles', key: 'id' } },
-    permission_id: { type: DataTypes.UUID, allowNull: false, references: { model: 'permissions', key: 'id' } }
+    role_id: { type: DataTypes.UUID, allowNull: false },
+    permission_id: { type: DataTypes.UUID, allowNull: false }
 }, { tableName: 'role_permissions' });
 RolePermission.associate = (models) => {
     RolePermission.belongsTo(models.Role, { foreignKey: 'role_id', as: 'role' });

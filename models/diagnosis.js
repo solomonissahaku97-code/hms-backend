@@ -14,26 +14,14 @@ const Diagnosis = sequelize.define('Diagnosis', {
     visit_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Visit, // Ensure this matches the Patients table name
-            key: 'id',
-        },
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
     system_diagnosis_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'system_diagnosis', // Ensure this matches your system_diagnosis table name
-            key: 'id'
-        }
+        allowNull: true
     },
     diagnosis_date: {
         type: DataTypes.DATE,

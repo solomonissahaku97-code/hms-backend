@@ -21,23 +21,19 @@ const ServiceBill = sequelize.define('ServiceBill', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: { model: Visit, key: 'id' }
+        allowNull: false
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: { model: Patient, key: 'id' }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: { model: Institution, key: 'id' }
+        allowNull: false
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: { model: Department, key: 'id' }
+        allowNull: true
     },
     service_id: {
         type: DataTypes.UUID,
@@ -76,18 +72,15 @@ const ServiceBill = sequelize.define('ServiceBill', {
     },
     admin_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: { model: Admin, key: 'id' }
+        allowNull: true
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: { model: Staff, key: 'id' }
+        allowNull: true
     },
     invoice_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: { model: Invoice, key: 'id' }
+        allowNull: true
     },
     has_paid: {
         type: DataTypes.BOOLEAN,

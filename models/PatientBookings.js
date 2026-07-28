@@ -11,10 +11,6 @@ const PatientBookings = sequelize.define('patient_bookings', {
   },
   institution_id: {
     type: DataTypes.UUID,
-    references: {
-      model: Institution,
-      key: 'id',
-    },
     allowNull: false,
   },
   full_name: {

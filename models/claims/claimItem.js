@@ -12,11 +12,7 @@ const ClaimItem = sequelize.define('ClaimItem', {
     },
     claim_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'claims',
-            key: 'id'
-        }
+        allowNull: false
     },
     item_type: {
         type: DataTypes.ENUM('LabTest', 'Medication', 'Consultation', 'Procedure', 'Service', 'Diagnosis'),
@@ -61,19 +57,11 @@ const ClaimItem = sequelize.define('ClaimItem', {
         allowNull: false
     },
     performed_by: {
-        type: DataTypes.UUID,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
     corresponding_diagnosis_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: systemDiagnosis, // use your actual table name
-            key: "id"
-        }
+        allowNull: true
     },
 
     date_performed: {

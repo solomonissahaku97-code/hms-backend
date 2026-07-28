@@ -11,10 +11,6 @@ const InstitutionPaymentHistory = sequelize.define('InstitutionPaymentHistory', 
     },
     institution_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
         allowNull: false,
     },
 

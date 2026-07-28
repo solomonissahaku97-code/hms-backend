@@ -59,11 +59,7 @@ const Staff = sequelize.define('Staff', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     logic_question: {
         type: DataTypes.STRING,
@@ -75,19 +71,11 @@ const Staff = sequelize.define('Staff', {
     },
     admin_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Admin,
-            key: 'id'
-        }
+        allowNull: true
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: true
     },
     token: {
         type: DataTypes.STRING,
@@ -108,11 +96,7 @@ const Staff = sequelize.define('Staff', {
    
     role_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Role,
-            key: 'id'
-        }
+        allowNull: true
     },
     profile_pic: {
         type: DataTypes.STRING,

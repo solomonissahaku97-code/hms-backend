@@ -17,43 +17,23 @@ const LabTestResult = sequelize.define('LabTestResult', {
     visit_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'patients',
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'institutions',
-            key: 'id'
-        }
+        allowNull: false
     },
     department_id:{
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'departments',
-            key: 'id'
-        }
+        allowNull: true
     },
     templateId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: LabTestTemplate,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     values: {
@@ -114,37 +94,21 @@ const LabTestResult = sequelize.define('LabTestResult', {
     rerun_of_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'lab_test_results',
-            key: 'id'
-        },
         comment: 'If this result is a rerun, points to the original result id'
     },
     createdBy: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
         onDelete: 'SET NULL'
     },
     verifiedBy: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
         onDelete: 'SET NULL'
     },
     releasedBy: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
         onDelete: 'SET NULL'
     },
     releasedAt: {

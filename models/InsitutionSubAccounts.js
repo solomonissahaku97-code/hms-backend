@@ -11,10 +11,7 @@ const InstitutionSubAccounts = sequelize.define('institutionSubAccounts', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id',
-        }
+        allowNull: false
     },
 
     subaccount_code: {

@@ -9,19 +9,11 @@ const StockAlert = sequelize.define('StockAlert', {
     },
     item_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'items',
-            key: 'id'
-        }
+        allowNull: false
     },
     batch_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'item_batches',
-            key: 'id'
-        }
+        allowNull: true
     },
     institution_id: {
         type: DataTypes.UUID,

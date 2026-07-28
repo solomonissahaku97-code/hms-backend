@@ -11,19 +11,11 @@ const ImmunizationHistory = sequelize.define('ImmunizationHistory', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     tetanus_vaccine: {
         type: DataTypes.BOOLEAN,

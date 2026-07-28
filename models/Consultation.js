@@ -14,20 +14,12 @@ const Consultation = sequelize.define('consultation', {
     institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution, // Make sure this matches your Institution model's table name
-            key: 'id'
-        },
         onDelete: 'CASCADE' // Delete contact info if institution is deleted
     },
 
     visit_id :{
         type:DataTypes.UUID,
-        allowNull:false,
-        references:{
-            model:Visit,
-            as:'id'
-        }
+        allowNull:false
     },
     status:{
         type:DataTypes.ENUM('pending','approved'),

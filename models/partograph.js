@@ -10,11 +10,7 @@ const Partograph = sequelize.define('Partograph', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        }
+        allowNull: false
     },
     // Time of recording
     record_time: {

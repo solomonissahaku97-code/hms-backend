@@ -15,19 +15,11 @@ const LabScreeningRequest = sequelize.define('LabScreeningRequest', {
     },
     doctor_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     status: {
         type: DataTypes.STRING(100),
@@ -35,32 +27,20 @@ const LabScreeningRequest = sequelize.define('LabScreeningRequest', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     priority: {
         type: DataTypes.STRING(20),
     },
     test_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Test,
-            key: 'id'
-        }
+        allowNull: false
     },
     message: {
         type: DataTypes.TEXT('long'),
     },
     department_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
     createdAt: {
         type: DataTypes.DATE,

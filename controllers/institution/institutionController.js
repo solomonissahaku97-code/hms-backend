@@ -24,7 +24,7 @@ exports.createInstitution = async (req, res) => {
 
         // Validate referral code if provided
         if (referralCode) {
-            const referrer = await Institution.findOne({ where: { referral_code: referralCode } });
+            const referrer = await Institution.findOne({ where: { serial_code: referralCode } });
             if (!referrer) {
                 return res.status(400).json({ error: 'Invalid referral code provided' });
             }
@@ -34,7 +34,19 @@ exports.createInstitution = async (req, res) => {
 
         const institution = await Institution.create({
             name, address, contact, description, google_map_link, fax, logo_url, serial_code: generated_serial_code,
-            region, email, website, country, referral_code: generated_serial_code
+            region, email, website, country
+        }, { transaction });
+
+        const freeTrial = await Subscription.findOne({ where: { name: 'Free Trial' } });
+        if (!freeTrial) {
+            await transaction.rollback();
+            return res.status(500).json({ error: 'Free Trial subscription plan not found. Please contact support.' });
+        }
+
+        await InstitutionSubscription.create({
+            institutionId: institution.id,
+            subscriptionId: freeTrial.id,
+            startDate: new Date(),
         }, { transaction });
 
         await transaction.commit();

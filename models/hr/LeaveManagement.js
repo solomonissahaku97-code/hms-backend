@@ -9,11 +9,7 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: false
     },
     leaveType: {
         type: DataTypes.ENUM(
@@ -55,11 +51,7 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
     },
     approvedById: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: true
     },
     approvedAt: {
         type: DataTypes.DATE,

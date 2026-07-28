@@ -10,13 +10,11 @@ const StaffDepartment = sequelize.define('StaffDepartment', {
   },
   staff_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'staffs', key: 'id' }
+    allowNull: false
   },
   department_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: { model: 'departments', key: 'id' }
+    allowNull: false
   },
   access_type: {
     type: DataTypes.ENUM('full access', 'view only access'),

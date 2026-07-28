@@ -14,20 +14,12 @@ const EducationMaterials = sequelize.define('EducationMaterials', {
   visit_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: 'visits',
-      key: 'id',
-    },
 
   },
 
   surgery_schedule_id: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: 'theatre_patients',
-      key: 'id',
-    },
   },
 
   // JSON-based material structure
@@ -56,10 +48,6 @@ const EducationMaterials = sequelize.define('EducationMaterials', {
   completed_by_staff: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: 'staffs',
-      key: 'id',
-    },
   },
 
   completed_at: {

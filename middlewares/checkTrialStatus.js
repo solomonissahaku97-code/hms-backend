@@ -35,7 +35,7 @@ const checkTrialStatus = async (req, res, next) => {
 
         // Check trial period
         const createdAt = institution.createdAt; // Assuming `createdAt` is the institution's creation date
-        const trialPeriodEnd = moment(createdAt).add(30, 'days');
+        const trialPeriodEnd = moment(createdAt).add(120, 'days');
         const isTrialActive = moment().isBefore(trialPeriodEnd);
 
         if (isTrialActive) {

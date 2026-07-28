@@ -9,11 +9,7 @@ const Payroll = sequelize.define('Payroll', {
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: false
     },
     payPeriod: {
         type: DataTypes.ENUM(
@@ -117,11 +113,7 @@ const Payroll = sequelize.define('Payroll', {
     },
     approvedById: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: true
     },
     payslipUrl: {
         type: DataTypes.STRING,

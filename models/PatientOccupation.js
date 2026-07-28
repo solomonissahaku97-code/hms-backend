@@ -10,11 +10,7 @@ const PatientOccupationHistory  = sequelize.define('patientOccupationHistory', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits', // Assuming the patients table is named 'visits'
-            key: 'id'
-        }
+        allowNull: false
     },
     occupation: {
         type: DataTypes.STRING,

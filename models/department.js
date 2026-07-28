@@ -15,11 +15,7 @@ const Department = sequelize.define('Department', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     description: {
         type: DataTypes.STRING,

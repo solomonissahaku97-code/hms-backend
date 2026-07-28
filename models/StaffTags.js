@@ -11,18 +11,10 @@ const StaffTags = sequelize.define('StaffTags', {
     note_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: 'PatientNotes', // Table name
-            key: 'id',
-        },
     },
     staff_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff, // Table name
-            key: 'id',
-        },
     },
 }, {
     tableName: 'staff_tags',

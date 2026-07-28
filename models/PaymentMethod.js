@@ -13,27 +13,15 @@ const PaymentMethod = sequelize.define('PaymentMethod', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id'
-        },
         allowNull: false,
     },
     admin_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Admin,
-            key: 'id'
-        },
         allowNull: true,
     },
     method_name: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: PaymentGateWay,
-            key: 'id'
-        }
+        allowNull: false
     },
     is_active: {
         type: DataTypes.BOOLEAN,

@@ -12,19 +12,11 @@ const Discharge = sequelize.define('discharge', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Visit,
-            key: 'id'
-        },
         allowNull: false
     },
 
     doctor_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Staff,
-            key: 'id'
-        },
         allowNull: false
     },
     discharge_date: {

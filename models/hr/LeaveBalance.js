@@ -10,11 +10,7 @@ const LeaveBalance = sequelize.define('LeaveBalance', {
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
+        allowNull: true
     },
     leaveType: {
         type: DataTypes.ENUM(

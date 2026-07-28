@@ -12,20 +12,12 @@ const Referrals = sequelize.define('Referrals', {
     referrerId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution, // Assuming the model is named Institutions
-            key: 'id'
-        },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
     },
     referredId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution, // Assuming the model is named Institutions
-            key: 'id'
-        },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
     },

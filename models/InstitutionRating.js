@@ -12,10 +12,6 @@ const InstitutionRating = sequelize.define('InstitutionRating', {
   institution_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: Institution, // Assuming you have an 'Institutions' table or model
-      key: 'id',
-    },
   },
   username: {
     type: DataTypes.STRING,

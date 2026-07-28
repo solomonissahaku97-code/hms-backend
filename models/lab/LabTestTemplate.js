@@ -15,10 +15,6 @@ const LabTestTemplate = sequelize.define('LabTestTemplate', {
   },
   lab_tarrif_id: {
     type: DataTypes.UUID,
-    references: {
-      model: LabInvestigation,
-      key: 'id'
-    },
     allowNull: true,
   },
   quantity: {
@@ -41,19 +37,11 @@ const LabTestTemplate = sequelize.define('LabTestTemplate', {
   },
   department_id: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'departments',
-      key: 'id'
-    }
+    allowNull: true
   },
   createdBy: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: Staff,
-      key: 'id'
-    }
+    allowNull: true
   },
   isActive: {
     type: DataTypes.BOOLEAN,

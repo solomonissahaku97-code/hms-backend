@@ -16,28 +16,16 @@ const Meeting = sequelize.define('Meeting', {
     institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
         onDelete: 'CASCADE',
     },
     department_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: Department,
-            key: 'id',
-        },
         onDelete: 'SET NULL',
     },
     host_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id',
-        },
         onDelete: 'CASCADE', 
     },
     title: {

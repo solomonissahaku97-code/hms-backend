@@ -14,19 +14,11 @@ const PreOpChecklist = sequelize.define('PreOpChecklist', {
   visit_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: 'visits',
-      key: 'id',
-    },
   },
 
   surgery_schedule_id: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: TheatrePatients,
-      key: 'id',
-    },
   },
 
   // ✅ JSON field stores the entire checklist structure
@@ -46,10 +38,6 @@ const PreOpChecklist = sequelize.define('PreOpChecklist', {
   completed_by: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: Staff,
-      key: 'id',
-    },
   },
 
   completed_at: {

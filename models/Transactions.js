@@ -11,10 +11,6 @@ const Transactions = sequelize.define('Transaction', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
         allowNull: false,
     },
     transaction_type: {

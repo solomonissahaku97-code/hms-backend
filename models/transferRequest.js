@@ -11,27 +11,15 @@ const TransferRequest = sequelize.define('TransferRequest', {
     },
     record_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Record,
-            key: 'id'
-        }
+        allowNull: false
     },
     source_institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     target_institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     status: {
         type: DataTypes.ENUM('pending', 'approve', 'reject'),

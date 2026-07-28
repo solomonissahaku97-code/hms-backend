@@ -18,11 +18,7 @@ const QrCode = sequelize.define("QrCode", {
   staff_id:{
     type:DataTypes.UUID,
     allowNull:true,
-    unique:true,
-    references:{
-      model:Staff,
-      key:'id'
-    }
+    unique:true
   },
   status: {
     type: DataTypes.ENUM("ACTIVE", "DISABLED"),
@@ -30,12 +26,7 @@ const QrCode = sequelize.define("QrCode", {
   },
   institution_id:{
     type:DataTypes.UUID,
-    allowNull:true,
-    references:{
-      model:Institution,
-      key:'id'
-    },
-  
+    allowNull:true
   }
 });
 

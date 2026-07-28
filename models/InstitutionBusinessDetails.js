@@ -31,11 +31,7 @@ const InstitutionBusinessDetails = sequelize.define('institutionBusinessDetails'
         allowNull: false
     },
     institution_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     }
 })
 

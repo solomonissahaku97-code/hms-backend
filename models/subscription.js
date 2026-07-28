@@ -48,8 +48,7 @@ const Subscription = sequelize.define('subscription', {
 });
 
 Subscription.associations = (models) => {
-    console.log(models)
-    Subscription.hasMany(models.Institution, { foreignKey: 'institutionId', as: 'institution' });
+    Subscription.hasMany(models.Institution, { foreignKey: 'subscriptionId', as: 'institutions' });
     Subscription.hasMany(models.institutionSubscription, {
         foreignKey: 'subscriptionId',
         as: 'institutionSubscriptions'

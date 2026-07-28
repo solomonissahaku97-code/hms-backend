@@ -12,10 +12,6 @@ const Attendance = sequelize.define("Attendance", {
   staffId: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: Staff,
-      key: 'id',
-    },
   },
   signInTime: {
     type: DataTypes.DATE,

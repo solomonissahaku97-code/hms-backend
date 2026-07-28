@@ -12,10 +12,6 @@ const StaffFace = sequelize.define('StaffFace', {
   staff_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: Staff,
-      key: 'id',
-    },
     onDelete: 'CASCADE',
   },
     imagePath: {

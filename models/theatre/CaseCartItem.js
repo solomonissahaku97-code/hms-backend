@@ -9,11 +9,7 @@ const CaseCartItem = sequelize.define('CaseCartItem', {
     },
     case_cart_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'case_carts',
-            key: 'id'
-        }
+        allowNull: true
     },
     name: {
         type: DataTypes.STRING,
@@ -60,10 +56,6 @@ const CaseCartItem = sequelize.define('CaseCartItem', {
     prepared_by: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
     },
     prepared_at: {
         type: DataTypes.DATE,
@@ -77,10 +69,6 @@ const CaseCartItem = sequelize.define('CaseCartItem', {
     inventory_item_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'items',
-            key: 'id'
-        },
     },
     batch_number: {
         type: DataTypes.STRING,

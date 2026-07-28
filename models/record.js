@@ -12,19 +12,11 @@ const Record = sequelize.define('Record', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     folder_number: {
         type: DataTypes.STRING(50),
@@ -65,11 +57,7 @@ const Record = sequelize.define('Record', {
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references:{
-            model: Department,
-            key: 'id'
-        }
+        allowNull: true
     },
 }, {
     tableName: 'records',

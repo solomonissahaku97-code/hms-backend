@@ -53,11 +53,7 @@ const Institution = sequelize.define('Institution', {
     }, 
     subscriptionId: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Subscription,
-            key: 'id',
-        },
+        allowNull: true
     },
     region: {
         type: DataTypes.STRING,
@@ -96,7 +92,7 @@ Institution.associations = (models) => {
     Institution.hasMany(models.Patient, { foreignKey: 'institution_id', as: 'patients' });
     Institution.hasMany(models.Department, { foreignKey: 'institution_id', as: 'departments' });
     Institution.hasMany(models.Staff, { foreignKey: 'institution_id', as: 'staffs' });
-    Institution.belongsTo(models.institutionSubscription,{ foreignKey:'institution_id',as:'institution_account' })
+    Institution.hasMany(models.institutionSubAccounts, { foreignKey: 'institution_id', as: 'sub_accounts' });
 };
 
 module.exports = Institution;

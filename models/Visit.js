@@ -13,11 +13,7 @@ const Visit = sequelize.define('Visit', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     attendance_number: {
         type: DataTypes.STRING,
@@ -32,20 +28,12 @@ const Visit = sequelize.define('Visit', {
     institution_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: Institution, // Ensure this matches your Institution model's table name
-            key: 'id'
-        },
         onDelete: 'CASCADE' // Delete visit if institution is deleted
     },
 
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: true
     },
     on_admission: {
         type: DataTypes.BOOLEAN,

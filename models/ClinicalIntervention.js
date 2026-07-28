@@ -13,11 +13,7 @@ const ClinicalIntervention = sequelize.define('ClinicalIntervention', {
   },
   prescription_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Prescription,
-      key: 'id'
-    }
+    allowNull: false
   },
   issue_type: {
     type: DataTypes.ENUM(
@@ -48,11 +44,7 @@ const ClinicalIntervention = sequelize.define('ClinicalIntervention', {
   },
   intervened_by: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Staff,
-      key: 'id'
-    }
+    allowNull: false
   },
   intervention_date: {
     type: DataTypes.DATE,
@@ -60,11 +52,7 @@ const ClinicalIntervention = sequelize.define('ClinicalIntervention', {
   },
   visit_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Visit,
-      key: 'id'
-    }
+    allowNull: false
   }
 }, {
   tableName: 'clinical_interventions',

@@ -16,19 +16,11 @@ const CaseCart = sequelize.define('CaseCart', {
     theatre_booking_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'theatre_patients',
-            key: 'id'
-        },
         comment: 'Reference to the theatre booking/patient'
     },
     visit_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        },
         comment: 'Patient associated with this case cart'
     },
     procedure: {
@@ -39,10 +31,6 @@ const CaseCart = sequelize.define('CaseCart', {
     surgeon_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
         comment: 'Assigned surgeon'
     },
     surgeon_name: {
@@ -85,10 +73,6 @@ const CaseCart = sequelize.define('CaseCart', {
     assigned_to: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
         comment: 'Staff member assigned to prepare this case cart'
     },
     assigned_to_name: {
@@ -109,10 +93,6 @@ const CaseCart = sequelize.define('CaseCart', {
     operating_room_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'operating_rooms',
-            key: 'id'
-        },
         comment: 'Assigned operating room'
     },
     confirmed_at: {
@@ -123,10 +103,6 @@ const CaseCart = sequelize.define('CaseCart', {
     confirmed_by: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        },
         comment: 'Staff who confirmed the case cart'
     }
 }, {

@@ -15,34 +15,18 @@ const LabResult = sequelize.define('LabResult', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
     },
     department_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Department,
-            key: 'id',
-        },
         allowNull: true,
     },
 
     doctor_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Staff,
-            key: 'id',
-        },
         allowNull: true
     },
     lab_technician_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Staff,
-            key: 'id',
-        },
         allowNull: true
     },
     test: {
@@ -52,10 +36,6 @@ const LabResult = sequelize.define('LabResult', {
     test_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Test,
-            key: 'id',
-        },
     },
     comment: {
         type: DataTypes.TEXT,
@@ -66,10 +46,6 @@ const LabResult = sequelize.define('LabResult', {
     patient_id: { // Add onDelete: 'CASCADE' to patient_id
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id',
-        },
         onDelete: 'CASCADE', // Cascade delete on patient_id
     },
     createdAt: {

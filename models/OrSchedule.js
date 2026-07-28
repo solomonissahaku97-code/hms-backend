@@ -11,19 +11,11 @@ const OrScheduling = sequelize.define('OrSchedule', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'patients',
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'institutions',
-            key: 'id'
-        }
+        allowNull: false
     },
     scheduled_date: {
         type: DataTypes.DATE,
@@ -35,19 +27,11 @@ const OrScheduling = sequelize.define('OrSchedule', {
     },
     surgeon_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
     anesthesiologist_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
     status: {
         type: DataTypes.ENUM('Scheduled', 'Completed', 'Cancelled'),

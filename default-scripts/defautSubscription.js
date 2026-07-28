@@ -3,7 +3,7 @@ const Subscription = require("../models/subscription");
 const defaultSubscription = {
     name: 'Free Trial',
     price: 0.0,
-    duration: 30, // 1 month
+    duration: 120, // 4 months
     features: ['Access to basic features'],
     status: true,
     createdAt: new Date(),

@@ -27,11 +27,7 @@ const Service = sequelize.define('Service', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     }
 }, {
     sequelize,

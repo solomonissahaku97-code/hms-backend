@@ -10,27 +10,15 @@ const Procedure = sequelize.define('Procedure', {
     },
     selected_procedure_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'gdrg_codes', 
-            key: 'id'
-        }
+        allowNull: false
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        }
+        allowNull: false
     },
     doctor_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: false
     },
     procedure_datetime: {
         type: DataTypes.STRING,  // Changed from STRING to DATE
@@ -47,19 +35,11 @@ const Procedure = sequelize.define('Procedure', {
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'departments',
-            key: 'id'
-        }
+        allowNull: false
     },
     corresponding_diagnosis_id:{
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: systemDiagnosis,
-            key: 'id'
-        }
+        allowNull: true
     }
 }, {
     tableName: 'procedures',

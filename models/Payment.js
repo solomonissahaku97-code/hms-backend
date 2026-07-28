@@ -45,22 +45,18 @@ const Payment = sequelize.define('Payment', {
     invoice_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: { model: 'invoices', key: 'id' },
     },
     service_bill_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: { model: 'service_bills', key: 'id' },
     },
     patient_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: { model: 'patients', key: 'id' },
     },
     created_by: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: { model: 'staffs', key: 'id' },
     },
 }, {
     timestamps: true,

@@ -15,18 +15,10 @@ const SoftwareChargesTable = sequelize.define('software_charges_table', {
 
     institution_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
         allowNull: false,
     },
     patient_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     },
 
     charge_amount: {

@@ -22,11 +22,7 @@ const NHISClaimExport = sequelize.define('NHISClaimExport', {
   },
   institution_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Institution,
-      key: 'id'
-    }
+    allowNull: false
   },
   file_name: {
     type: DataTypes.STRING,
@@ -46,11 +42,7 @@ const NHISClaimExport = sequelize.define('NHISClaimExport', {
   },
   generated_by: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: Staff,
-      key: 'id'
-    }
+    allowNull: true
   },
   export_status: {
     type: DataTypes.ENUM('Pending', 'Submitted', 'Approved', 'Rejected'),

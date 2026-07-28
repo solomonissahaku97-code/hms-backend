@@ -14,28 +14,16 @@ const ChatReadReceipt = sequelize.define('ChatReadReceipt', {
     chatId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Chat,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     departmentId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Department,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     staffId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     readAt: {

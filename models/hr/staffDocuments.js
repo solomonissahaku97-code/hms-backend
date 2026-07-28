@@ -19,10 +19,6 @@ const DocumentsAndLicenses = sequelize.define(
     staff: {
       type: DataTypes.UUID,
       allowNull: false,
-      references: {
-        model: Staff,
-        key: "id",
-      },
     },
 
     document_name: {

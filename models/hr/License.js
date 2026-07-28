@@ -10,11 +10,7 @@ const LicenseAndCertificate = sequelize.define('LicenseAndCertificate', {
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'staffs', // This references the Staff table
-            key: 'id'
-        }
+        allowNull: false
     },
     licenseNumber: {
         type: DataTypes.STRING,

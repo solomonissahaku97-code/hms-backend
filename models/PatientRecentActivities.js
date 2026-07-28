@@ -13,19 +13,11 @@ const PatientRecentActivities = sequelize.define('patient_recent_activities', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id'
-        }
+        allowNull: false
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
 
     department_id: {

@@ -17,55 +17,33 @@ const LabSample = sequelize.define('LabSample', {
     sample_number: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
         comment: 'Human-readable accession number, e.g. LAB-20260717-0001'
     },
     barcode: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true,
         comment: 'Machine-readable barcode for label printing'
     },
     visit_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: true
     },
     template_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: LabTestTemplate,
-            key: 'id'
-        }
+        allowNull: false
     },
     specimen_type: {
         type: DataTypes.STRING,
@@ -79,11 +57,7 @@ const LabSample = sequelize.define('LabSample', {
     },
     collected_by: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: true
     },
     collected_at: {
         type: DataTypes.DATE,
@@ -92,11 +66,7 @@ const LabSample = sequelize.define('LabSample', {
     },
     received_by: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: true
     },
     received_at: {
         type: DataTypes.DATE,
@@ -129,6 +99,10 @@ const LabSample = sequelize.define('LabSample', {
     modelName: 'LabSample',
     tableName: 'lab_samples',
     timestamps: true,
+    indexes: [
+        { unique: true, fields: ['sample_number'] },
+        { unique: true, fields: ['barcode'] }
+    ],
     comment: 'Sample accessioning / collection workflow for lab tests'
 });
 
@@ -137,8 +111,8 @@ LabSample.associate = (models) => {
         foreignKey: 'template_id',
         as: 'template'
     });
-    LabSample.belongsTo(models.LabTestResult, {
-        foreignKey: 'id',
+    LabSample.hasOne(models.LabTestResult, {
+        foreignKey: 'sample_id',
         as: 'result'
     });
     LabSample.belongsTo(models.Patient, {

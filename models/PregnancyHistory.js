@@ -12,19 +12,11 @@ const PregnancyHistory = sequelize.define('PregnancyHistory', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     nausea_vomiting: {
         type: DataTypes.BOOLEAN,

@@ -11,19 +11,11 @@ const PNC = sequelize.define('PNC', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'institutions',
-            key: 'id'
-        }
+        allowNull: false
     },
     pnc_number: {
         type: DataTypes.STRING,
@@ -56,11 +48,7 @@ const PNC = sequelize.define('PNC', {
     },
     auditor_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: false
     }
 }, {
     tableName: 'pnc_records',

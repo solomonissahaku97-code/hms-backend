@@ -12,20 +12,12 @@ const PregnancyTimeline = sequelize.define('PregnancyTimeline', {
 
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        }
+        allowNull: false
     },
 
     pregnancy_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'anc_records', // link to ANC record
-            key: 'id'
-        }
+        allowNull: false
     },
 
     lmp: { // Last Menstrual Period

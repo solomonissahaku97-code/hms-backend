@@ -39,11 +39,7 @@ const LabInvestigation = sequelize.define('lab_investigation', {
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'departments',
-            key: 'id'
-        }
+        allowNull: true
     },
     createdAt: {
         type: DataTypes.DATE,

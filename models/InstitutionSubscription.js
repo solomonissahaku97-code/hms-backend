@@ -16,19 +16,11 @@ const InstitutionSubscription = sequelize.define(
     institutionId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
     },
 
     subscriptionId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Subscription,
-            key: 'id',
-        },
     },
 
     startDate: {

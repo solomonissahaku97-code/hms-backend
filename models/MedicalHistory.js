@@ -11,19 +11,11 @@ const MedicalHistory = sequelize.define('MedicalHistory', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     chronic_conditions: { // e.g., diabetes, hypertension, asthma
         type: DataTypes.TEXT,

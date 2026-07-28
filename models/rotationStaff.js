@@ -13,27 +13,15 @@ const RotationStaff = sequelize.define('RotationStaff', {
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: false
     },
     day: {
         type: DataTypes.ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),

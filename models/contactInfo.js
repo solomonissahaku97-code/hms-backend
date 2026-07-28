@@ -12,10 +12,6 @@ const InstitutionContactInfo = sequelize.define('InstitutionContactInfo', {
     institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution, // Make sure this matches your Institution model's table name
-            key: 'id'
-        },
         onDelete: 'CASCADE' // Delete contact info if institution is deleted
     },
     phone_number: {

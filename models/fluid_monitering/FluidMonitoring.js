@@ -13,11 +13,7 @@ const FluidMonitoring = sequelize.define('FluidMonitoring', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id'
-        }
+        allowNull: false
     },
 
     institution_id: {
@@ -30,11 +26,7 @@ const FluidMonitoring = sequelize.define('FluidMonitoring', {
     },
     staff_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: false
     },
     type: {
         type: DataTypes.ENUM('intake', 'output'),

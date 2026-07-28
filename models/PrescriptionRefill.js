@@ -12,35 +12,19 @@ const RefillRequest = sequelize.define('RefillRequest', {
     },
     prescription_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'prescriptions',
-            key: 'id'
-        }
+        allowNull: false
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: false
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id'
-        }
+        allowNull: false
     },
     requested_by: { // Could be patient or staff
         type: DataTypes.UUID,
-        allowNull: false,
-          references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: false
     },
     requester_type: {
         type: DataTypes.ENUM('patient', 'staff'),
@@ -59,11 +43,7 @@ const RefillRequest = sequelize.define('RefillRequest', {
     },
     processed_by: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: true
     }
 }, {
     sequelize,

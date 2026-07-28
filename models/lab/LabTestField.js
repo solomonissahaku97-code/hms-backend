@@ -42,10 +42,6 @@ const LabTestField = sequelize.define('LabTestField', {
     templateId: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: LabTestTemplate,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     }
 

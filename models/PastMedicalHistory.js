@@ -10,11 +10,7 @@ const PastMedicalHistory  = sequelize.define('pastMedicalHistory', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        }
+        allowNull: false
     },
     condition: {
         type: DataTypes.STRING,

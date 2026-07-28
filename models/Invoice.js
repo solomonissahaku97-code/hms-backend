@@ -9,13 +9,11 @@ const Invoice = sequelize.define('Invoice', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: { model: 'visits', key: 'id' }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: { model: 'institutions', key: 'id' }
+        allowNull: false
     },
     invoice_number: {
         type: DataTypes.STRING,
@@ -85,8 +83,7 @@ const Invoice = sequelize.define('Invoice', {
     },
     created_by: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: { model: 'staffs', key: 'id' }
+        allowNull: true
     }
 }, {
     tableName: 'invoices',

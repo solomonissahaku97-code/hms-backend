@@ -11,10 +11,6 @@ const LabRanges = sequelize.define('LabRanges', {
   template_id: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: LabTestTemplate,
-      key: 'id'
-    },
     comment: 'Optional link to LabTestTemplate for structured abnormal detection'
   },
   test_name: {

@@ -9,11 +9,7 @@ const TheatrePatients = sequelize.define('TheatrePatients', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits',
-            key: 'id'
-        }
+        allowNull: false
     },
     procedure_ids: {
         type: DataTypes.ARRAY(DataTypes.UUID),
@@ -57,35 +53,19 @@ const TheatrePatients = sequelize.define('TheatrePatients', {
     },
     surgeon_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: true
     },
     anaesthetist_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: true
     },
     scrub_nurse_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: true
     },
     circulating_nurse_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: 'staffs',
-            key: 'id'
-        }
+        allowNull: true
     },
     diagnosis_id: {
         type: DataTypes.ARRAY(DataTypes.UUID),

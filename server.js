@@ -60,6 +60,7 @@ async function runAllSeeders() {
     { name: 'permissionsSeeds', path: './default-scripts/permissionsSeeds' },
     { name: 'syncGDRG', path: './default-scripts/syncGDRG' },
     { name: 'seedSystemDiagnosis', path: './default-scripts/seedSystemDiagnosis' },
+    { name: 'seedSystemSettings', path: './default-scripts/seedSystemSettings' },
     { name: 'syncMedicines', path: './default-scripts/syncMedicines' },
     { name: 'syncIcd10ToGdrg', path: './default-scripts/syncIcd10ToGdrg' },
     { name: 'syncLabRanges', path: './default-scripts/syncLabRanges' },
@@ -69,6 +70,16 @@ async function runAllSeeders() {
 
   let successful = 0;
   let failed = 0;
+
+  // Sync all models once before running seeders to avoid repeated force-sync issues
+  try {
+    console.log('🔄 Syncing database models...');
+    await db.sequelize.sync({ alter: true });
+    console.log('✅ Database models synced');
+  } catch (error) {
+    console.error('❌ Failed to sync database models:', error.message);
+    throw error;
+  }
 
   for (const seeder of seeders) {
     try {
@@ -88,10 +99,6 @@ async function runAllSeeders() {
         failed++;
         continue;
       }
-
-      // For seeders that depend on tables being present (e.g. lab investigations -> lab templates),
-      // ensure Sequelize sync is run in between.
-      await db.sequelize.sync({ alter: true });
 
       await seederFunction();
       console.log(`✅ ${seeder.name} completed successfully`); 

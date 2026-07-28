@@ -12,19 +12,11 @@ const ProcedureStaff = sequelize.define('ProcedureStaff', {
     procedure_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Procedure,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     staff_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     role: {

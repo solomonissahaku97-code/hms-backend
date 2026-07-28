@@ -16,10 +16,6 @@ const Bed = sequelize.define('Bed', {
     },
     department_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Department,
-            key: 'id'
-        },
         onDelete: 'CASCADE',   // 👈 ensures database deletes related beds
     },
     status: {
@@ -29,10 +25,6 @@ const Bed = sequelize.define('Bed', {
     institution_id: { 
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        },
         onDelete: 'CASCADE',
     },
     is_occupied: {
@@ -41,11 +33,7 @@ const Bed = sequelize.define('Bed', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Visit,
-            key: 'id'
-        }
+        allowNull: true
     }
 }, {
     sequelize,

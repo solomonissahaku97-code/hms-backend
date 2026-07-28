@@ -12,11 +12,7 @@ const FluidBalanceSummary = sequelize.define('FluidBalanceSummary', {
   },
   visit_id: {
     type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: Visit,
-      key: 'id'
-    }
+    allowNull: false
   },
   
   institution_id: {

@@ -12,19 +12,11 @@ const PatientMedicationCounseling = sequelize.define('PatientMedicationCounselin
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'visits', // Reference table name
-            key: 'id'
-        }
+        allowNull: false
     },
     prescription_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Prescription, // Reference table name
-            key: 'id'
-        }
+        allowNull: false
     },
     language: {
         type: DataTypes.STRING,
@@ -50,19 +42,11 @@ const PatientMedicationCounseling = sequelize.define('PatientMedicationCounselin
     },
     staff_requester_id: {  // Renamed for clarity
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Staff, // Reference table name
-            key: 'id'
-        }
+        allowNull: false
     },
     staff_instructor_id: {  // Renamed for clarity
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Staff, // Reference table name
-            key: 'id'
-        }
+        allowNull: true
     },
     status: {
         type: DataTypes.ENUM('pending', 'approved', 'rejected', 'fulfilled'),

@@ -14,80 +14,44 @@ const Chat = sequelize.define('Chat', {
     institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     senderDepartmentId: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        },
         onDelete: 'SET NULL',
         index: true,
     },
     receiverDepartmentId: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        },
         onDelete: 'SET NULL',
         index: true,
     },
     senderId: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: true
     },
     receiverId: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Staff,
-            key: 'id'
-        }
+        allowNull: true
     },
     senderAdminId: {  // ✅ New field for Admin sender
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Admin,
-            key: 'id'
-        }
+        allowNull: true
     },
     receiverAdminId: { // ✅ New field for Admin receiver
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Admin,
-            key: 'id'
-        }
+        allowNull: true
     },
     senderInstitutionId: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: Institution,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     receiverInstitutionId: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: Institution,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     text: {

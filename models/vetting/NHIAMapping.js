@@ -27,35 +27,19 @@ const NHIAMapping = sequelize.define('NHIAMapping', {
   // References to your existing models
   medicineId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'medicines',
-      key: 'id'
-    }
+    allowNull: true
   },
   procedureId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'gdrg_codes',
-      key: 'id'
-    }
+    allowNull: true
   },
   labTestId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'lab_investigations',
-      key: 'id'
-    }
+    allowNull: true
   },
   diagnosisId: {
     type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'system_diagnosis',
-      key: 'id'
-    }
+    allowNull: true
   },
   
   // Your Existing Codes (for quick reference)

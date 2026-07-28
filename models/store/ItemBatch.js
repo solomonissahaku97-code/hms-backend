@@ -9,11 +9,7 @@ const ItemBatch = sequelize.define('ItemBatch', {
     },
     item_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'items',
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,

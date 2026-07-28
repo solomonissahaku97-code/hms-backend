@@ -25,20 +25,12 @@ const Patient = sequelize.define('Patient', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: false
     },
 
     department_id: {
         type: DataTypes.UUID,
-        allowNull: truncate,
-        references: {
-            model: Department,
-            key: 'id',
-        }
+        allowNull: true
     },
 
     metadata: {

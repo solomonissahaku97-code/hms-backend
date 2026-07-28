@@ -42,8 +42,7 @@ const Expense = sequelize.define("Expense", {
   },
 
   paidBy: {
-    type: DataTypes.UUID,
-    references: { model: "staffs", key: "id" }, // who in accounts approved
+    type: DataTypes.UUID, // who in accounts approved
   },
 
   isRecurring: {

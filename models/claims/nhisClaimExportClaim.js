@@ -31,10 +31,6 @@ const NHISClaimExportClaim = sequelize.define('NHISClaimExportClaim', {
   institution_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: Institution,
-      key: 'id',
-    },
   },
   file_path: {
     type: DataTypes.STRING,

@@ -14,29 +14,17 @@ const Admission = sequelize.define('Admission', {
     visit_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
 
     institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     staff_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id'
-        },
         onDelete: 'CASCADE'
     },
     admission_date: {

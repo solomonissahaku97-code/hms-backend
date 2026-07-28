@@ -11,11 +11,7 @@ const FluidMonitoringSettings = sequelize.define('FluidMonitoringSettings', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,

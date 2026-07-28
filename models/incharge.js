@@ -14,27 +14,15 @@ const Incharges = sequelize.define('incharge_table', {
     },
     staff_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Staff,
-            key: 'id'
-        },
         allowNull: false
     },
 
     institution_id: {
         type: DataTypes.UUID,
-        references: {
-            model: Institution,
-            key: 'id'
-        },
         allowNull: false,
     },
     department_id: {
-        type: DataTypes.UUID,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        type: DataTypes.UUID
     }
 })
 

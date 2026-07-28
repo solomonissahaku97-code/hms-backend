@@ -11,19 +11,11 @@ const InstitutionCall = sequelize.define('InstitutionCall', {
     caller_institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
         onDelete: 'CASCADE',
     },
     receiver_institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
         onDelete: 'CASCADE',
     },
     caller_admin_id: {

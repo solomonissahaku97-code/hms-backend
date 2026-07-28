@@ -15,26 +15,14 @@ const PatientCarePlan = sequelize.define('PatientCarePlan', {
     visit_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id',
-        },
     },
     institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution,
-            key: 'id',
-        },
     },
     staff_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id',
-        },
     },
     care_plan_goal: {
         type: DataTypes.STRING, // Storing care plan goals as a JSON array
@@ -51,10 +39,6 @@ const PatientCarePlan = sequelize.define('PatientCarePlan', {
     assigned_staff_id: {
         type: DataTypes.UUID,
         allowNull: true,
-        references: {
-            model: Staff,
-            key: 'id',
-        },
     },
     end_date: {
         type: DataTypes.DATE,

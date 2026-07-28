@@ -12,10 +12,6 @@ const SmsSubscriptions = sequelize.define('sms_subscriptions', {
     institution_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Institution, // Ensure your institution model is correctly named
-            key: 'id',
-        },
     },
     total_sms: {
         type: DataTypes.INTEGER,

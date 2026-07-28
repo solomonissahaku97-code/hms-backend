@@ -13,18 +13,10 @@ const ChatAi = sequelize.define('ChatAi', {
   patient_note_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: PatientNote,
-      key: 'id',
-    },
   },
   institution_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: Institution,
-      key: 'id',
-    },
   },
   ai_response: {
     type: DataTypes.TEXT,

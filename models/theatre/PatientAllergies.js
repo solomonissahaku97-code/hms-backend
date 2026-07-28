@@ -14,10 +14,6 @@ const PatientAllergies = sequelize.define('PatientAllergies', {
   visit_id: {
     type: DataTypes.UUID,
     allowNull: false,
-    references: {
-      model: 'visits',
-      key: 'id',
-    },
   },
 //   alergies should be in list
     allergies: {

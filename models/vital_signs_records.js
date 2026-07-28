@@ -12,11 +12,7 @@ const VitalSignsRecord = sequelize.define('VitalSignsRecord', {
     },
     visit_id: {  // Changed from patient_id to visit_id
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Visit, // Reference the visits table
-            key: 'id'
-        }
+        allowNull: false
     },
     oxygen: {
         type: DataTypes.FLOAT,
@@ -48,11 +44,7 @@ const VitalSignsRecord = sequelize.define('VitalSignsRecord', {
     },
     department_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Department,
-            key: 'id'
-        }
+        allowNull: true
     },
     weight: {
         type: DataTypes.FLOAT,
@@ -84,11 +76,7 @@ const VitalSignsRecord = sequelize.define('VitalSignsRecord', {
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: true
     },
     status: {
         type: DataTypes.ENUM("Normal", "Abnormal", "Pending Retake"),

@@ -29,35 +29,19 @@ const Notification = sequelize.define('Notification', {
   from_department_id: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: Department,
-      key: 'id',
-    },
   },
   to_department_id: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: Department,
-      key: 'id',
-    },
   },
   from_staff_id: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: Staff,
-      key: 'id',
-    },
     onDelete: 'CASCADE',
   },
   to_staff_id: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: Staff,
-      key: 'id',
-    },
     onDelete: 'CASCADE',
   },
   institution_id: {

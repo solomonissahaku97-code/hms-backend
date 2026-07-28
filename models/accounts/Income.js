@@ -32,7 +32,6 @@ const Income = sequelize.define("Income", {
 
   receivedBy: {
     type: DataTypes.UUID,
-    references: { model: "staffs", key: "id" },
   }
 }, {
   tableName: "incomes",

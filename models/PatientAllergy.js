@@ -11,19 +11,11 @@ const PatientAllergy = sequelize.define('PatientAllergy', {
     },
     patient_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id'
-        }
+        allowNull: false
     },
     institution_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: Institution,
-            key: 'id'
-        }
+        allowNull: true
     },
     // Allergy Type
     allergy_type: {

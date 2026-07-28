@@ -13,18 +13,10 @@ const SurgeryProcedureHistory = sequelize.define('SurgeryProcedureHistory', {
     patient_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Patient,
-            key: 'id',
-        },
     },
     surgeon_id: {
         type: DataTypes.UUID,
         allowNull: false,
-        references: {
-            model: Staff,
-            key: 'id',
-        },
     },
     procedure_type: {
         type: DataTypes.STRING,

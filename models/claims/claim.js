@@ -12,19 +12,11 @@ const Claim = sequelize.define('Claim', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: Visit,
-            key: 'id'
-        }
+        allowNull: false
     },
     item_id: {
         type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-            model: ClaimItem, // Assuming ClaimItem is the model name
-            key: 'id'
-        }
+        allowNull: true
     },
     claim_status: {
         type: DataTypes.ENUM('Pending', 'Submitted', 'Approved', 'Rejected', 'Resubmitted', 'Draft'),

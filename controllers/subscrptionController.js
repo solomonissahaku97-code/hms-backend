@@ -131,15 +131,28 @@ const paystackCallback = async (req, res) => {
             }
 
             const subscribe_institution = await Institution.findByPk(institutionId);
-            const institution_subscription = await InstitutionSubscription.findOne({ where: { institutionId } });
+            let institution_subscription = await InstitutionSubscription.findOne({ where: { institutionId } });
 
-            if (!subscribe_institution || !institution_subscription) {
+            if (!subscribe_institution) {
                 await transaction.rollback();
                 return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
             }
 
+            if (!institution_subscription) {
+                institution_subscription = await InstitutionSubscription.create({
+                    institutionId,
+                    subscriptionId: subscription.id,
+                    startDate: new Date(),
+                }, { transaction });
+            }
+
+            const existingExpiry = institution_subscription.expiryDate ? new Date(institution_subscription.expiryDate) : new Date();
+            const now = new Date();
+            const baseDate = moment.isMoment ? moment(existingExpiry).toDate() : existingExpiry;
+            const effectiveBase = baseDate > now ? baseDate : now;
+
             const newExpiryDate = subscription.duration
-              ? new Date(Date.now() + subscription.duration * 24 * 60 * 60 * 1000)
+              ? new Date(effectiveBase.getTime() + subscription.duration * 24 * 60 * 60 * 1000)
               : null;
 
             await subscribe_institution.update({ subscriptionId }, { transaction });
@@ -250,6 +263,7 @@ const getInstitutionSubscription = async (req, res) => {
         // Fetch the active institution subscription
         const active_subscription = await InstitutionSubscription.findOne({
             where: { institutionId },
+            order: [['createdAt', 'DESC']],
         });
 
         if (!active_subscription) {
