@@ -141,7 +141,7 @@ const paystackCallback = async (req, res) => {
                 await transaction.rollback();
                 return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
             }
-
+ 
             if (!institution_subscription) {
                 institution_subscription = await InstitutionSubscription.create({
                     institutionId,

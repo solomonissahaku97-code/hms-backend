@@ -5,6 +5,104 @@ const PregnancyTimeline = require('../../models/maternity/PregnancyTimeline');
 const ANC = require('../../models/maternity/ANC');
 const Staff = require('../../models/staff');
 const  sequelize  = require('../../config/database'); 
+// @desc    Register new ANC patient - creates visit and ANC record
+// @route   POST /api/v1/ANC/register
+// @access  Private
+const registerANC = async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const {
+      patient_id,
+      institution_id,
+      department_id,
+      auditor_id,
+      gestational_age_weeks,
+      mother_age,
+      parity,
+      blood_pressure,
+      hemoglobin_level,
+      hiv_status,
+      visit_type = 'Maternity',
+      attendance_type = 'New',
+      risk_level = 'Low',
+      edd,
+      lmp,
+      fetal_presentation,
+      next_appointment_date,
+      notes
+    } = req.body;
+
+    if (!patient_id || !institution_id || !department_id) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: 'patient_id, institution_id and department_id are required' });
+    }
+
+    // 1. Create Visit
+    const visit = await sequelize.models.Visit.create({
+      patient_id,
+      institution_id,
+      department_id,
+      visit_type,
+      attendance_type,
+      status: 'Active'
+    }, { transaction: t });
+
+    // 2. Create ANC record
+    const anc = await ANC.create({
+      visit_id: visit.id,
+      institution_id,
+      gestational_age_weeks,
+      mother_age,
+      parity,
+      blood_pressure,
+      hemoglobin_level,
+      hiv_status,
+      auditor_id,
+      year: new Date().getFullYear()
+    }, { transaction: t });
+
+    // 3. Create Pregnancy Timeline if LMP/EDD provided
+    if (lmp || edd) {
+      const timelineData = {
+        visit_id: visit.id,
+        lmp: lmp ? new Date(lmp) : undefined,
+        edd: edd ? new Date(edd) : undefined,
+        total_weeks: 40,
+        current_week: gestational_age_weeks || 0,
+        progress_percent: ((gestational_age_weeks || 0) / 40) * 100,
+        weeks: [],
+        pregnancy_id: anc.id
+      };
+      await PregnancyTimeline.create(timelineData, { transaction: t });
+    }
+
+    // 4. Create Pregnancy History if needed
+    await PregnancyHistory.findOrCreate({
+      where: { patient_id, institution_id },
+      defaults: { patient_id, institution_id }
+    });
+
+    await t.commit();
+
+    res.status(201).json({
+      success: true,
+      message: 'ANC registration successful',
+      data: {
+        visit,
+        anc
+      }
+    });
+  } catch (error) {
+    await t.rollback();
+    console.error('Register ANC Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error registering ANC patient',
+      error: error.message
+    });
+  }
+};
+
 const createANC = async (req, res) => {
   const t = await sequelize.transaction();
   try {
@@ -155,4 +253,4 @@ const getPregnancyTimeline = async (req, res) => {
   }
 };
 
-module.exports = { createANC, updateANC, deleteANC, getPregnancyTimeline, getANCsByVisit };
+module.exports = { createANC, registerANC, updateANC, deleteANC, getPregnancyTimeline, getANCsByVisit };

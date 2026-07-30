@@ -52,6 +52,7 @@ const labInvestigationRoutes = require('./labInvestigationRoute')
 const claimRoutes = require('./claimsRoute')
 const fluidMoniteringRoutes = require('./fluidMonitoring')
 const accountsRoutes = require('./accounts.routes')
+const maternityRoutes = require('./maternityRoutes');
 const faceRecognition = require('./faceRoutes.routes')
 const nhia_vettingRoutes = require('./nhiaVettingRoutes');
 const invoiceRoutes  = require('./invoice.routes')
@@ -106,6 +107,7 @@ module.exports = (app) => {
        app.use('/api/v1/nhia-vetting', nhia_vettingRoutes);
     app.use('/api/v1/staff-faces',faceRecognition)
     app.use('/api/v1/accounts',accountsRoutes),
+    app.use('/api/v1/maternity', maternityRoutes);
     app.use('/api/v1/fluid-monitoring', fluidMoniteringRoutes);
     app.use('/api/v1/claim-items',claimRoutes)
      app.use('/api/v1/lab-investigations', labInvestigationRoutes);
