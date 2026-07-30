@@ -425,7 +425,7 @@ const AccountsController = {
 
             // check if paid amount is less than total amount
             if (parseFloat(paid_amount) < parseFloat(bill.patient_amount)) {
-                bill.payment_status = "Partial";
+                bill.payment_status = "Pending";
             }
             if (parseFloat(paid_amount) > parseFloat(bill.total_amount)) {
                 return res.status(400).json({ success: false, error: "Paid amount cannot be greater than total amount" });

@@ -61,6 +61,10 @@ const Diagnosis = sequelize.define('Diagnosis', {
         type: DataTypes.UUID,
         allowNull: true,
         comment: 'Links multiple diagnoses added together in one encounter'
+    },
+    patient_id: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 
 }, {

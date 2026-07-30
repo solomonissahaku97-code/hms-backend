@@ -266,7 +266,7 @@ exports.makePatientPayment = async (req, res) => {
         where: { 
           visit_id, 
           patient_id,
-          payment_status: { [Op.in]: ['Pending', 'Partial', 'Overdue'] }
+          payment_status: { [Op.in]: ['Pending', 'Overdue'] }
         },
         order: [['createdAt', 'ASC']],
         transaction
@@ -290,7 +290,7 @@ exports.makePatientPayment = async (req, res) => {
       bill.payment_method = payment_method;
       bill.paid_at = new Date();
     } else if (newPaid > 0) {
-      bill.payment_status = 'Partial';
+      bill.payment_status = 'Pending';
     }
     await bill.save({ transaction });
 

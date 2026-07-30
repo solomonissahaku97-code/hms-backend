@@ -100,6 +100,10 @@ const Prescription = sequelize.define('Prescription', {
     doseUnitType: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    patient_id: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 
 

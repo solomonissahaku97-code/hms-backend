@@ -115,7 +115,7 @@ exports.rejectTransfer = async (req, res) => {
         }
 
         // Reject transfer
-        transferRequest.status = 'rejected';
+        transferRequest.status = 'rejected'; 
         await transferRequest.save();
 
         res.status(200).json({ message: 'Transfer rejected successfully', transferRequest });

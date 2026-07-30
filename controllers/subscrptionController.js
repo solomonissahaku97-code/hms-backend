@@ -6,6 +6,10 @@ const { sequelize } = require('../models'); // Assuming Sequelize is configured 
 const Payment = require('../models/Payment');
 const SUBSCRIPTION_FEATURES = require('../config/subscriptionFeatures'); 
 const VALID_FEATURE_KEYS = Object.keys(SUBSCRIPTION_FEATURES); 
+const moment = require('moment'); 
+
+
+
 
 // Normalize/validate the incoming features array against the known catalog.
 // Unknown keys are dropped; always returns a plain array of valid string keys.
@@ -162,32 +166,34 @@ const paystackCallback = async (req, res) => {
                 id,
                 status,
                 amount,
-                receipt_number: receiptNumber,
-                gateway_response: gatewayResponse,
                 paid_at: paidAt,
                 channel,
                 currency,
-                ip_address: ipAddress,
                 metadata,
-                fees,
-                authorization,
             } = paymentData.data;
 
-            console.log(paymentData);
+            const paymentMethod = channel === 'mobile_money' ? 'mobile_money' : 
+                                  channel === 'card' ? 'credit_card' : 
+                                  channel || 'other';
+
+            const notes = JSON.stringify({
+                receipt_number: paymentData.data.receipt_number,
+                gateway_response: paymentData.data.gateway_response,
+                ip_address: paymentData.data.ip_address,
+                fees: paymentData.data.fees,
+                authorization: paymentData.data.authorization,
+                metadata,
+            });
 
             await Payment.create({
                 transactionId: id,
                 status,
                 amount,
                 currency,
-                receiptNumber,
-                gatewayResponse,
                 paidAt,
-                channel,
-                ipAddress,
-                metadata,
-                fees,
-                authorization,
+                payment_method: paymentMethod,
+                payment_type: 'full',
+                notes,
             }, { transaction });
 
             await transaction.commit();

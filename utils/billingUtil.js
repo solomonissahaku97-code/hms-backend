@@ -270,7 +270,7 @@ async function processPayment({
             targetBill.has_paid = true;
             targetBill.paid_at = new Date();
         } else if (newPaid > 0) {
-            targetBill.payment_status = 'Partial';
+            targetBill.payment_status = 'Pending';
         }
 
         await targetBill.save({ transaction });

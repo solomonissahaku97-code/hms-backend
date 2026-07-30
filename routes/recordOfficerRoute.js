@@ -60,5 +60,8 @@ router.get('/visits/statistics/:visit_id',adminAuthOrUserAuth,recordOfficer.getV
 
 router.get('/patientReport',adminAuthOrUserAuth,patientReport.getPatientReport)
 
+// Transfer visit to another department
+router.patch('/visit/transfer',adminAuthOrUserAuth,recordOfficer.transferVisitDepartment)
+
 
 module.exports = router;

@@ -8,6 +8,8 @@ const Visit = require("../../models/Visit");
 const { createClaim } = require('../../service/claimService');
 const Claim = require("../../models/claims/claim");
 const ClaimItem = require("../../models/claims/claimItem");
+const Invoice = require("../../models/Invoice");
+const ServiceBill = require("../../models/serviceBill");
 const LabResult = require("../../models/lab_results");
 const Prescription = require("../../models/prescription");
 const Department = require("../../models/department");
@@ -26,7 +28,6 @@ const PatientDiagnosis = require("../../models/patientDiagnosis");
 const systemDiagnosis = require("../../models/claims/systemDiagnosis");
 const Appointment = require("../../models/appointment");
 const GDRGCode = require("../../models/claims/GDRGCode");
-const Invoice = require("../../models/Invoice");
 const ANC = require("../../models/maternity/ANC");
 const LabTestField = require("../../models/lab/LabTestField");
 
@@ -362,6 +363,34 @@ exports.initializeNewPatientVisit = async (req, res) => {
             });
         }
 
+        // Check for outstanding payments
+        const outstandingInvoices = await Invoice.findAll({
+            where: {
+                balance_due: { [require('sequelize').Op.gt]: 0 }
+            },
+            include: [{
+                model: Visit,
+                as: 'visit',
+                where: { patient_id },
+                attributes: []
+            }],
+            transaction
+        });
+
+        const outstandingBills = await ServiceBill.findAll({
+            where: {
+                patient_id,
+                payment_status: { [require('sequelize').Op.in]: ['Pending', 'Overdue'] }
+            },
+            transaction
+        });
+
+        const hasOutstanding = outstandingInvoices.length > 0 || outstandingBills.length > 0;
+        const totalOutstanding = outstandingInvoices.reduce((sum, inv) => sum + parseFloat(inv.balance_due || 0), 0) +
+                                 outstandingBills.reduce((sum, bill) => sum + parseFloat(bill.total_amount || 0) - parseFloat(bill.paid_amount || 0), 0);
+
+        const warning = hasOutstanding ? `Patient has outstanding payment of GHS ${totalOutstanding.toFixed(2)}. Please ensure payment is made before proceeding.` : null;
+
 
         const visitData = {
             patient_id,
@@ -396,7 +425,7 @@ exports.initializeNewPatientVisit = async (req, res) => {
         return res.status(201).json({
             message: 'Visit initialized successfully',
             visit: newVisit,
-
+            warning: warning || null
         });
 
     } catch (error) {
@@ -1112,4 +1141,45 @@ exports.getVisitsByType = async (req, res) => {
         return res.status(500).json({ error: 'An error occurred while fetching visits' });
     }
 }
+
+// Transfer visit to another department
+exports.transferVisitDepartment = async (req, res) => {
+    const { visit_id, new_department_id } = req.body;
+
+    if (!visit_id || !new_department_id) {
+        return res.status(400).json({ error: 'visit_id and new_department_id are required' });
+    }
+
+    try {
+        const visit = await Visit.findByPk(visit_id);
+        if (!visit) {
+            return res.status(404).json({ error: 'Visit not found' });
+        }
+
+        const newDepartment = await Department.findByPk(new_department_id);
+        if (!newDepartment) {
+            return res.status(404).json({ error: 'New department not found' });
+        }
+
+        await visit.update({ department_id: new_department_id });
+
+        // Also update the patient's department if they have one
+        if (visit.patient_id) {
+            await Patient.update(
+                { department_id: new_department_id },
+                { where: { id: visit.patient_id } }
+            );
+        }
+
+        return res.status(200).json({
+            message: 'Visit transferred to new department successfully',
+            visit_id: visit.id,
+            new_department_id: newDepartment.id,
+            department_name: newDepartment.name
+        });
+    } catch (error) {
+        console.error('Error transferring visit:', error);
+        return res.status(500).json({ error: 'An error occurred while transferring the visit' });
+    }
+};
 
