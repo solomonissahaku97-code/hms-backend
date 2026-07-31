@@ -84,11 +84,50 @@ const Invoice = sequelize.define('Invoice', {
     created_by: {
         type: DataTypes.UUID,
         allowNull: true
+    },
+    patient_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
+    token: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+        comment: 'Shareable token for public invoice viewing'
+    },
+    sms_sent: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    sms_sent_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    paid_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    paid_by: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
+    viewed_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    viewed_at: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: 'invoices',
     timestamps: true,
     underscored: true,
+    indexes: [
+        { fields: ['token'] }
+    ],
     hooks: {
         beforeSave: (invoice) => {
             invoice.balance_due = Math.round((invoice.total_amount - invoice.amount_paid) * 100) / 100;
@@ -101,6 +140,8 @@ Invoice.associate = (models) => {
     Invoice.belongsTo(models.Visit, { foreignKey: 'visit_id', as: 'visit' });
     Invoice.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' });
     Invoice.belongsTo(models.Staff, { foreignKey: 'created_by', as: 'creator' });
+    Invoice.belongsTo(models.Staff, { foreignKey: 'paid_by', as: 'paidBy' });
+    Invoice.belongsTo(models.Patient, { foreignKey: 'patient_id', as: 'patient' });
     Invoice.hasMany(models.ServiceBill, {
         foreignKey: 'invoice_id',
         as: 'service_bills',

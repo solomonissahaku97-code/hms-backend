@@ -97,6 +97,10 @@ const ServiceBill = sequelize.define('ServiceBill', {
     created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
+    },
+    paid_at: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     sequelize,

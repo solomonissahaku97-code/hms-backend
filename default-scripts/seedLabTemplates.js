@@ -106,6 +106,7 @@ const seedLabTests = async () => {
 
         // Create template
         const createdTemplate = await LabTestTemplate.create({
+          name: template.testDescription,
           lab_tarrif_id: matchingInvestigation.id,
           description: template.testDescription,
           isActive: true

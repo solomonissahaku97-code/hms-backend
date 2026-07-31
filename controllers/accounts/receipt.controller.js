@@ -1,4 +1,4 @@
-const { Invoice, Patient, Institution, Receipt, Visit } = require('../../models');
+const { Invoice, Patient, Institution, Receipt, Visit, Payment } = require('../../models');
 const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const { sendSMS } = require('../../service/smsService');
@@ -54,11 +54,27 @@ exports.generateReceipt = async (req, res) => {
             sms_sent: false
         }, { transaction });
 
+        await Payment.create({
+            id: uuidv4(),
+            transactionId: uuidv4(),
+            status: 'completed',
+            amount: invoice.balance_due,
+            currency: 'GHS',
+            paidAt: new Date(),
+            invoice_id: invoice.id,
+            patient_id: invoice.visit?.patient?.id,
+            payment_method: payment_method || 'cash',
+            payment_type: 'full',
+            notes: notes || `Receipt ${receiptNumber}`,
+            created_by: req.user?.id || req.admin?.id
+        }, { transaction });
+
         // Update invoice
         invoice.amount_paid = parseFloat(invoice.amount_paid) + parseFloat(invoice.balance_due);
         invoice.balance_due = 0;
         invoice.status = 'paid';
         invoice.payment_method = payment_method || 'cash';
+        invoice.paid_at = new Date();
         await invoice.save({ transaction });
 
         await transaction.commit();
@@ -105,7 +121,12 @@ exports.sendReceiptSMS = async (req, res) => {
 
         const message = `Payment Receipt: You have paid GHS ${receipt.amount_paid.toFixed(2)} for invoice. View receipt: ${receiptUrl}`;
 
-        await sendSMS(receipt.patient.phone, message);
+        const smsResult = await sendSMS(receipt.patient.phone, message);
+
+        if (!smsResult.success) {
+            console.error('Failed to send receipt SMS:', smsResult.error);
+            return res.status(500).json({ success: false, message: 'Failed to send SMS', error: smsResult.error });
+        }
 
         receipt.sms_sent = true;
         receipt.sms_sent_at = new Date();

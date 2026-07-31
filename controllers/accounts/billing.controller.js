@@ -1,5 +1,6 @@
 const { Invoice, ServiceBill, Visit, Patient, Payment } = require('../../models');
 const { Op, Sequelize } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
 
 // Get all patients with their billing summary
 exports.getAllPatientsWithBillingSummary = async (req, res) => {
@@ -184,17 +185,17 @@ exports.getPatientBillingHistory = async (req, res) => {
         visit_type: visit.visit_type,
         visit_status: visit.status,
         visit_date: visit.createdAt,
-        bills: bills.map(b => ({
-          id: b.id,
-          service_type: b.service_type,
-          service_name: b.service_name,
-          total_amount: parseFloat(b.total_amount) || 0,
-          paid_amount: parseFloat(b.paid_amount) || 0,
-          balance: parseFloat(b.total_amount) - parseFloat(b.paid_amount),
-          payment_status: b.payment_status,
-          payment_method: b.payment_method,
-          created_at: b.createdAt
-        })),
+          bills: bills.map(b => ({
+              id: b.id,
+              service_type: b.service_type,
+              service_name: b.description,
+              total_amount: parseFloat(b.total_amount) || 0,
+              paid_amount: parseFloat(b.paid_amount) || 0,
+              balance: parseFloat(b.total_amount) - parseFloat(b.paid_amount),
+              payment_status: b.payment_status,
+              payment_method: b.payment_method,
+              created_at: b.created_at
+          })),
         invoices: visit.invoices ? visit.invoices.map(inv => ({
           id: inv.id,
           invoice_number: inv.invoice_number,
@@ -310,6 +311,22 @@ exports.makePatientPayment = async (req, res) => {
         await invoice.save({ transaction });
       }
     }
+
+    await Payment.create({
+      id: uuidv4(),
+      transactionId: uuidv4(),
+      status: 'completed',
+      amount: paymentAmount,
+      currency: 'GHS',
+      paidAt: new Date(),
+      service_bill_id: bill.id,
+      invoice_id: bill.invoice_id,
+      patient_id: bill.patient_id,
+      payment_method,
+      payment_type: newPaid >= billTotal ? 'full' : 'partial',
+      notes: notes || `Payment for service bill ${bill.id}`,
+      created_by: staff_id || req.admin?.id
+    }, { transaction });
 
     await transaction.commit();
 

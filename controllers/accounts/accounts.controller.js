@@ -1,5 +1,6 @@
 const { Op, fn, col, literal } = require("sequelize");
-const { ServiceBill, Patient, Procedure, Prescription, LabTestResult, Invoice, Visit } = require("../../models");
+const { ServiceBill, Patient, Procedure, Prescription, LabTestResult, Invoice, Visit, Payment } = require("../../models");
+const { v4: uuidv4 } = require("uuid");
 const Department = require("../../models/department");
 const Staff = require("../../models/staff");
 const Institution = require("../../models/institution");
@@ -404,59 +405,78 @@ const AccountsController = {
 
     // mark a bill as paid
     async markBillAsPaid(req, res) {
+        const transaction = await Invoice.sequelize.transaction();
         try {
             const { bill_id } = req.params;
             const { payment_method, paid_amount } = req.body;
 
             if (!bill_id || !payment_method || !paid_amount) {
+                await transaction.rollback();
                 return res.status(400).json({ success: false, error: "bill_id, payment_method and paid_amount are required" });
             }
 
-            const bill = await ServiceBill.findByPk(bill_id);
+            const bill = await ServiceBill.findByPk(bill_id, { transaction });
             if (!bill) {
+                await transaction.rollback();
                 return res.status(404).json({ success: false, error: "Bill not found" });
             }
 
-            // Update bill status and payment details
-            bill.payment_status = "Paid";
-            bill.payment_method = payment_method;
-            bill.paid_amount = paid_amount;
-            bill.paid_at = new Date();
-
             // check if paid amount is less than total amount
-            if (parseFloat(paid_amount) < parseFloat(bill.patient_amount)) {
-                bill.payment_status = "Pending";
-            }
             if (parseFloat(paid_amount) > parseFloat(bill.total_amount)) {
+                await transaction.rollback();
                 return res.status(400).json({ success: false, error: "Paid amount cannot be greater than total amount" });
             }
 
+            const isFullyPaid = parseFloat(paid_amount) >= parseFloat(bill.total_amount);
+
+            // Update bill status and payment details
+            bill.paid_amount = parseFloat(paid_amount);
+            bill.payment_method = payment_method;
+            bill.paid_at = new Date();
+            bill.payment_status = isFullyPaid ? "Paid" : "Pending";
+            if (req.body.paid_by && req.body.paid_by !== 'Staff') {
+                bill.staff_id = req.body.paid_by;
+            }
+            await bill.save({ transaction });
+
             // update invoice balance if linked
             if (bill.invoice_id) {
-                const invoice = await Invoice.findByPk(bill.invoice_id);
-                console.log("DEBUG >> Updating invoice:", invoice ? invoice.id : "No invoice found");
+                const invoice = await Invoice.findByPk(bill.invoice_id, { transaction });
                 if (invoice) {
                     invoice.amount_paid = parseFloat(invoice.amount_paid) + parseFloat(paid_amount);
-                    invoice.balance_due = parseFloat(invoice.balance_due) - parseFloat(paid_amount);
-                    console.log("DEBUG >> New invoice balance_due:", invoice.balance_due);
+                    invoice.balance_due = parseFloat(invoice.total_amount) - invoice.amount_paid;
                     if (invoice.balance_due <= 0) {
                         invoice.balance_due = 0;
                         invoice.status = "paid";
-                        console.log("DEBUG >> Invoice fully paid");
-                    } else {
+                    } else if (invoice.amount_paid > 0) {
                         invoice.status = "partially_paid";
-                        console.log("DEBUG >> Invoice partially paid");
                     }
-                    await invoice.save();
+                    await invoice.save({ transaction });
                 }
             }
 
+            await Payment.create({
+                id: uuidv4(),
+                transactionId: uuidv4(),
+                status: 'completed',
+                amount: parseFloat(paid_amount),
+                currency: 'GHS',
+                paidAt: new Date(),
+                invoice_id: bill.invoice_id,
+                service_bill_id: bill.id,
+                patient_id: bill.patient_id,
+                payment_method,
+                payment_type: isFullyPaid ? 'full' : 'partial',
+                notes: req.body.notes || `Payment for bill ${bill.id}`,
+                created_by: req.body.paid_by
+            }, { transaction });
 
-            await bill.save();
+            await transaction.commit();
 
             res.json({ success: true, message: "Bill marked as paid", data: bill });
         } catch (error) {
-            console.log(error)
+            await transaction.rollback();
+            console.error("Error marking bill as paid:", error);
             res.status(500).json({ success: false, error: error.message });
         }
     },
@@ -841,18 +861,22 @@ const AccountsController = {
      * Pay full invoice - marks all service bills and invoice as paid
      */
     async payInvoice(req, res) {
+        const transaction = await Invoice.sequelize.transaction();
         try {
             const { invoice_id } = req.params;
             const { payment_method, paid_by, notes } = req.body;
 
             if (!invoice_id || !payment_method) {
+                await transaction.rollback();
                 return res.status(400).json({ success: false, error: "invoice_id and payment_method are required" });
             }
 
             const invoice = await Invoice.findByPk(invoice_id, {
+                where: { institution_id: req.admin?.institution_id },
                 include: [
                     { model: ServiceBill, as: 'service_bills' }
-                ]
+                ],
+                transaction
             });
 
             if (!invoice) {
@@ -878,7 +902,7 @@ const AccountsController = {
                     bill.paid_by = paid_by || null;
                     totalPatientPaid += parseFloat(bill.patient_amount || 0);
                     totalNhiaPaid += parseFloat(bill.nhia_amount || 0);
-                    await bill.save();
+                    await bill.save({ transaction });
                 }
             }
 
@@ -890,7 +914,24 @@ const AccountsController = {
             invoice.paid_at = now;
             invoice.paid_by = paid_by || null;
             invoice.notes = notes || '';
-            await invoice.save();
+            await invoice.save({ transaction });
+
+            await Payment.create({
+                id: uuidv4(),
+                transactionId: uuidv4(),
+                status: 'completed',
+                amount: paymentAmount,
+                currency: 'GHS',
+                paidAt: now,
+                invoice_id: invoice.id,
+                patient_id: invoice.visit?.patient_id || invoice.patient_id,
+                payment_method,
+                payment_type: 'full',
+                notes: notes || `Payment for invoice ${invoice.invoice_number}`,
+                created_by: paid_by
+            }, { transaction });
+
+            await transaction.commit();
 
             res.json({
                 success: true,
@@ -906,6 +947,7 @@ const AccountsController = {
                 }
             });
         } catch (error) {
+            await transaction.rollback();
             console.error("Error paying invoice:", error);
             res.status(500).json({ success: false, error: error.message });
         }

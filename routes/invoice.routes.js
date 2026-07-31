@@ -12,6 +12,12 @@ router.get('/invoices/visit', invoiceController.getInvoiceByVisitId);
 router.put('/invoices/:id', invoiceController.updateInvoice);
 router.delete('/invoices/:id', invoiceController.deleteInvoice);
 
+// Invoice sharing and SMS routes
+router.post('/invoices/:id/generate-token', invoiceController.generateInvoiceToken);
+router.post('/invoices/:id/send-sms', invoiceController.sendInvoiceSMS);
+router.get('/invoices/token/:token', invoiceController.getInvoiceByToken);
+router.get('/invoices/:token/view', invoiceController.viewInvoiceByToken);
+
 // Service bill routes
 router.post('/service-bills', serviceBillController.createServiceBill);
 router.get('/visits/:visit_id/service-bills', serviceBillController.getServiceBillsByVisit);

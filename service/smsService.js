@@ -5,19 +5,15 @@ const sendSMS = async (phoneNumber, message) => {
         const smsApiUrl = `https://sms.arkesel.com/sms/api?action=send-sms&api_key=${process.env.SMS_API_KEY}&to=${phoneNumber}&from=Tonitel&sms=${encodeURIComponent(message)}`;
 
         const response = await axios.get(smsApiUrl);
-        console.log('API Key:', process.env.SMS_API_KEY);
 
-        console.log(response)
-
-        
-        // Handle API response
         if (response.data && response.data.code === 'ok') {
-            console.log('SMS sent successfully!');
+            return { success: true, data: response.data };
         } else {
-            console.log('Failed to send SMS:', response.data);
+            return { success: false, error: response.data };
         }
     } catch (error) {
-        console.error('Error sending SMS:', error);
+        console.error('Error sending SMS:', error.message);
+        return { success: false, error: error.message };
     }
 };
 
@@ -26,16 +22,15 @@ const scheduleSMS = async (phoneNumber, message, scheduleTime) => {
         const smsApiUrl = `https://sms.arkesel.com/sms/api?action=send-sms&api_key=${process.env.SMS_API_KEY}&to=${phoneNumber}&from=Falcon-hive&sms=${encodeURIComponent(message)}&schedule=${encodeURIComponent(scheduleTime)}`;
 
         const response = await axios.get(smsApiUrl);
-        console.log('API Key:', process.env.SMS_API_KEY);
 
-        // Handle API response
-        if (response.data && response.data.status === 'success') {
-            console.log('Scheduled SMS successfully!');
+        if (response.data && (response.data.code === 'ok' || response.data.status === 'success')) {
+            return { success: true, data: response.data };
         } else {
-            console.log('Failed to schedule SMS:', response.data);
+            return { success: false, error: response.data };
         }
     } catch (error) {
-        console.error('Error scheduling SMS:', error);
+        console.error('Error scheduling SMS:', error.message);
+        return { success: false, error: error.message };
     }
 };
 

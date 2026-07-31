@@ -1,5 +1,7 @@
 const { Invoice, ServiceBill, Visit, Patient, Staff, Institution, Service, Prescription, LabTestResult, Procedure } = require('../../models');
 const { Op } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
+const { sendSMS } = require('../../service/smsService');
 
 exports.createInvoice = async (req, res) => {
   const transaction = await Invoice.sequelize.transaction();
@@ -285,9 +287,18 @@ exports.updateInvoice = async (req, res) => {
     
     await invoice.update(updates);
     
+    const updatedInvoice = await Invoice.findByPk(id, {
+      include: [
+        { model: Visit, as: 'visit', include: [{ model: Patient, as: 'patient' }] },
+        { model: Institution, as: 'institution' },
+        { model: Staff, as: 'creator' },
+        { model: ServiceBill, as: 'service_bills' }
+      ]
+    });
+    
     res.json({
       success: true,
-      data: invoice
+      data: updatedInvoice
     });
   } catch (error) {
     res.status(500).json({
@@ -330,5 +341,155 @@ exports.deleteInvoice = async (req, res) => {
       message: 'Error deleting invoice',
       error: error.message
     });
+  }
+};
+
+exports.generateInvoiceToken = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const institutionId = req.body.institution_id || req.admin?.institution_id;
+
+    const invoice = await Invoice.findOne({
+      where: { id, institution_id: institutionId }
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    if (!invoice.token) {
+      invoice.token = uuidv4();
+      invoice.sms_sent = false;
+      await invoice.save();
+    }
+
+    res.json({
+      success: true,
+      data: {
+        token: invoice.token,
+        invoice_id: invoice.id,
+        invoice_number: invoice.invoice_number
+      }
+    });
+  } catch (error) {
+    console.error('Error generating invoice token:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate token', error: error.message });
+  }
+};
+
+exports.sendInvoiceSMS = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phone_number } = req.body;
+    const institutionId = req.body.institution_id || req.admin?.institution_id;
+
+    const invoice = await Invoice.findOne({
+      where: { id, institution_id: institutionId },
+      include: [
+        { model: Visit, as: 'visit', include: [{ model: Patient, as: 'patient' }] }
+      ]
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    const patientPhone = phone_number || invoice.visit?.patient?.phone;
+    if (!patientPhone) {
+      return res.status(400).json({ success: false, message: 'Patient phone number is required' });
+    }
+
+    if (!invoice.token) {
+      invoice.token = uuidv4();
+      await invoice.save();
+    }
+
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const invoiceUrl = `${baseUrl}/invoices/${invoice.token}`;
+
+    const message = `Dear ${invoice.visit?.patient?.first_name || 'Patient'}, your hospital invoice ${invoice.invoice_number} for GHS ${parseFloat(invoice.balance_due || invoice.total_amount).toFixed(2)} is ready. View and pay online: ${invoiceUrl}`;
+
+    const smsResult = await sendSMS(patientPhone, message);
+
+    if (!smsResult.success) {
+      console.error('Failed to send invoice SMS:', smsResult.error);
+      return res.status(500).json({ success: false, message: 'Failed to send SMS', error: smsResult.error });
+    }
+
+    invoice.sms_sent = true;
+    invoice.sms_sent_at = new Date();
+    await invoice.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Invoice SMS sent successfully',
+      data: {
+        phone: patientPhone,
+        invoice_url: invoiceUrl,
+        invoice_number: invoice.invoice_number,
+        token: invoice.token
+      }
+    });
+  } catch (error) {
+    console.error('Error sending invoice SMS:', error);
+    res.status(500).json({ success: false, message: 'Failed to send SMS', error: error.message });
+  }
+};
+
+exports.viewInvoiceByToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const invoice = await Invoice.findOne({
+      where: { token },
+      include: [
+        { model: Visit, as: 'visit', include: [{ model: Patient, as: 'patient' }] },
+        { model: Institution, as: 'institution' },
+        { model: ServiceBill, as: 'service_bills' }
+      ]
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: invoice
+    });
+  } catch (error) {
+    console.error('Error viewing invoice:', error);
+    res.status(500).json({ success: false, message: 'Failed to view invoice', error: error.message });
+  }
+};
+
+exports.getInvoiceByToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const invoice = await Invoice.findOne({
+      where: { token },
+      include: [
+        { model: Visit, as: 'visit', include: [{ model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name', 'folder_number', 'phone'] }] },
+        { model: Institution, as: 'institution', attributes: ['id', 'name', 'address', 'contact', 'email'] },
+        { model: ServiceBill, as: 'service_bills' }
+      ]
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
+    }
+
+    invoice.viewed_count = (invoice.viewed_count || 0) + 1;
+    invoice.viewed_at = new Date();
+    await invoice.save();
+
+    res.status(200).json({
+      success: true,
+      data: invoice
+    });
+  } catch (error) {
+    console.error('Error fetching invoice by token:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch invoice', error: error.message });
   }
 };
