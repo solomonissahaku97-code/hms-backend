@@ -92,7 +92,6 @@ const Invoice = sequelize.define('Invoice', {
     token: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true,
         comment: 'Shareable token for public invoice viewing'
     },
     sms_sent: {
@@ -126,7 +125,7 @@ const Invoice = sequelize.define('Invoice', {
     timestamps: true,
     underscored: true,
     indexes: [
-        { fields: ['token'] }
+        { fields: ['token'], unique: true }
     ],
     hooks: {
         beforeSave: (invoice) => {

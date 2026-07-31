@@ -6,6 +6,7 @@ const Patient = require('../models/patient');
 const Department = require('../models/department');
 const Staff = require('../models/staff');
 const Record = require('../models/record');
+const Notification = require('../models/notification');
 const { sequelize } = require('../models');
 const { sendNotificationToDepartment } = require('../helpers/sendPushNotification');
 
@@ -17,29 +18,54 @@ const LabResultController = {
     // Doctor makes a lab request
     async requestLab(req, res) {
         try {
-            const { patient_id, doctor_id, test_id, institution_id, department_id, comment} = req.body;
+            const { patient_id, doctor_id, test_id, institution_id, department_id, comment } = req.body;
             const labResult = await LabResult.create({
                 patient_id,
                 doctor_id,
                 test_id,
                 institution_id,
-                staff_id:doctor_id,
+                staff_id: doctor_id,
                 department_id,
                 comment,
                 status: 'requested'
             });
 
-            const lab_department = await Department.findOne({where:{
-                institution_id,
-                departmentType:'Lab'
-            }})
- 
-             sendNotificationToDepartment({
-                department_id:lab_department.id,
-                institution_id,
-                title:'🔬 New Lab Request Received',  
-                body:'A new lab request has been submitted and requires attention'
-            })
+            const lab_department = await Department.findOne({
+                where: { institution_id, departmentType: 'Lab' }
+            });
+
+            // Create in-app notifications for lab staff
+            if (lab_department) {
+                const labStaff = await Staff.findAll({
+                    where: { institution_id, department_id: lab_department.id },
+                    attributes: ['id']
+                });
+
+                for (const staff of labStaff) {
+                    await Notification.create({
+                        title: 'New Lab Request',
+                        description: `A new lab request has been submitted and requires attention.`,
+                        from_staff_id: doctor_id,
+                        to_staff_id: staff.id,
+                        from_department_id: department_id,
+                        to_department_id: lab_department.id,
+                        institution_id,
+                        type: 'Alert',
+                        priority: 'Medium',
+                    });
+                }
+            }
+
+            // Keep existing push notification
+            if (lab_department) {
+                sendNotificationToDepartment({
+                    department_id: lab_department.id,
+                    institution_id,
+                    title: '🔬 New Lab Request Received',
+                    body: 'A new lab request has been submitted and requires attention'
+                });
+            }
+
             return res.status(201).json({ message: 'Lab request submitted successfully', labResult });
         } catch (error) {
             console.error('Error making lab request:', error);
