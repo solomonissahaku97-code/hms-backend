@@ -52,7 +52,7 @@ exports.createPayment = async (req, res) => {
 
     } catch (error) {
         await transaction.rollback();
-        console.error('Error processing payment:', error);
+        console.log('Error processing payment:', error);
         return res.status(500).json({
             success: false,
             message: 'Failed to process payment',

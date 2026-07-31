@@ -1,4 +1,5 @@
-const { Invoice, ServiceBill, Visit, Patient, Payment } = require('../../models');
+const { Invoice, ServiceBill, Visit, Patient, Payment, LabTestResult, LabTestTemplate } = require('../../models');
+const LabInvestigation = require('../../models/claims/LabInvestigations');
 const { Op, Sequelize } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 
@@ -145,9 +146,9 @@ exports.getPatientBillingHistory = async (req, res) => {
       where: { patient_id },
       attributes: [
         'id', 'visit_id', 'service_type', 'service_name', 'total_amount', 
-        'paid_amount', 'payment_status', 'payment_method', 'createdAt'
+        'paid_amount', 'payment_status', 'payment_method', 'created_at'
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       raw: true
     });
 
@@ -269,9 +270,57 @@ exports.makePatientPayment = async (req, res) => {
           patient_id,
           payment_status: { [Op.in]: ['Pending', 'Overdue'] }
         },
-        order: [['createdAt', 'ASC']],
+        order: [['created_at', 'ASC']],
         transaction
       });
+
+      if (!bill) {
+        const visit = await Visit.findByPk(visit_id, { transaction });
+        if (visit) {
+          const labResult = await LabTestResult.findOne({
+            where: { visit_id },
+            include: [{
+              model: LabTestTemplate,
+              as: 'template',
+              include: [{
+                model: LabInvestigation,
+                as: 'lab_tarrif'
+              }]
+            }],
+            order: [['createdAt', 'DESC']],
+            transaction
+          });
+
+          if (labResult) {
+            const tariff = labResult.template?.lab_tarrif || {};
+            const marketPrice = parseFloat(tariff.market_price || 0);
+            const tariffGhc = parseFloat(tariff.tariff_ghc || 0);
+            const totalAmount = marketPrice > 0 ? marketPrice : tariffGhc;
+
+            const patient = await Patient.findByPk(patient_id, { transaction });
+            const hasInsurance = patient?.has_insurance || false;
+            const nhiaAmount = hasInsurance ? Math.min(tariffGhc, totalAmount) : 0;
+            const patientAmount = hasInsurance ? (totalAmount - nhiaAmount) : totalAmount;
+
+            bill = await ServiceBill.create({
+              visit_id,
+              patient_id,
+              institution_id: visit.institution_id,
+              department_id: labResult.department_id || visit.department_id,
+              service_id: labResult.id,
+              service_type: 'LabTest',
+              description: tariff.test_description || 'Lab Test',
+              unit_price: marketPrice || tariffGhc,
+              quantity: 1,
+              total_amount: totalAmount,
+              nhia_amount: nhiaAmount,
+              patient_amount: patientAmount,
+              payment_status: 'Pending',
+              has_paid: false
+            }, { transaction });
+          }
+        }
+      }
     }
 
     if (!bill) {

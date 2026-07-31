@@ -76,42 +76,30 @@ async function handleBilling({
         transaction
     });
 
-    if (insurance && claim_id) {
-        console.log('Patient has insurance:', insurance.id);
-        
+    if (insurance) {
         if (nhia_unit_price > 0) {
-            // NHIA covers either their portion or the full amount if patient price is 0
             nhiaAmount = Math.min(nhia_unit_price * quantity, totalAmount);
-            console.log('NHIA covers:', nhiaAmount);
-
-            // Patient pays the remainder
             patientAmount = totalAmount - nhiaAmount;
             if (patientAmount < 0) patientAmount = 0;
         }
 
-        console.log("DEBUG >> Insurance found:", insurance.id);
-        console.log("DEBUG >> Claim ID:", claim_id);
-        console.log("DEBUG >> NHIA Amount:", nhiaAmount);
-        console.log("DEBUG >> Patient Amount:", patientAmount);
-
-        // ✅ Add claim item
-        await addClaimItem(
-            claim_id,
-            {
-                item_type: service_type,
-                item_id: service_id,
-                gdrg_code,
-                description,
-                unit_price: effectiveUnitPrice,   // effective price
-                quantity,
-                nhia_amount: nhiaAmount,  // NHIA's portion
-                amount: patientAmount,    // patient's portion
-            },
-            transaction
-        );
-    } else if (!insurance) {
-        console.log('Patient has no insurance - paying full amount:', totalAmount);
-        // No insurance = patient pays everything
+        if (claim_id) {
+            await addClaimItem(
+                claim_id,
+                {
+                    item_type: service_type,
+                    item_id: service_id,
+                    gdrg_code,
+                    description,
+                    unit_price: effectiveUnitPrice,
+                    quantity,
+                    nhia_amount: nhiaAmount,
+                    amount: patientAmount,
+                },
+                transaction
+            );
+        }
+    } else {
         patientAmount = totalAmount;
         nhiaAmount = 0;
     }

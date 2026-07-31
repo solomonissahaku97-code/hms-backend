@@ -228,6 +228,9 @@ exports.createResult = async (req, res, next) => {
       include: [{
         model: LabTestField,
         as: 'fields',
+      }, {
+        model: LabInvestigation,
+        as: 'lab_tarrif'
       }],
       transaction
     });
@@ -257,6 +260,38 @@ exports.createResult = async (req, res, next) => {
 
     // 3) Create result
     const result = await LabTestResults.create(resultData, { transaction });
+
+    // 3.5) Create billing record for this lab test
+    const tariff = template.lab_tarrif || {};
+    const marketPrice = parseFloat(tariff.market_price || 0);
+    const tariffGhc = parseFloat(tariff.tariff_ghc || 0);
+
+    const existingBill = await ServiceBill.findOne({
+      where: { service_id: result.id },
+      transaction
+    });
+
+    if (!existingBill) {
+      try {
+        await handleBilling({
+          transaction,
+          patient_id: visit.patient_id,
+          visit_id,
+          service_id: result.id,
+          service_type: 'LabTest',
+          description: tariff.test_description || 'Lab Test',
+          unit_price: marketPrice,
+          nhia_unit_price: tariffGhc,
+          quantity: template.quantity || 1,
+          department_id: result.department_id || visit.department_id,
+          institution_id: visit.institution_id,
+          claim_id: null,
+          gdrg_code: tariff.g_drg_code
+        });
+      } catch (billingError) {
+        console.error('Error creating billing for lab test:', billingError);
+      }
+    }
 
     await transaction.commit();
 
