@@ -5,6 +5,8 @@ const ProcedureStaff = require("../../models/ProcedureStaff");
 const Staff = require("../../models/staff");
 const Visit = require("../../models/Visit");
 const GDRGCode = require("../../models/claims/GDRGCode");
+const Patient = require("../../models/patient");
+const ServiceBill = require("../../models/serviceBill");
 const sequelize = require('../../config/database')
 const { handleBilling } = require('../../utils/billingUtil')
 
@@ -89,8 +91,43 @@ const ProcedureController = {
                     await ProcedureStaff.bulkCreate(staffRecords, { transaction });
                 }
 
-
-
+                // Create billing records for each procedure if they don't exist
+                const visit = await Visit.findByPk(visit_id, { transaction });
+                const patient = visit ? await Patient.findByPk(visit.patient_id, { transaction }) : null;
+                
+                for (const procedure of results) {
+                    const existingBill = await ServiceBill.findOne({
+                        where: { service_id: procedure.id, service_type: 'Procedure' },
+                        transaction
+                    });
+                    
+                    if (!existingBill) {
+                        const gdrgCode = await GDRGCode.findByPk(procedure.selected_procedure_id, { transaction });
+                        const marketPrice = parseFloat(gdrgCode?.market_price || 0);
+                        const nhiaPrice = parseFloat(gdrgCode?.nhia_price || 0);
+                        const totalAmount = marketPrice > 0 ? marketPrice : nhiaPrice;
+                        const hasInsurance = patient?.has_insurance || false;
+                        const nhiaAmount = hasInsurance ? Math.min(nhiaPrice, totalAmount) : 0;
+                        const patientAmount = hasInsurance ? (totalAmount - nhiaAmount) : totalAmount;
+                        
+                        await ServiceBill.create({
+                            visit_id: procedure.visit_id,
+                            patient_id: visit?.patient_id,
+                            institution_id: procedure.institution_id,
+                            department_id: procedure.department_id,
+                            service_id: procedure.id,
+                            service_type: 'Procedure',
+                            description: gdrgCode?.description || `Procedure #${procedure.id}`,
+                            unit_price: marketPrice || nhiaPrice,
+                            quantity: 1,
+                            total_amount: totalAmount,
+                            nhia_amount: nhiaAmount,
+                            patient_amount: patientAmount,
+                            payment_status: 'Pending',
+                            has_paid: false
+                        }, { transaction });
+                    }
+                }
 
                 return results;
             });
@@ -288,25 +325,32 @@ const ProcedureController = {
 
             // 4. Trigger billing ONLY if status changed to "ongoing"
             let billingResult = null;
-            if (status === 'ongoing' && previousStatus !== 'ongoing' || status === 'completed') {
-                billingResult = await handleBilling({
-                    transaction,
-                    patient_id: patient_id,
-                    service_id: procedure_id,
-                    service_type: 'Procedure', // Fixed type for procedures
-                    description: gdrgCode.description || `Procedure #${procedure_id}`,
-                    nhia_unit_price: gdrgCode.nhia_price,
-                    unit_price: gdrgCode.market_price,
-                    quantity: 1, // Procedures always have quantity=1
-                    department_id: procedure.department_id,
-                    visit_id,
-                    institution_id,
-                    claim_id
+            if ((status === 'ongoing' && previousStatus !== 'ongoing') || status === 'completed') {
+                const existingBill = await ServiceBill.findOne({
+                    where: { service_id: procedure_id, service_type: 'Procedure' },
+                    transaction
                 });
 
-                // Optional: Update procedure with billing reference
-                procedure.billing_reference = billingResult;
-                await procedure.save({ transaction });
+                if (!existingBill) {
+                    billingResult = await handleBilling({
+                        transaction,
+                        patient_id: patient_id,
+                        service_id: procedure_id,
+                        service_type: 'Procedure', // Fixed type for procedures
+                        description: gdrgCode.description || `Procedure #${procedure_id}`,
+                        nhia_unit_price: gdrgCode.nhia_price,
+                        unit_price: gdrgCode.market_price,
+                        quantity: 1, // Procedures always have quantity=1
+                        department_id: procedure.department_id,
+                        visit_id,
+                        institution_id,
+                        claim_id
+                    });
+
+                    // Optional: Update procedure with billing reference
+                    procedure.billing_reference = billingResult;
+                    await procedure.save({ transaction });
+                }
             }
 
             // 5. Commit if successful

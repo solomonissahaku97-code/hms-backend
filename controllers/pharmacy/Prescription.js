@@ -185,6 +185,35 @@ async function createMultiplePrescriptions(prescriptionsData, res, req) {
         
         // Get medication info for notification
         const medication = await Medicine.findByPk(medication_id);
+
+        // Create billing record for this prescription if one doesn't exist
+        if (prescription && medication && visit_id) {
+            const existingBill = await ServiceBill.findOne({
+                where: { service_id: prescription.id, service_type: 'Medication' }
+            });
+            if (!existingBill) {
+                try {
+                    const marketPrice = parseFloat(medication.market_price || 0);
+                    const nhiaPrice = parseFloat(medication.nhia_price || 0);
+                    await handleBilling({
+                        transaction,
+                        patient_id: patient?.id || prescription.visit?.patient_id,
+                        visit_id,
+                        service_id: prescription.id,
+                        service_type: 'Medication',
+                        description: `${medication.generic_name || 'Medication'} - ${prescription.dosage}, ${prescription.frequency}`,
+                        unit_price: marketPrice,
+                        nhia_unit_price: nhiaPrice,
+                        quantity: prescription.duration || 1,
+                        department_id: prescription.department_id,
+                        institution_id: prescription.institution_id,
+                        claim_id: null
+                    });
+                } catch (billingError) {
+                    console.error('Error creating billing for prescription:', billingError);
+                }
+            }
+        }
         
         // Get doctor info for notification
         const doctor = prescribing_staff_id ? await Staff.findByPk(prescribing_staff_id) : null;
@@ -275,6 +304,35 @@ async function createSinglePrescription(prescriptionData, res, req) {
     
     // Get medication info for notification
     const medication = await Medicine.findByPk(medication_id);
+
+    // Create billing record for this prescription if one doesn't exist
+    if (prescription && medication && visit_id) {
+        const existingBill = await ServiceBill.findOne({
+            where: { service_id: prescription.id, service_type: 'Medication' }
+        });
+        if (!existingBill) {
+            try {
+                const marketPrice = parseFloat(medication.market_price || 0);
+                const nhiaPrice = parseFloat(medication.nhia_price || 0);
+                await handleBilling({
+                    transaction,
+                    patient_id: patient?.id || (await Visit.findByPk(visit_id))?.patient_id,
+                    visit_id,
+                    service_id: prescription.id,
+                    service_type: 'Medication',
+                    description: `${medication.generic_name || 'Medication'} - ${prescription.dosage}, ${prescription.frequency}`,
+                    unit_price: marketPrice,
+                    nhia_unit_price: nhiaPrice,
+                    quantity: prescription.duration || 1,
+                    department_id: prescription.department_id,
+                    institution_id: prescription.institution_id,
+                    claim_id: null
+                });
+            } catch (billingError) {
+                console.error('Error creating billing for prescription:', billingError);
+            }
+        }
+    }
     
     // Get doctor info for notification
     const doctor = prescribing_staff_id ? await Staff.findByPk(prescribing_staff_id) : null;
@@ -578,7 +636,11 @@ exports.updatePrescriptionStatus = async (req, res) => {
         }
 
         // 3. Process billing using handleBilling (with all required parameters)
-        const billingResult = await handleBilling({
+        const existingBill = await ServiceBill.findOne({
+            where: { service_id: prescription.id, service_type: 'Medication' }
+        });
+
+        const billingResult = existingBill ? null : await handleBilling({
             transaction,
             patient_id: prescription.visit.patient_id, // From visit
             visit_id: prescription.visit.id,           // From visit
