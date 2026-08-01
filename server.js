@@ -58,6 +58,7 @@ async function runAllSeeders() {
     { name: 'createRoles', path: './default-scripts/createRoles' },
     { name: 'testKits', path: './default-scripts/testKits' },
     { name: 'permissionsSeeds', path: './default-scripts/permissionsSeeds' },
+    { name: 'seedRolePermissions', path: './default-scripts/seedRolePermissions' },
     { name: 'syncGDRG', path: './default-scripts/syncGDRG' },
     { name: 'seedSystemDiagnosis', path: './default-scripts/seedSystemDiagnosis' },
     { name: 'seedSystemSettings', path: './default-scripts/seedSystemSettings' },

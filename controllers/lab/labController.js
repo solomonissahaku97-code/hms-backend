@@ -612,53 +612,47 @@ exports.updateResult = async (req, res, next) => {
     result.status = 'completed';
     await result.save({ transaction });
 
-    // 2. Get lab investigation details
-    const labInvestigation = await LabInvestigation.findByPk(lab_investigation_id, { transaction });
-    if (!labInvestigation) {
-      await transaction.rollback();
-      return next(new AppError('Lab investigation not found', 404));
-    }
-
-    // 3. Validate required fields (remove claim_id requirement)
-    if (!labInvestigation.g_drg_code || !labInvestigation.test_description) {
-      await transaction.rollback();
-      return next(new AppError('Test code and description are required', 400));
-    }
-
     const visit = await Visit.findByPk(result.visit_id, { transaction });
     if (!visit) {
       await transaction.rollback();
       return next(new AppError('Visit not found', 404));
     }
 
-    if (!result.visit_id) {
-      await transaction.rollback();
-      return next(new AppError('Visit ID is required from lab investigation', 400));
-    }
-
     let billingResult = null;
 
-    // ✅ 5. Process billing ONLY if claim_id is provided
     if (claim_id) {
+      if (!lab_investigation_id) {
+        await transaction.rollback();
+        return next(new AppError('Lab investigation ID is required when processing billing', 400));
+      }
+
+      const labInvestigation = await LabInvestigation.findByPk(lab_investigation_id, { transaction });
+      if (!labInvestigation) {
+        await transaction.rollback();
+        return next(new AppError('Lab investigation not found', 404));
+      }
+
+      if (!labInvestigation.g_drg_code || !labInvestigation.test_description) {
+        await transaction.rollback();
+        return next(new AppError('Test code and description are required', 400));
+      }
+
       billingResult = await handleBilling({
         transaction,
         patient_id: visit.patient_id,
         visit_id: result.visit_id,
-        service_id: result.id, // use investigation id, not result id
+        service_id: result.id,
         service_type: 'LabTest',
         description: labInvestigation.test_description,
         g_drg_code: labInvestigation.g_drg_code,
         unit_price: labInvestigation.market_price,
-        nhia_unit_price: labInvestigation.tariff_ghc, // what NHIA will pay
-        quantity: 1, // Lab tests always quantity=1
+        nhia_unit_price: labInvestigation.tariff_ghc,
+        quantity: 1,
         department_id: labInvestigation.department_id || result.department_id,
         institution_id: visit.institution_id,
         claim_id,
         gdrg_code: labInvestigation.g_drg_code
       });
-
-      // ✅ 6. Update claim totals (important so totals reflect NHIA + market amounts)
-      // await updateClaimTotal(claim_id, transaction);
     }
 
     await transaction.commit();

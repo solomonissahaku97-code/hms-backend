@@ -1,4 +1,4 @@
-const { Institution, Admin, Department, Role, Patient } = require('../../models');
+const { Institution, Admin, Department, Role, Patient, Permission } = require('../../models');
 const { generateToken } = require('../../utils/token');
 const bcrypt = require('bcryptjs')
 const sendEmail = require('../../service/sendEmail');
@@ -9,6 +9,8 @@ const LeaveRequest = require('../../models/hr/LeaveManagement');
 const Appointment = require('../../models/appointment');
 const { decryptStaffData, decryptStaffList } = require('../../utils/encryptionHelper');
 const StaffDepartment = require('../../models/controls/StaffDepartment');
+const UserPermission = require('../../models/staffPermission');
+const RolePermission = require('../../models/RolePermission');
 
 
 // Predefined logic questions with correct answers
@@ -49,11 +51,17 @@ exports.login = async (req, res) => {
             where: { staffID },
             include: [
                 { model: Institution, as: 'institution' },
-                // { model: Permission, as: 'assignedPermissions' },
-                { model: Role, as: 'role' },
+                { 
+                    model: Role, 
+                    as: 'role',
+                    include: [
+                        { model: Permission, as: 'permissions' }
+                    ]
+                },
                 { model: Department, as: 'department' },
                 { model: UserGroup, as: 'user_group' },
-                { model:StaffDepartment, as: 'staff_departments' }
+                { model:StaffDepartment, as: 'staff_departments' },
+                { model: Permission, as: 'permissions' }
             ]
         });
 
@@ -122,7 +130,11 @@ exports.verifyLogicAnswer = async (req, res) => {
         }
 
         // If correct, generate authentication token and clear logic question
-        const token = generateToken(user);
+        const rolePermissions = user.role?.permissions?.map(p => p.name) || [];
+        const staffPermissions = user.permissions?.map(p => p.name) || [];
+        const allPermissions = [...new Set([...rolePermissions, ...staffPermissions])];
+        
+        const token = generateToken(user, allPermissions);
         await user.update({ token, logic_question: null, logic_answer_hash: null, last_login: Date.now() });
 
         // Decrypt sensitive information before sending user data

@@ -56,7 +56,10 @@ exports.createPrescription = async (data, clients, ws) => {
         // WebSocket notification to pharmacy clients in the institution
         console.log('Connected clients:', clients);
         clients.forEach((client) => {
-            if (client.role === 'Pharmacy' && client.institutionId === institution_id && client.socket.readyState === ws.OPEN) {
+            const hasPharmacyPermission = client.permissions?.includes('manage_prescriptions') || 
+                                        client.permissions?.includes('dispense_pharmacy') ||
+                                        client.permissions?.includes('view_pharmacy');
+            if (hasPharmacyPermission && client.institution_id === institution_id && client.socket.readyState === ws.OPEN) {
                 console.log(`Broadcasting prescription notification to pharmacy (Institution ID: ${institution_id})`, client);
 
                 client.socket.send(JSON.stringify({

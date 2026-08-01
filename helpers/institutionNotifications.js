@@ -18,7 +18,11 @@ exports.sendInstitutionNotification = async (data, clients, ws) => {
 
         // WebSocket notification to all staff in the specified institution
         clients.forEach((client) => {
-            if (client.role === 'Staff' && client.institutionId === institution_id && client.socket.readyState === ws.OPEN) {
+            const hasPermission = client.permissions?.includes('chat_institution') || 
+                                  client.permissions?.includes('*') ||
+                                  client.userType === 'admin' || 
+                                  client.userType === 'superadmin';
+            if (hasPermission && client.institution_id === institution_id && client.socket.readyState === ws.OPEN) {
                 console.log(`Broadcasting institution-wide notification to staff in institution (ID: ${institution_id})`, client);
 
                 client.socket.send(JSON.stringify({

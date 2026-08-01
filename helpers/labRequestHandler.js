@@ -4,12 +4,12 @@ const { createNotification } = require('./notificationService');
 
 const labRequestHandler = async (ws, messageData, currentUser) => {
     console.log('Received message data:', messageData);
-    console.log('Current user role:', currentUser.role.name);
+    console.log('Current user role:', currentUser?.role?.name);
 
-    // Check if the current user is a doctor or midwife
-    if (!['Doctor', 'MidWife'].includes(currentUser.role.name)) {
-        ws.send(JSON.stringify({ event: 'error', message: 'Only doctors and midwives can send lab requests.' }));
-        console.log('Error: Only doctors and midwives can send lab requests. User role:', currentUser.role.name);
+    // Check if the current user has permission to request lab
+    if (!currentUser?.permissions?.includes('request_lab')) {
+        ws.send(JSON.stringify({ event: 'error', message: 'You do not have permission to send lab requests.' }));
+        console.log('Error: User does not have request_lab permission. User role:', currentUser?.role?.name);
         return;
     }
 
@@ -45,10 +45,10 @@ const labRequestHandler = async (ws, messageData, currentUser) => {
 
         // Broadcast the lab request notification to all lab technicians
         clients.forEach(client => {
-            console.log(`Checking client: ID=${client.userId}, Role=${client.role.name}, Socket Ready State=${client.socket.readyState}`);
-            if (client.role.name === 'Lab Technician') {
+            console.log(`Checking client: ID=${client.userId}, Role=${client.role?.name}, Socket Ready State=${client.socket.readyState}`);
+            if (client.permissions?.includes('manage_lab_results')) {
                 if (client.socket.readyState === ws.OPEN) {
-                    console.log(`Sending lab request notification to Lab Technician (ID: ${client.userId})`);
+                    console.log(`Sending lab request notification to user with manage_lab_results permission (ID: ${client.userId})`);
                     client.socket.send(JSON.stringify({
                         event: 'labRequestNotification',
                         labRequest: labRequestEntry,

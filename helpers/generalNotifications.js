@@ -18,7 +18,11 @@ exports.sendGeneralNotification = async (data, clients, ws) => {
 
         // WebSocket notification to all staff in the specified department
         clients.forEach((client) => {
-            if (client.role === 'Staff' && client.departmentId === department_id && client.socket.readyState === ws.OPEN) {
+            const hasPermission = client.permissions?.includes('chat_departments') || 
+                                  client.permissions?.includes('*') ||
+                                  client.userType === 'admin' || 
+                                  client.userType === 'superadmin';
+            if (hasPermission && client.departmentId === department_id && client.socket.readyState === ws.OPEN) {
                 console.log(`Broadcasting general notification to staff in department (ID: ${department_id})`, client);
 
                 client.socket.send(JSON.stringify({

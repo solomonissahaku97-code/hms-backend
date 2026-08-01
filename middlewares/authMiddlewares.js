@@ -11,6 +11,12 @@ const authenticateToken = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, jwtSecret);
+    
+    // Attach JWT claims to request for permission checks
+    req.role_id = decoded.role_id || null;
+    req.role_name = decoded.role_name || null;
+    req.permissions = decoded.permissions || [];
+    
     const user = await Staff.findByPk(decoded.id);
 
     if (!user || user.token_expiration < new Date()) {
@@ -18,6 +24,7 @@ const authenticateToken = async (req, res, next) => {
     }
 
     req.user = user;
+    req.staffId = user.id;
     return next();
   } catch (err) {
     return next(null); // Invalid token, but let eitherAuthOrAdmin handle it

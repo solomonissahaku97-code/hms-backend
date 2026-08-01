@@ -15,115 +15,162 @@ const PregnancyHistory = require('../../models/PregnancyHistory');
 // @access  Private
 exports.getMaternityDashboard = async (req, res) => {
   try {
-    const institutionId = req.user?.institution_id || req.body.institution_id;
-    
+    const institutionId = req.user?.institution_id || req.query.institution_id || req.body.institution_id;
+
     if (!institutionId) {
       return res.status(400).json({ success: false, message: 'Institution ID is required' });
     }
 
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const startOfWeek = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
 
-    // Get ANC patients with active visits in ANC department
     const ancDepartmentType = 'Antenatal Care (ANC)';
-    const activeANCVisits = await Visit.findAll({
-      where: {
-        institution_id: institutionId,
-        status: 'Active',
-        department: {
-          [Op.or]: [
-            { departmentType: ancDepartmentType },
-            { name: { [Op.like]: '%ANC%' } },
-            { name: { [Op.like]: '%Antenatal%' } }
-          ]
-        }
-      },
-      include: [
-        { model: Patient, as: 'patient', required: true },
-        { model: ANC, as: 'anc_record', required: false }
-      ]
-    });
-
-    // Get labour ward patients
     const labourDepartmentType = 'Labour Ward';
-    const activeLabourVisits = await Visit.findAll({
-      where: {
-        institution_id: institutionId,
-        status: 'Active',
-        department: {
-          [Op.or]: [
-            { departmentType: labourDepartmentType },
-            { name: { [Op.like]: '%Labour%' } },
-            { name: { [Op.like]: '%Labor%' } }
-          ]
-        }
-      },
-      include: [
-        { model: Patient, as: 'patient', required: true },
-        { model: Partograph, as: 'partographs', required: false }
+
+    const ancDeptWhere = {
+      institution_id: institutionId,
+      [Op.or]: [
+        { departmentType: ancDepartmentType },
+        { name: { [Op.like]: '%ANC%' } },
+        { name: { [Op.like]: '%Antenatal%' } }
       ]
-    });
+    };
 
-    // Get deliveries this month
-    const deliveriesThisMonth = await DeliveryRegister.count({
-      where: {
-        institution_id: institutionId,
-        date_of_delivery: {
-          [Op.gte]: startOfMonth
+    const labourDeptWhere = {
+      institution_id: institutionId,
+      [Op.or]: [
+        { departmentType: labourDepartmentType },
+        { name: { [Op.like]: '%Labour%' } },
+        { name: { [Op.like]: '%Labor%' } }
+      ]
+    };
+
+    const [ancDept, labourDept] = await Promise.all([
+      sequelize.models.Department.findOne({ where: ancDeptWhere }),
+      sequelize.models.Department.findOne({ where: labourDeptWhere })
+    ]);
+
+    const [
+      activeANCCount,
+      activeLabourCount,
+      deliveriesThisMonth,
+      ancVisitsThisMonth,
+      upcomingAppointmentsCount,
+      highRiskPatients
+    ] = await Promise.all([
+      ancDept
+        ? Visit.count({
+            where: {
+              institution_id: institutionId,
+              status: 'Active',
+              department_id: ancDept.id
+            }
+          })
+        : Promise.resolve(0),
+      labourDept
+        ? Visit.count({
+            where: {
+              institution_id: institutionId,
+              status: 'Active',
+              department_id: labourDept.id
+            }
+          })
+        : Promise.resolve(0),
+      DeliveryRegister.count({
+        where: {
+          institution_id: institutionId,
+          date_of_delivery: { [Op.gte]: startOfMonth }
         }
-      }
-    });
-
-    // Get ANC visits this month
-    const ancVisitsThisMonth = await ANC.count({
-      where: {
-        institution_id: institutionId,
-        createdAt: {
-          [Op.gte]: startOfMonth
+      }),
+      ANC.count({
+        where: {
+          institution_id: institutionId,
+          createdAt: { [Op.gte]: startOfMonth }
         }
-      }
-    });
+      }),
+      Appointment.count({
+        where: {
+          institution_id: institutionId,
+          appointment_date: { [Op.gte]: today },
+          status: 'scheduled'
+        }
+      }),
+      ANC.count({
+        where: {
+          institution_id: institutionId,
+          risk_level: { [Op.or]: ['High', 'Very High'] }
+        }
+      })
+    ]);
 
-    // Get upcoming appointments
-    const upcomingAppointments = await Appointment.findAll({
-      where: {
-        institution_id: institutionId,
-        appointment_date: {
-          [Op.gte]: today
+    const [
+      activeANCPatients,
+      activeLabourPatients,
+      upcomingAppointments
+    ] = await Promise.all([
+      ancDept
+        ? Visit.findAll({
+            where: {
+              institution_id: institutionId,
+              status: 'Active',
+              department_id: ancDept.id
+            },
+            include: [
+              { model: Patient, as: 'patient', required: true },
+              { model: ANC, as: 'anc_record', required: false }
+            ],
+            limit: 5,
+            order: [['createdAt', 'DESC']]
+          })
+        : Promise.resolve([]),
+      labourDept
+        ? Visit.findAll({
+            where: {
+              institution_id: institutionId,
+              status: 'Active',
+              department_id: labourDept.id
+            },
+            include: [
+              { model: Patient, as: 'patient', required: true },
+              {
+                model: Partograph,
+                as: 'partographs',
+                required: false,
+                order: [['record_time', 'DESC']],
+                limit: 1
+              }
+            ],
+            limit: 5,
+            order: [['createdAt', 'ASC']]
+          })
+        : Promise.resolve([]),
+      Appointment.findAll({
+        where: {
+          institution_id: institutionId,
+          appointment_date: { [Op.gte]: today },
+          status: 'scheduled'
         },
-        status: 'scheduled'
-      },
-      include: [
-        { model: Patient, as: 'patient', required: true }
-      ],
-      limit: 10,
-      order: [['appointment_date', 'ASC']]
-    });
-
-    // Get high-risk ANC patients
-    const highRiskPatients = await ANC.count({
-      where: {
-        institution_id: institutionId,
-        risk_level: {
-          [Op.or]: ['High', 'Very High']
-        }
-      }
-    });
+        include: [
+          { model: Patient, as: 'patient', required: true }
+        ],
+        limit: 10,
+        order: [['appointment_date', 'ASC']]
+      })
+    ]);
 
     res.status(200).json({
       success: true,
       data: {
         summary: {
-          activeANCPatients: activeANCVisits.length,
-          activeLabourPatients: activeLabourVisits.length,
+          activeANCPatients: activeANCCount,
+          activeLabourPatients: activeLabourCount,
           deliveriesThisMonth,
           ancVisitsThisMonth,
           highRiskPatients,
-          upcomingAppointments: upcomingAppointments.length
+          upcomingAppointments: upcomingAppointmentsCount
         },
-        activeANCPatients: activeANCVisits,
-        activeLabourPatients: activeLabourVisits,
+        activeANCPatients,
+        activeLabourPatients,
         upcomingAppointments
       }
     });
@@ -215,14 +262,12 @@ exports.getANCPatient = async (req, res) => {
       return res.status(404).json({ success: false, message: 'ANC record not found' });
     }
 
-    // Get ANC visit history
     const ancVisits = await ANC.findAll({
       where: { patient_id: ancRecord.patient_id },
       order: [['createdAt', 'DESC']],
       limit: 10
     });
 
-    // Get pregnancy history
     const pregnancyHistory = await PregnancyHistory.findOne({
       where: { patient_id: ancRecord.patient_id }
     });
@@ -258,14 +303,12 @@ exports.admitToLabour = async (req, res) => {
       return res.status(400).json({ success: false, message: 'visit_id, patient_id and institution_id are required' });
     }
 
-    // Verify visit exists
     const visit = await Visit.findByPk(visit_id, { transaction: t });
     if (!visit) {
       await t.rollback();
       return res.status(404).json({ success: false, message: 'Visit not found' });
     }
 
-    // Update visit department to Labour Ward
     const labourDepartment = await sequelize.models.Department.findOne({
       where: {
         institution_id,
@@ -287,21 +330,18 @@ exports.admitToLabour = async (req, res) => {
       { transaction: t }
     );
 
-    // Update patient department
     await Patient.update(
       { department_id: labourDepartment.id },
       { where: { id: patient_id } },
       { transaction: t }
     );
 
-    // Create initial partograph record
     const partograph = await Partograph.create({
       visit_id,
       labour_start_time: new Date(),
       remarks: admission_notes || 'Admitted to Labour Ward'
     }, { transaction: t });
 
-    // If there's an ANC record, update it
     const ancRecord = await ANC.findOne({
       where: { visit_id },
       transaction: t
@@ -362,7 +402,6 @@ exports.recordDelivery = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required delivery fields' });
     }
 
-    // Create delivery record
     const delivery = await DeliveryRegister.create({
       visit_id,
       institution_id,
@@ -377,13 +416,11 @@ exports.recordDelivery = async (req, res) => {
       remarks
     }, { transaction: t });
 
-    // Update visit status to completed
     await Visit.update(
       { status: 'Completed' },
       { where: { id: visit_id }, transaction: t }
     );
 
-    // Create PNC record
     const pncNumber = `PNC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     await PNC.create({
       visit_id,

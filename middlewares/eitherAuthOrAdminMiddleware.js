@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { Admin, Staff } = require("../models");
+const { Admin, Staff, Permission } = require("../models");
 const SuperAdmin = require("../models/superadmin");
 const InstitutionSubscription = require("../models/InstitutionSubscription");
 const moment = require("moment");
@@ -19,30 +19,32 @@ const eitherAuthOrAdmin = async (req, res, next) => {
         // Extract Token
         const token = authHeader.split(" ")[1];
 
-        console.log("Token:", token);
-
         // Verify Token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        console.log("Decoded Token:", decoded);
 
         /**
          * Expected JWT payload:
          * {
          *   id: "uuid",
-         *   role: "admin" | "staff" | "super_admin"
+         *   role_id: "uuid" | null,
+         *   role_name: "string" | null,
+         *   permissions: ["permission_name", ...]
          * }
          */
+
+        // Attach JWT claims to request for permission checks
+        req.role_id = decoded.role_id || null;
+        req.role_name = decoded.role_name || null;
+        req.permissions = decoded.permissions || [];
 
         // Check Super Admin
         const superAdmin = await SuperAdmin.findByPk(decoded.id);
 
         if (superAdmin) {
             console.log("Authenticated as Super Admin");
-
             req.superAdmin = superAdmin;
             req.user = superAdmin;
-
+            req.permissions = req.permissions.length > 0 ? req.permissions : ['*']; // Super admin has all permissions
             return next();
         }
 
@@ -51,9 +53,9 @@ const eitherAuthOrAdmin = async (req, res, next) => {
 
         if (admin) {
             console.log("Authenticated as Admin");
-
             req.admin = admin;
             req.user = admin;
+            req.permissions = req.permissions.length > 0 ? req.permissions : ['*']; // Admin has all permissions
 
             const institutionId = admin.institution_id;
             if (institutionId) {
@@ -80,8 +82,8 @@ const eitherAuthOrAdmin = async (req, res, next) => {
 
         if (staff) {
             console.log("Authenticated as Staff");
-
             req.staff = staff;
+            req.staffId = staff.id;
             req.user = staff;
 
             const institutionId = staff.institution_id;

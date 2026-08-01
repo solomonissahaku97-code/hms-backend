@@ -120,7 +120,7 @@ const seedLabTests = async () => {
             const fieldsToCreate = template.fields
               .filter(f => f.name && f.field_type)
               .map(field => ({
-                label: field.unit,
+                label: field.name,
                 unit: field.unit || '',
                 normal_range: field.normal_range || '',
                 fieldType: field.field_type,

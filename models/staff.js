@@ -125,7 +125,7 @@ const Staff = sequelize.define('Staff', {
         defaultValue: 'staff',
         allowNull: false,
         validate: {
-            is: /^staff$/ // Only allows the string "admin"
+            isIn: [['staff', 'admin']]
         }
     },
 }, {
@@ -186,6 +186,7 @@ Staff.associate = (models) => {
         as: 'staff_departments'
     });
     Staff.hasMany(models.StaffPayment, { foreignKey: 'staff_id', as: 'payments' });
+    Staff.belongsToMany(models.Permission, { through: 'user_permission', foreignKey: 'staff_id', as: 'permissionList' });
 
 };
 

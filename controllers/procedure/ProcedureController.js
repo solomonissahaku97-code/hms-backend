@@ -5,7 +5,6 @@ const ProcedureStaff = require("../../models/ProcedureStaff");
 const Staff = require("../../models/staff");
 const Visit = require("../../models/Visit");
 const GDRGCode = require("../../models/claims/GDRGCode");
-const Patient = require("../../models/patient");
 const ServiceBill = require("../../models/serviceBill");
 const sequelize = require('../../config/database')
 const { handleBilling } = require('../../utils/billingUtil')

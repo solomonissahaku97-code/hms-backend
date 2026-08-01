@@ -1,6 +1,6 @@
 // initializePermissions.js
 const db = require('../models');
-const { staff_permissions } = require('../permissions/staffPermissions');
+const { permissions } = require('../permissions/permissions');
 
 const initializePermissions = async () => {
     try {
@@ -11,14 +11,17 @@ const initializePermissions = async () => {
             return;
         }
         
-        for (const permission of staff_permissions) {
+        for (const permission of permissions) {
             const [perm, created] = await Permission.findOrCreate({
-                where: { name: permission },
-                defaults: { name: permission }
+                where: { name: permission.name },
+                defaults: { 
+                    name: permission.name,
+                    description: permission.description
+                }
             });
 
             if (created) {
-                console.log(`Permission '${permission}' added to the database.`);
+                console.log(`Permission '${permission.name}' added to the database.`);
             }
         }
         console.log('Permissions initialization completed.');

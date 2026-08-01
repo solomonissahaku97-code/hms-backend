@@ -3,9 +3,9 @@ const Department = require("../../models/department");
 const Institution = require("../../models/institution");
 const Role = require("../../models/role");
 const Staff = require("../../models/staff");
-const { encrypt, decrypt } = require('../../utils/encryption'); // Adjust the path to your encryption file
+const { encrypt, decrypt } = require('../../utils/encryption');
 const bcrypt = require('bcryptjs')
-const { sendSMS } = require('../../service/smsService'); // Adjust the path accordingly
+const sendSMS = require('../../service/smsService');
 const sendEmail = require('../../service/sendEmail');
 const Attendance = require("../../models/Attendance");
 const RotationStaff = require("../../models/rotationStaff");
@@ -14,6 +14,9 @@ const Appointment = require("../../models/appointment");
 const StaffDepartment = require("../../models/controls/StaffDepartment");
 const sequelize = require("../../config/database");
 const generateStaffQrCode = require("../../utils/generateStaffQrCode");
+const Permission = require("../../models/permission");
+const UserPermission = require("../../models/staffPermission");
+const RolePermission = require("../../models/RolePermission");
 
 const getInstitutionInitials = (name) => {
     return name.split(' ').map(word => word[0]).join('').toUpperCase();
@@ -169,6 +172,26 @@ exports.registerStaffs = async (req, res) => {
                     primary_department: isPrimary
                 }, { transaction });
                 await Staff.update({ department_id: primary_department_id || department_id }, { where: { id: staff.id }, transaction });
+            }
+        }
+
+        // Assign role permissions to staff
+        if (role_id) {
+            const rolePermissions = await RolePermission.findAll({
+                where: { role_id },
+                include: [
+                    { model: Permission, as: 'permission', attributes: ['id', 'name'] }
+                ],
+                transaction
+            });
+
+            if (rolePermissions.length > 0) {
+                const staffPermissions = rolePermissions.map(rp => ({
+                    staff_id: staff.id,
+                    permission_id: rp.permission_id
+                }));
+
+                await UserPermission.bulkCreate(staffPermissions, { transaction });
             }
         }
 

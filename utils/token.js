@@ -1,8 +1,14 @@
 const jwt = require('jsonwebtoken');
-const { jwtSecret,jwtRefreshSecret } = require('../config/conf');
+const { jwtSecret, jwtRefreshSecret } = require('../config/conf');
 
-const generateToken = (user) => {
-    return jwt.sign({ id: user.id }, jwtSecret,);
+const generateToken = (user, permissions = []) => {
+    const payload = { 
+        id: user.id,
+        role_id: user.role_id || null,
+        role_name: user.role_name || null,
+        permissions: permissions || []
+    };
+    return jwt.sign(payload, jwtSecret,);
 };
 
 const generateRefreshToken = (user) => {
