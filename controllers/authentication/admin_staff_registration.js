@@ -107,7 +107,9 @@ exports.registerStaffs = async (req, res) => {
         }
         // Handle profile picture
         let profile_pic = null;
-        if (req.file) {
+        if (req.body.profile_pic) {
+            profile_pic = req.body.profile_pic;
+        } else if (req.file) {
             profile_pic = `/uploads/profile_pic/${req.file.filename}`;
         }
 

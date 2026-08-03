@@ -2,6 +2,7 @@ const {  Admin, Diagnosis, Department, Staff, Patient, PatientDiagnosis, LabResu
 const Bed = require('../../models/beds');
 const Institution = require('../../models/institution');
 const InstitutionSubscription = require('../../models/InstitutionSubscription');
+const InstitutionRating = require('../../models/InstitutionRating');
 const Role = require('../../models/role');
 const SmsSubscriptions = require('../../models/SmsSubscriptions');
 const Subscription = require('../../models/subscription');
@@ -17,8 +18,8 @@ exports.createInstitution = async (req, res) => {
 
     try {
         let logo_url = null;
-        if (req.file) {
-            logo_url = `/uploads/logos/${req.file.filename}`;
+        if (req.body.logo) {
+            logo_url = req.body.logo;
         }
         const generated_serial_code = serial_code || Math.floor(10000000 + Math.random() * 90000000).toString();
 
@@ -73,8 +74,8 @@ exports.updateInstitution = async (req, res) => {
         }
 
         // Check if a file was uploaded and update the logo URL
-        if (req.file) {
-            institution.logo_url = `/uploads/logos/${req.file.filename}`;
+        if (req.body.logo) {
+            institution.logo_url = req.body.logo;
         }
 
         // Update institution details
@@ -106,30 +107,125 @@ exports.getAllInstitutions = async (req, res) => {
     }
 };
 
-// Get a single institution by ID
+// Get a single institution by ID (public profile)
 exports.getInstitutionById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const institution = await Institution.findAll({
-            where: { id },
-            include:[
-                {
-                    model:InstitutionSubAccounts,
-                    as:'institution_accounts'
-                }
-            ]
-         
-        });
+        const institution = await Institution.findByPk(id);
 
         if (!institution) {
             return res.status(404).json({ error: 'Institution not found' });
         }
 
-        res.status(200).json(institution);
+        const publicProfile = {
+            id: institution.id,
+            name: institution.name,
+            short_description: institution.short_description,
+            description: institution.description,
+            about: institution.about,
+            mission: institution.mission,
+            vision: institution.vision,
+            core_values: institution.core_values,
+            website: institution.website,
+            opening_hours: institution.opening_hours,
+            emergency_contact: institution.emergency_contact,
+            services_offered: institution.services_offered,
+            facilities_available: institution.facilities_available,
+            social_media_links: institution.social_media_links,
+            gallery_images: institution.gallery_images,
+            banner_image_url: institution.banner_image_url,
+            logo_url: institution.logo_url,
+            address: institution.address,
+            contact: institution.contact,
+            email: institution.email,
+            country: institution.country,
+            region: institution.region,
+            fax: institution.fax,
+            established_date: institution.established_date,
+            google_map_link: institution.google_map_link,
+            serial_code: institution.serial_code,
+        };
+
+        res.status(200).json(publicProfile);
     } catch (error) {
         console.error('Error fetching institution:', error);
         res.status(500).json({ error: 'An error occurred while fetching the institution' });
+    }
+};
+
+// Get institution reviews
+exports.getInstitutionReviews = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const institution = await Institution.findByPk(id);
+        if (!institution) {
+            return res.status(404).json({ error: 'Institution not found' });
+        }
+
+        const reviews = await InstitutionRating.findAll({
+            where: { institution_id: id },
+            order: [['created_at', 'DESC']],
+        });
+
+        const avgRating = reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+            : 0;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                reviews,
+                averageRating: Math.round(avgRating * 10) / 10,
+                totalReviews: reviews.length,
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching institution reviews:', error);
+        res.status(500).json({ error: 'An error occurred while fetching reviews' });
+    }
+};
+
+// Create institution review
+exports.createInstitutionReview = async (req, res) => {
+    const { id } = req.params;
+    const { username, email, rating, review } = req.body;
+
+    try {
+        const institution = await Institution.findByPk(id);
+        if (!institution) {
+            return res.status(404).json({ error: 'Institution not found' });
+        }
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+        }
+
+        const existingReview = await InstitutionRating.findOne({
+            where: { institution_id: id, email },
+        });
+
+        if (existingReview) {
+            return res.status(400).json({ error: 'You have already reviewed this institution. Each email can only submit one review per institution.' });
+        }
+
+        const newReview = await InstitutionRating.create({
+            institution_id: id,
+            username: username || 'Anonymous',
+            email,
+            rating,
+            review: review || '',
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Review submitted successfully',
+            data: newReview,
+        });
+    } catch (error) {
+        console.error('Error creating review:', error);
+        res.status(500).json({ error: 'An error occurred while submitting review' });
     }
 };
 
@@ -384,8 +480,8 @@ exports.updateInstitutionProfile = async (req, res) => {
             }
         });
 
-        if (req.file) {
-            institution.banner_image_url = `/uploads/gallery/${req.file.filename}`;
+        if (req.body.banner_image) {
+            institution.banner_image_url = req.body.banner_image;
             updated = true;
         }
 
@@ -399,7 +495,7 @@ exports.updateInstitutionProfile = async (req, res) => {
             data: institution
         });
     } catch (error) {
-        console.error('Error updating institution profile:', error);
+        console.log('Error updating institution profile:', error);
         return res.status(500).json({
             success: false,
             error: 'An error occurred while updating institution profile',
@@ -425,7 +521,7 @@ exports.uploadGalleryImage = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Institution not found' });
         }
 
-        const imageUrl = `/uploads/gallery/${req.file.filename}`;
+        const imageUrl = req.body.gallery_image || `/uploads/gallery/${req.file.filename}`;
         const gallery = Array.isArray(institution.gallery_images) ? [...institution.gallery_images] : [];
 
         if (gallery.length >= 8) {

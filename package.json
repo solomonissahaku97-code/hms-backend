@@ -8,7 +8,13 @@
     "dev": "nodemon server.js",
     "migrate:prod": "NODE_ENV=production npx sequelize-cli db:migrate",
     "migrate:undo": "NODE_ENV=production npx sequelize-cli db:migrate:undo",
-    "migrate:undo:all": "NODE_ENV=production npx sequelize-cli db:migrate:undo:all"
+    "migrate:undo:all": "NODE_ENV=production npx sequelize-cli db:migrate:undo:all",
+    "docker:build": "docker build -t hms-backend .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:restart": "docker-compose restart backend",
+    "docker:logs": "docker-compose logs -f backend",
+    "docker:migrate": "docker-compose exec backend npx sequelize-cli db:migrate"
   },
   "keywords": [],
   "author": "",
@@ -50,6 +56,7 @@
     "sequelize": "^6.37.5",
     "sequelize-cli": "^6.6.2",
     "socket.io": "^4.8.0",
+    "ssh2-sftp-client": "^12.1.1",
     "string-similarity": "^4.0.4",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.2.8",

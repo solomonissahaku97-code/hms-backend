@@ -692,11 +692,20 @@ exports.updateResultAttachments = async (req, res, next) => {
       return next(new AppError('No attachment files were uploaded', 400));
     }
 
-    const uploaded = req.files.map((file) => ({
-      name: file.originalname,
-      url: `/uploads/${file.filename}`,
-      type: file.mimetype,
-    }));
+    let uploaded;
+    if (Array.isArray(req.body.attachments) && req.body.attachments.length === req.files.length) {
+      uploaded = req.files.map((file, index) => ({
+        name: file.originalname,
+        url: req.body.attachments[index],
+        type: file.mimetype,
+      }));
+    } else {
+      uploaded = req.files.map((file) => ({
+        name: file.originalname,
+        url: `/uploads/${file.filename}`,
+        type: file.mimetype,
+      }));
+    }
 
     const existing = Array.isArray(result.attachments) ? result.attachments : [];
     result.attachments = [...existing, ...uploaded];

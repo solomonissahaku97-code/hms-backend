@@ -8,7 +8,7 @@ const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const { upload, uploadToLocal } = require('../../middlewares/profile_multer');
+const { upload } = require('../../middlewares/profile_multer');
 
 exports.createInstitutionCall = async (req, res) => {
     try {
@@ -484,7 +484,7 @@ exports.uploadInstitutionMedia = async (req, res) => {
 
         const protocol = req.protocol;
         const host = req.get('host');
-        const mediaUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+        const mediaUrl = req.body.media || `${protocol}://${host}/uploads/${req.file.filename}`;
         const mediaType = req.file.mimetype;
 
         res.status(200).json({

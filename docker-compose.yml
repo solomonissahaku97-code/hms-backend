@@ -1,0 +1,99 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: hms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+      POSTGRES_DB: ${DB_NAME:-hms}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-hms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hms-network
+
+  # Redis (optional - for caching, sessions, etc.)
+  redis:
+    image: redis:7-alpine
+    container_name: hms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hms-network
+
+  # HMS Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hms-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5008:5008"
+    environment:
+      NODE_ENV: production
+      PORT: 5008
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-hms}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      DB_DIALECT: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET_REFRESH_TOKEN: ${JWT_SECRET_REFRESH_TOKEN}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY}
+      RAPIDAPI_KEY: ${RAPIDAPI_KEY}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      PUSH_ENGAGE_APP_ID: ${PUSH_ENGAGE_APP_ID}
+      PUSH_ENGAGE_API_KEY: ${PUSH_ENGAGE_API_KEY}
+      PUSH_ENGAGE_API_SECRET: ${PUSH_ENGAGE_API_SECRET}
+      REDIS_URL: redis://redis:6379
+      BACKUP_STORAGE_HOST: ${BACKUP_STORAGE_HOST}
+      BACKUP_STORAGE_PORT: ${BACKUP_STORAGE_PORT:-22}
+      BACKUP_STORAGE_USER: ${BACKUP_STORAGE_USER}
+      BACKUP_STORAGE_PASS: ${BACKUP_STORAGE_PASS}
+      PUBLIC_STORAGE_URL: ${PUBLIC_STORAGE_URL:-http://104.218.48.138/public_html}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./gallery:/app/gallery
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5008/api/v1/system/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - hms-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  hms-network:
+    driver: bridge

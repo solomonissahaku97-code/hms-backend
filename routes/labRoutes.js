@@ -20,7 +20,7 @@ const {
   updateResultAttachments
 } = require('../controllers/lab/labController');
 const authenticateToken = require('../middlewares/authMiddlewares');
-const { upload, labAttachmentsUpload } = require('../middlewares/profile_multer');
+const { upload, labAttachmentsUpload, sftpUpload } = require('../middlewares/profile_multer');
 const labAnalysisController = require('../controllers/lab/labAnalysisController');
 const { checkPermission } = require('../middlewares/checkPermission');
 
@@ -52,6 +52,7 @@ router.post(
   authenticateToken,
   checkPermission('manage_lab_results'),
   labAttachmentsUpload.array('attachments', 10),
+  sftpUpload('attachments', 'lab-attachments'),
   updateResultAttachments
 );
 router.patch('/ranges/:id', authenticateToken, checkPermission('manage_lab_results'), updateLabRange);

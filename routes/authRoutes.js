@@ -3,7 +3,8 @@ const {  login,  getAllDoctors,  resetPassword,verifyLogicAnswer,updateUserFCMTo
 const { registerAdmin,registerStaffs,deleteStaff,getAllStaffByInstitution,getStaffByInstitutionAndId,assignedPrimaryDepartment } = require('../controllers/authentication/admin_staff_registration')
 const { registerSuperAdmin,loginSuperAdmin } = require('../controllers/authentication/super_admin.controller')
 const authenticateToken = require('../middlewares/authMiddlewares');
-const { upload, uploadToLocal } = require('../middlewares/profile_multer'); const router = express.Router();
+const { upload, sftpUpload } = require('../middlewares/profile_multer');
+const router = express.Router();
 const { updateStaffInfo } = require('../controllers/updateUserController')
 const staffDeptCtrl = require('../controllers/departments/staffDepartmentController');
 
@@ -16,10 +17,10 @@ const adminAuth = require('../middlewares/adminMiddleware')
 // REGISTER CONTROLS
 router.post(
     '/register/staff',
-    uploadToLocal('profile_pic'),
+    upload.single('profile_pic'),
+    sftpUpload('profile_pic', 'profile_pic'),
     adminAuth,
     checkTrialStatus,
-    uploadToLocal('profile_pic'),
     registerStaffs // Controller
 );
 
@@ -57,8 +58,7 @@ router.delete('/admin/institution/staff/remove-staff',adminAuth, deleteStaff)
 
 
 // UPDATE STAFF INFORMATION
-router.put('/admin/staff/update-profile',eitherAuthOrAdmin, uploadToLocal('profile_pic'),
-uploadToLocal('profile_pic'), updateStaffInfo);
+router.put('/admin/staff/update-profile', eitherAuthOrAdmin, upload.single('profile_pic'), sftpUpload('profile_pic', 'profile_pic'), updateStaffInfo);
 
 
 

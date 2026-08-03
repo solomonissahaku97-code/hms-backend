@@ -55,6 +55,46 @@ const uploadGalleryToLocal = () => {
     };
 };
 
+const { uploadToSftp } = require('../helpers/sftpStorage');
+
+const sftpUpload = (fieldName, remoteDir = '') => {
+    return async (req, res, next) => {
+        try {
+            const files = Array.isArray(req.files) ? req.files : (req.file ? [req.file] : []);
+            if (files.length === 0) {
+                return next();
+            }
+
+            const targetFiles = files.filter(f => !fieldName || f.fieldname === fieldName);
+            if (targetFiles.length === 0) {
+                return next();
+            }
+
+            const uploadPromises = targetFiles.map(async (file) => {
+                const fileName = path.basename(file.path);
+                return uploadToSftp(file.path, fileName, remoteDir);
+            });
+
+            const publicUrls = await Promise.all(uploadPromises);
+
+            if (fieldName) {
+                req.body[fieldName] = publicUrls.length === 1 ? publicUrls[0] : publicUrls;
+            }
+
+            for (const file of targetFiles) {
+                if (file.path && fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            }
+
+            next();
+        } catch (err) {
+            console.error('SFTP upload error:', err);
+            next(err);
+        }
+    };
+};
+
 // Dedicated uploader for lab result attachments (images / scans / PDFs), 10MB limit
 const labAttachmentsUpload = multer({
     storage,
@@ -99,4 +139,4 @@ const galleryUpload = multer({
     },
 });
 
-module.exports = { upload, uploadToLocal, labAttachmentsUpload, galleryUpload, uploadGalleryToLocal };
+module.exports = { upload, uploadToLocal, labAttachmentsUpload, galleryUpload, uploadGalleryToLocal, sftpUpload };

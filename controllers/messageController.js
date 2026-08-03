@@ -17,7 +17,7 @@ exports.createMessage = async (req, res) => {
 
       // If a media file is uploaded, handle it
       if (req.file) {
-          mediaUrl = path.join('/uploads/logos', req.file.filename); // Store the media URL
+          mediaUrl = req.body.media || path.join('/uploads/logos', req.file.filename); // Store the media URL
           mediaType = req.file.mimetype.split('/')[0]; // Extract media type, e.g., 'image'
       }
 
