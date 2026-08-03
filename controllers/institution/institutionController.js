@@ -310,10 +310,191 @@ exports.getAllInstitutionAdmins = async (req, res) => {
     }
 };
 
+// Get current institution public profile
+exports.getInstitutionProfile = async (req, res) => {
+    try {
+        const institutionId = req.admin?.institution_id || req.user?.institution_id;
+        if (!institutionId) {
+            return res.status(400).json({ success: false, error: 'Institution not found for current user' });
+        }
+
+        const institution = await Institution.findByPk(institutionId);
+        if (!institution) {
+            return res.status(404).json({ success: false, error: 'Institution not found' });
+        }
+
+        const profileFields = [
+            'id', 'name', 'short_description', 'about', 'mission', 'vision', 'core_values',
+            'website', 'opening_hours', 'emergency_contact', 'services_offered',
+            'facilities_available', 'social_media_links', 'gallery_images', 'banner_image_url',
+            'logo_url', 'address', 'contact', 'email', 'country', 'region', 'fax'
+        ];
+
+        const profile = {};
+        profileFields.forEach(field => {
+            profile[field] = institution[field] || null;
+        });
+
+        return res.status(200).json({ success: true, data: profile });
+    } catch (error) {
+        console.error('Error fetching institution profile:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'An error occurred while fetching institution profile',
+            details: error.message
+        });
+    }
+};
+
+// Update current institution public profile
+exports.updateInstitutionProfile = async (req, res) => {
+    try {
+        const institutionId = req.admin?.institution_id || req.user?.institution_id;
+        if (!institutionId) {
+            return res.status(400).json({ success: false, error: 'Institution not found for current user' });
+        }
+
+        const institution = await Institution.findByPk(institutionId);
+        if (!institution) {
+            return res.status(404).json({ success: false, error: 'Institution not found' });
+        }
+
+        const allowedFields = [
+            'short_description', 'about', 'mission', 'vision', 'core_values',
+            'website', 'opening_hours', 'emergency_contact', 'services_offered',
+            'facilities_available', 'social_media_links', 'gallery_images', 'banner_image_url',
+            'name', 'address', 'contact', 'email', 'fax'
+        ];
+
+        const jsonFields = ['opening_hours', 'social_media_links', 'gallery_images'];
+
+        let updated = false;
+        allowedFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                let value = req.body[field];
+                if (jsonFields.includes(field) && typeof value === 'string') {
+                    try {
+                        value = JSON.parse(value);
+                    } catch (e) {
+                        value = null;
+                    }
+                }
+                institution[field] = value;
+                updated = true;
+            }
+        });
+
+        if (req.file) {
+            institution.banner_image_url = `/uploads/gallery/${req.file.filename}`;
+            updated = true;
+        }
+
+        if (updated) {
+            await institution.save();
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Institution profile updated successfully',
+            data: institution
+        });
+    } catch (error) {
+        console.error('Error updating institution profile:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'An error occurred while updating institution profile',
+            details: error.message
+        });
+    }
+};
+
+// Upload gallery image
+exports.uploadGalleryImage = async (req, res) => {
+    try {
+        const institutionId = req.admin?.institution_id || req.user?.institution_id;
+        if (!institutionId) {
+            return res.status(400).json({ success: false, error: 'Institution not found for current user' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No image file provided' });
+        }
+
+        const institution = await Institution.findByPk(institutionId);
+        if (!institution) {
+            return res.status(404).json({ success: false, error: 'Institution not found' });
+        }
+
+        const imageUrl = `/uploads/gallery/${req.file.filename}`;
+        const gallery = Array.isArray(institution.gallery_images) ? [...institution.gallery_images] : [];
+
+        if (gallery.length >= 8) {
+            return res.status(400).json({ success: false, error: 'Maximum of 8 gallery images allowed' });
+        }
+
+        gallery.push(imageUrl);
+        institution.gallery_images = gallery;
+        await institution.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Gallery image uploaded successfully',
+            data: { imageUrl, gallery_images: gallery }
+        });
+    } catch (error) {
+        console.error('Error uploading gallery image:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'An error occurred while uploading gallery image',
+            details: error.message
+        });
+    }
+};
+
+// Delete gallery image by index
+exports.deleteGalleryImage = async (req, res) => {
+    try {
+        const institutionId = req.admin?.institution_id || req.user?.institution_id;
+        const { index } = req.params;
+
+        if (!institutionId) {
+            return res.status(400).json({ success: false, error: 'Institution not found for current user' });
+        }
+
+        const institution = await Institution.findByPk(institutionId);
+        if (!institution) {
+            return res.status(404).json({ success: false, error: 'Institution not found' });
+        }
+
+        const gallery = Array.isArray(institution.gallery_images) ? [...institution.gallery_images] : [];
+        const imageIndex = parseInt(index, 10);
+
+        if (isNaN(imageIndex) || imageIndex < 0 || imageIndex >= gallery.length) {
+            return res.status(400).json({ success: false, error: 'Invalid image index' });
+        }
+
+        gallery.splice(imageIndex, 1);
+        institution.gallery_images = gallery;
+        await institution.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Gallery image deleted successfully',
+            data: { gallery_images: gallery }
+        });
+    } catch (error) {
+        console.error('Error deleting gallery image:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'An error occurred while deleting gallery image',
+            details: error.message
+        });
+    }
+};
 
 
-  
 
+   
 
 
 

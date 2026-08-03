@@ -77,6 +77,61 @@ const Institution = sequelize.define('Institution', {
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    short_description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    about: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    mission: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    vision: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    core_values: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    website: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    opening_hours: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+    },
+    emergency_contact: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    services_offered: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    facilities_available: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    social_media_links: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: {},
+    },
+    gallery_images: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+    },
+    banner_image_url: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     
 }, {
     sequelize,
