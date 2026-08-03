@@ -12,10 +12,12 @@ exports.getRecentActivities = async (req, res) => {
         const today = new Date();
         const oneDayAgo = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 
+        const institutionFilter = institution_id ? { institution_id } : {};
+
         // Get recent appointments
         const recentAppointments = await Appointment.findAll({
             where: {
-                institution_id,
+                ...institutionFilter,
                 created_at: {
                     [Op.gte]: oneDayAgo
                 }
@@ -44,7 +46,7 @@ exports.getRecentActivities = async (req, res) => {
         // Get recent service bills/payments
         const recentBills = await ServiceBill.findAll({
             where: {
-                institution_id,
+                ...institutionFilter,
                 created_at: {
                     [Op.gte]: oneDayAgo
                 }
@@ -74,7 +76,7 @@ exports.getRecentActivities = async (req, res) => {
         // Get recent admissions
         const recentAdmissions = await Admission.findAll({
             where: {
-                institution_id,
+                ...institutionFilter,
                 createdAt: {
                     [Op.gte]: oneDayAgo
                 }

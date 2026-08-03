@@ -11,7 +11,7 @@ if (process.env.NODE_ENV === 'production') {
   'lilnastic205', // your actual Supabase password
   {
     host: 'aws-1-eu-west-1.pooler.supabase.com',
-    port: 5432,
+    port: 5432, 
     dialect: 'postgres',
     protocol: 'postgres',
     logging: false,

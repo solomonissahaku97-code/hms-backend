@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const util = require('util');
+const crypto = require('crypto');
 const { create } = require('xmlbuilder2');
 const Institution = require('../models/institution');
 const SystemSetting = require('../models/SystemSetting');
@@ -16,6 +17,47 @@ const BACKUP_DIR = path.join(__dirname, '../../backups');
 // Ensure backup directory exists
 if (!fs.existsSync(BACKUP_DIR)) {
   fs.mkdirSync(BACKUP_DIR, { recursive: true });
+}
+
+// Backup encryption configuration
+const BACKUP_ENCRYPTION_PASSWORD = process.env.BACKUP_ENCRYPTION_PASSWORD || 'password123';
+const BACKUP_ENCRYPTION_ALGORITHM = 'aes-256-gcm';
+const BACKUP_KEY_LENGTH = 32;
+const BACKUP_IV_LENGTH = 16;
+const BACKUP_AUTH_TAG_LENGTH = 16;
+const BACKUP_SALT_LENGTH = 64;
+const BACKUP_ITERATIONS = 100000;
+
+// ==================== ENCRYPTION HELPERS ====================
+
+function getBackupKey() {
+  const salt = Buffer.from(BACKUP_ENCRYPTION_PASSWORD.padEnd(BACKUP_SALT_LENGTH, 'salt').slice(0, BACKUP_SALT_LENGTH));
+  return crypto.pbkdf2Sync(BACKUP_ENCRYPTION_PASSWORD, salt, BACKUP_ITERATIONS, BACKUP_KEY_LENGTH, 'sha256');
+}
+
+function encryptBackupData(plaintext) {
+  const key = getBackupKey();
+  const iv = crypto.randomBytes(BACKUP_IV_LENGTH);
+  const cipher = crypto.createCipheriv(BACKUP_ENCRYPTION_ALGORITHM, key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([iv, authTag, encrypted]).toString('base64');
+}
+
+function decryptBackupData(encryptedBase64) {
+  try {
+    const key = getBackupKey();
+    const dataBuffer = Buffer.from(encryptedBase64, 'base64');
+    const iv = dataBuffer.slice(0, BACKUP_IV_LENGTH);
+    const authTag = dataBuffer.slice(BACKUP_IV_LENGTH, BACKUP_IV_LENGTH + BACKUP_AUTH_TAG_LENGTH);
+    const encrypted = dataBuffer.slice(BACKUP_IV_LENGTH + BACKUP_AUTH_TAG_LENGTH);
+    const decipher = crypto.createDecipheriv(BACKUP_ENCRYPTION_ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  } catch (error) {
+    console.error('Decryption error:', error.message);
+    throw new Error('Failed to decrypt backup. Wrong password or corrupted file.');
+  }
 }
 
 // ==================== BACKUP OPERATIONS ====================
@@ -40,8 +82,9 @@ exports.createBackup = async (req, res) => {
 
     if (isXml) {
       backupData = await exports.exportSystemToXml(institution_id);
-      fileSize = Buffer.byteLength(backupData, 'utf8');
-      fs.writeFileSync(backupPath, backupData);
+      const encrypted = encryptBackupData(backupData);
+      fileSize = Buffer.byteLength(encrypted, 'utf8');
+      fs.writeFileSync(backupPath, encrypted);
     } else {
       const backupJson = {
         timestamp: new Date().toISOString(),
@@ -64,8 +107,9 @@ exports.createBackup = async (req, res) => {
       }
 
       backupData = JSON.stringify(backupJson, null, 2);
-      fileSize = Buffer.byteLength(backupData, 'utf8');
-      fs.writeFileSync(backupPath, backupData);
+      const encrypted = encryptBackupData(backupData);
+      fileSize = Buffer.byteLength(encrypted, 'utf8');
+      fs.writeFileSync(backupPath, encrypted);
     }
 
     // Save backup metadata
@@ -235,11 +279,10 @@ exports.restoreBackup = async (req, res) => {
       });
     }
 
-    // Read backup file
-    const backupData = JSON.parse(fs.readFileSync(backup.path, 'utf8'));
-
-    // In production, this would restore data to the database
-    // For now, just return success
+    // Read and decrypt backup file
+    const encryptedContent = fs.readFileSync(backup.path, 'utf8');
+    const decryptedContent = decryptBackupData(encryptedContent);
+    const backupData = JSON.parse(decryptedContent);
 
     return res.status(200).json({
       success: true,
@@ -470,17 +513,11 @@ exports.getDashboardStats = async (req, res) => {
 
     // Get revenue data
     const ServiceBill = require('../models/serviceBill');
-    const Service = require('../models/service');
 
     const revenueResult = await ServiceBill.findAll({
       where: { ...institutionFilter, has_paid: true },
-      include: [{
-        model: Service,
-        as: 'service',
-        attributes: []
-      }],
       attributes: [
-        [sequelize.fn('SUM', sequelize.col('service.cost')), 'total']
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'total']
       ],
       raw: true
     });
