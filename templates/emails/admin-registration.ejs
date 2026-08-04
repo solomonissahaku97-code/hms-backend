@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Tonitel HMS - Your Institution is Ready</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            line-height: 1.6;
+            color: #333;
+        }
+        .email-container {
+            max-width: 650px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .welcome-section h2 {
+            color: #667eea;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+        .institution-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 2px solid #667eea30;
+            padding: 16px 24px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .institution-badge h3 {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        .institution-badge p {
+            color: #666;
+            font-size: 14px;
+        }
+        .credentials-box {
+            background-color: #f8f9ff;
+            border: 1px solid #e8ecff;
+            border-radius: 10px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+        .credentials-box h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e8ecff;
+        }
+        .credential-item:last-child {
+            border-bottom: none;
+        }
+        .credential-label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            background-color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            color: #333;
+        }
+        .login-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 24px 0;
+            transition: transform 0.2s;
+        }
+        .login-button:hover {
+            transform: translateY(-2px);
+        }
+        .info-box {
+            background-color: #fff8e6;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .info-box p {
+            color: #92400e;
+            font-size: 14px;
+            margin: 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 24px 30px;
+            text-align: center;
+            border-top: 1px solid #e8ecff;
+        }
+        .footer p {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .icon {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>🏥 Welcome to Tonitel HMS</h1>
+            <p>Your institution has been successfully registered</p>
+        </div>
+
+        <div class="content">
+            <div class="welcome-section">
+                <h2>Hello, <%= username %>! 👋</h2>
+                <p>Your institution <strong><%= institutionName %></strong> has been successfully registered on the Tonitel Hospital Management System. You can now access your admin dashboard.</p>
+            </div>
+
+            <div class="institution-badge">
+                <h3>🏛️ <%= institutionName %></h3>
+                <p>Institution Code: <strong><%= institutionCode || 'N/A' %></strong></p>
+            </div>
+
+            <div class="credentials-box">
+                <h3><span class="icon">🔐</span> Your Login Credentials</h3>
+                <div class="credential-item">
+                    <span class="credential-label">Email Address</span>
+                    <span class="credential-value"><%= email %></span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Password</span>
+                    <span class="credential-value"><%= password %></span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Institution</span>
+                    <span class="credential-value"><%= institutionName %></span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Region</span>
+                    <span class="credential-value"><%= institutionRegion || 'N/A' %></span>
+                </div>
+                <div class="credential-item">
+                    <span class="credential-label">Country</span>
+                    <span class="credential-value"><%= institutionCountry || 'N/A' %></span>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <p>⚠️ <strong>Security Notice:</strong> For your security, please change your password immediately after your first login. Do not share your credentials with anyone.</p>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="<%= frontendUrl %>/login" class="login-button">Login to Your Dashboard →</a>
+            </div>
+
+            <div class="info-box" style="background-color: #e6f7ff; border-left-color: #1890ff;">
+                <p>📞 <strong>Need Help?</strong> If you have any questions or need assistance with your account, please contact our support team at support@tonitel.com or call +233 30 123 4567.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>&copy; <%= new Date().getFullYear() %> Tonitel HMS. All rights reserved.</p>
+            <p>Powered by <a href="https://tonitel.com">Tonitel</a> | Secure Healthcare Management</p>
+        </div>
+    </div>
+</body>
+</html>
