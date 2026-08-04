@@ -20,7 +20,7 @@
     }
   },
   "paths": {
-    "/register/staff": {
+    "/auth/register/staff": {
       "post": {
         "description": "",
         "parameters": [
@@ -97,7 +97,7 @@
         }
       }
     },
-    "/register/admin": {
+    "/auth/register/admin": {
       "post": {
         "description": "",
         "parameters": [
@@ -136,7 +136,7 @@
         }
       }
     },
-    "/register/super-admin": {
+    "/auth/register/super-admin": {
       "post": {
         "description": "",
         "parameters": [
@@ -172,7 +172,7 @@
         }
       }
     },
-    "/login/super-admin": {
+    "/auth/login/super-admin": {
       "post": {
         "description": "",
         "parameters": [
@@ -205,7 +205,7 @@
         }
       }
     },
-    "/departments/assign": {
+    "/auth/departments/assign": {
       "post": {
         "description": "",
         "parameters": [
@@ -238,7 +238,7 @@
         }
       }
     },
-    "/update-user-fcm-token": {
+    "/auth/update-user-fcm-token": {
       "post": {
         "description": "",
         "parameters": [
@@ -323,7 +323,7 @@
         }
       }
     },
-    "/staffs": {
+    "/auth/staffs": {
       "get": {
         "description": "",
         "parameters": [
@@ -346,7 +346,7 @@
         }
       }
     },
-    "/all-staffs": {
+    "/auth/all-staffs": {
       "get": {
         "description": "",
         "parameters": [
@@ -379,7 +379,7 @@
         }
       }
     },
-    "/single-staff": {
+    "/auth/single-staff": {
       "get": {
         "description": "",
         "parameters": [
@@ -439,7 +439,7 @@
         }
       }
     },
-    "/reset-password": {
+    "/auth/reset-password": {
       "post": {
         "description": "",
         "parameters": [
@@ -480,7 +480,7 @@
         }
       }
     },
-    "/login": {
+    "/auth/login": {
       "post": {
         "description": "",
         "parameters": [
@@ -513,7 +513,7 @@
         }
       }
     },
-    "/verify-logic-answer": {
+    "/auth/verify-logic-answer": {
       "post": {
         "description": "",
         "parameters": [
@@ -1805,7 +1805,7 @@
         }
       }
     },
-    "/register/": {
+    "/auth/register/": {
       "post": {
         "description": "",
         "parameters": [
