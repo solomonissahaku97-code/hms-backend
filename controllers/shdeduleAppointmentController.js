@@ -3,9 +3,12 @@ const Department = require('../models/department');
 const Diagnosis = require('../models/diagnosis');
 const Patient = require('../models/patient');
 const Staff = require('../models/staff');
-const WebSocket = require('ws'); // Import WebSocket
+const Institution = require('../models/institution');
+const Role = require('../models/role');
 const Visit = require('../models/Visit');
 const { Op } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
+const { sendSMS } = require('../service/smsService');
 
 
 
@@ -62,6 +65,54 @@ exports.createAppointment = async (req, res) => {
         // Create appointment
         const appointment = await Appointment.create(appointmentData);
 
+        // Generate a shareable token for the appointment
+        appointment.token = uuidv4();
+        await appointment.save();
+
+        let smsResult = { success: false, sent: false, skipped: false };
+
+        // Send SMS reminder with a link if requested
+        if (send_reminder) {
+            const visit = await Visit.findOne({
+                where: { id: visit_id },
+                include: [{ model: Patient, as: 'patient' }]
+            });
+
+            const patient = visit?.patient;
+            const patientPhone = patient?.phone;
+
+            if (patientPhone) {
+                const doctor = await Staff.findOne({ where: { id: staff_id } });
+                const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : 'the doctor';
+                const patientName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || 'Patient';
+
+                const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+                const appointmentUrl = `${baseUrl}/appointments/${appointment.token}`;
+
+                const dateStr = appointment.appointment_date
+                    ? new Date(appointment.appointment_date).toLocaleDateString('en-GB', {
+                        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+                    })
+                    : 'soon';
+
+                const message = `Dear ${patientName}, your appointment is scheduled on ${dateStr} at ${appointment.appointment_time} with Dr. ${doctorName}. Confirm or view details: ${appointmentUrl}`;
+
+                smsResult = await sendSMS(patientPhone, message);
+
+                if (smsResult.success) {
+                    appointment.sms_sent = true;
+                    appointment.sms_sent_at = new Date();
+                    await appointment.save();
+                } else {
+                    console.error('Failed to send appointment SMS:', smsResult.error);
+                }
+            } else {
+                smsResult.skipped = true;
+                console.warn('Patient phone number not found, SMS not sent');
+            }
+        }
+
+        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
         return res.status(201).json({
             message: 'Appointment scheduled successfully',
@@ -70,7 +121,15 @@ exports.createAppointment = async (req, res) => {
                 appointment_date: appointment.appointment_date,
                 appointment_time: appointment.appointment_time,
                 type: appointment.appointment_type,
-                reminder_sent: send_reminder
+                reminder_sent: send_reminder,
+                sms_sent: appointment.sms_sent,
+                token: appointment.token,
+                appointment_url: `${baseUrl}/appointments/${appointment.token}`
+            },
+            sms: {
+                sent: appointment.sms_sent,
+                skipped: smsResult.skipped,
+                success: smsResult.success
             }
         });
     } catch (error) {
@@ -413,6 +472,57 @@ exports.getUpcomingAppointments = async (req, res) => {
     } catch (error) {
         console.error('Error fetching upcoming appointments:', error);
         return res.status(500).json({ error: 'An error occurred while fetching upcoming appointments' });
+    }
+};
+
+// GET APPOINTMENT BY TOKEN (public endpoint for patients)
+exports.getAppointmentByToken = async (req, res) => {
+    const { token } = req.params;
+
+    try {
+        const appointment = await Appointment.findOne({
+            where: { token },
+            include: [
+                {
+                    model: Visit,
+                    as: 'patient',
+                    include: [
+                        {
+                            model: Patient,
+                            as: 'patient',
+                            attributes: ['id', 'first_name', 'last_name', 'folder_number', 'phone']
+                        }
+                    ]
+                },
+                {
+                    model: Staff,
+                    as: 'doctor',
+                    attributes: ['id', 'firstName', 'lastName', 'phone_number'],
+                    include: [{ model: Role, as: 'role', attributes: ['name'] }]
+                },
+                {
+                    model: Institution,
+                    as: 'institution',
+                    attributes: ['id', 'name', 'address', 'contact', 'email']
+                }
+            ]
+        });
+
+        if (!appointment) {
+            return res.status(404).json({ success: false, message: 'Appointment not found' });
+        }
+
+        appointment.viewed_count = (appointment.viewed_count || 0) + 1;
+        appointment.viewed_at = new Date();
+        await appointment.save();
+
+        res.status(200).json({
+            success: true,
+            data: appointment
+        });
+    } catch (error) {
+        console.error('Error fetching appointment by token:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch appointment', error: error.message });
     }
 };
 

@@ -16,6 +16,7 @@ router.get('/appointments/patient',shdeduleAppointmentController.fetchPatientApp
 router.get('/appointment/doctor',shdeduleAppointmentController.getAppointmentByDoctorId)
 router.post('/appointment/approve',shdeduleAppointmentController.approveAppointment)
 router.get('/appointments/upcoming', shdeduleAppointmentController.getUpcomingAppointments)
+router.get('/appointments/token/:token', shdeduleAppointmentController.getAppointmentByToken);
 
 module.exports = router;
  

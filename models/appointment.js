@@ -1,12 +1,11 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database'); // Ensure this path is correct
+const sequelize = require('../config/database');
 const Visit = require('./Visit');
 
 const Appointment = sequelize.define('Appointment', {
     id: {
         type: DataTypes.UUID,
         primaryKey: true,
-
         defaultValue: DataTypes.UUIDV4
     },
     staff_id: {
@@ -31,7 +30,7 @@ const Appointment = sequelize.define('Appointment', {
     },
     appointment_time: {
         type: DataTypes.TIME,
-        allowNull: false,
+        allowNull: false
     },
     reason: {
         type: DataTypes.TEXT,
@@ -55,15 +54,38 @@ const Appointment = sequelize.define('Appointment', {
         allowNull: false,
         defaultValue: 'consultation'
     },
-    created_at: {
-        type: DataTypes.DATE,
-        allowNull: true,
-        defaultValue: DataTypes.NOW
-    },
     send_reminder:{
         type:DataTypes.BOOLEAN,
         allowNull:true,
         defaultValue:false,
+    },
+    token: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Shareable token for public appointment viewing'
+    },
+    sms_sent: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    sms_sent_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    viewed_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    viewed_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    created_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: DataTypes.NOW
     },
     updated_at: {
         type: DataTypes.DATE,
@@ -80,6 +102,7 @@ const Appointment = sequelize.define('Appointment', {
 Appointment.associate = (models) => {
     Appointment.belongsTo(models.Staff, { foreignKey: 'staff_id', as: 'doctor' });
     Appointment.belongsTo(models.Visit, { foreignKey: 'visit_id', as: 'patient' });
+    Appointment.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' });
 };
 
 module.exports = Appointment;
