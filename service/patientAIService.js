@@ -1,7 +1,7 @@
 const Visit = require("../models/Visit");
 const PatientNote = require("../models/PatientNote");
-const Diagnosis = require("../models/Diagnosis");
-const Prescription = require("../models/Prescription");
+const Diagnosis = require("../models/diagnosis");
+const Prescription = require("../models/prescription");
 const Patient = require("../models/patient");
 const VitalSignsRecord = require("../models/vital_signs_records");
 

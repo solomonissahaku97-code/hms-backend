@@ -41,7 +41,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Swagger setup with basic auth
 app.use('/api-docs', basicAuth({
-  users: { 'tonitel': 'pa$$word123' },
+  users: { 'admin': 'pa$$w0rd' },
   challenge: true,
   unauthorizedResponse: (req) => 'Unauthorized Access',
 }));

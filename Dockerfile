@@ -1,24 +1,25 @@
-# Multi-stage build: deps + runtime
-FROM node:20-alpine AS base
+# Use Debian-based image for better native module compatibility (canvas, etc.)
+FROM node:20-slim AS base
 
-# Install system dependencies required by native modules (canvas, sharp, etc.)
-RUN apk add --no-cache \
+# Install system dependencies required by native modules
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
-    make \
-    g++ \
-    libc6-compat \
-    libjpeg-turbo \
-    libpng \
-    cairo \
-    pango \
-    giflib
+    build-essential \
+    pkg-config \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libgif-dev \
+    librsvg2-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy dependency manifests first for better caching
 COPY package.json package-lock.json ./
 
-# Install ALL dependencies (including dev for build/runtime needs)
+# Install ALL dependencies
 RUN npm install
 
 # Copy source code
