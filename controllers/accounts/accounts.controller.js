@@ -45,6 +45,7 @@ const AccountsController = {
                     "created_at",
                 ],
                 include: [
+                    
                     {
                         model: Patient,
                         as: "patient",
