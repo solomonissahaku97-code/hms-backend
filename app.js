@@ -31,7 +31,7 @@ app.use('/api-docs', basicAuth({
   challenge: true,
   unauthorizedResponse: (req) => 'Unauthorized Access',
 }));
-
+  
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
 
 // Seeder Runner Function
