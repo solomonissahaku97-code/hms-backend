@@ -25,6 +25,7 @@ router.post(
 );
 
 router.post('/register/admin', registerAdmin);
+// #swagger.path = '/auth/register/super-admin'
 router.post('/register/super-admin',registerSuperAdmin)
 router.post('/login/super-admin',loginSuperAdmin)
 router.post('/departments/assign', adminAuth,staffDeptCtrl.assignDepartmentsToStaff);

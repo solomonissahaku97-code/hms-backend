@@ -274,12 +274,26 @@ exports.registerAdmin = async (req, res) => {
         const admin = await Admin.create({ username, email: trimEmail, password_hash: hashedPassword, institution_id });
 
         // Sending email to the new admin
-        // await sendEmail(admin.email, 'Welcome to the Team!', 'admin-logins', {
-        //     username: admin.username,
-        //     email: admin.email,
-        //     password: password, // Initial password
-        //     institutionName: institution.name,
-        // });
+        try {
+            const institution = await Institution.findByPk(institution_id);
+            await sendEmail(
+                admin.email,
+                'Welcome to Tonitel HMS - Your Institution is Ready',
+                'admin-registration',
+                {
+                    username: admin.username,
+                    email: admin.email,
+                    password: password,
+                    institutionName: institution.name,
+                    institutionCode: institution.serial_code,
+                    institutionRegion: institution.region,
+                    institutionCountry: institution.country,
+                    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+                }
+            );
+        } catch (emailError) {
+            console.error('Failed to send admin registration email:', emailError);
+        }
 
         res.status(201).json({ success: 'Admin created successfully', user: admin });
     } catch (error) {
