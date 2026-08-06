@@ -6,9 +6,6 @@ const Staff = require("../../models/staff");
 const Institution = require("../../models/institution");
 
 const AccountsController = {
-
-
-    
     /**
      * 1. Outstanding Payments (Pending + Overdue)
      */
