@@ -1,0 +1,90 @@
+name: Deploy HMS Backend
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DOCKER_IMAGE: devsolomon381/hms-backend
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
+  DEPLOY_DIR: /opt/tonitel-backend
+  SERVICE_NAME: backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=,format=long
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            set -e
+            echo "=== Starting deployment ==="
+            echo "Host: ${{ env.VPS_HOST }}"
+            echo "Service: ${{ env.SERVICE_NAME }}"
+            echo ""
+
+            cd ${{ env.DEPLOY_DIR }}
+
+            echo "--- Pulling latest Docker image ---"
+            docker compose pull ${{ env.SERVICE_NAME }}
+
+            echo "--- Recreating backend service ---"
+            docker compose up -d --force-recreate ${{ env.SERVICE_NAME }}
+
+            echo ""
+            echo "--- Waiting for backend to be healthy ---"
+            sleep 10
+
+            echo "--- Backend container status ---"
+            docker compose ps ${{ env.SERVICE_NAME }}
+
+            echo ""
+            echo "--- Backend logs (last 50 lines) ---"
+            docker compose logs --tail=50 ${{ env.SERVICE_NAME }}
+
+            echo ""
+            echo "=== Deployment complete ==="

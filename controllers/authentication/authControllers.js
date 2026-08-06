@@ -61,7 +61,7 @@ exports.login = async (req, res) => {
                 { model: Department, as: 'department' },
                 { model: UserGroup, as: 'user_group' },
                 { model:StaffDepartment, as: 'staff_departments' },
-                { model: Permission, as: 'permissions' }
+                { model: Permission, as: 'permissionList' }
             ]
         });
 
@@ -131,7 +131,7 @@ exports.verifyLogicAnswer = async (req, res) => {
 
         // If correct, generate authentication token and clear logic question
         const rolePermissions = user.role?.permissions?.map(p => p.name) || [];
-        const staffPermissions = user.permissions?.map(p => p.name) || [];
+        const staffPermissions = user.permissionList?.map(p => p.name) || [];
         const allPermissions = [...new Set([...rolePermissions, ...staffPermissions])];
         
         const token = generateToken(user, allPermissions);
