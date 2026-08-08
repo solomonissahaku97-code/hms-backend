@@ -165,6 +165,29 @@ const AccountsController = {
                     {
                         model: Invoice,
                         as: 'invoice',
+                        include: [
+                            {
+                                model: Visit,
+                                as: 'visit',
+                                include: [
+                                    {
+                                        model: Patient,
+                                        as: 'patient',
+                                        attributes: ['id', 'first_name', 'middle_name', 'last_name', 'folder_number', 'phone', 'has_insurance']
+                                    }
+                                ]
+                            },
+                            {
+                                model: Institution,
+                                as: 'institution',
+                                attributes: ['id', 'name', 'address', 'contact', 'email']
+                            }
+                        ]
+                    },
+                    {
+                        model: Patient,
+                        as: 'patient',
+                        attributes: ['id', 'first_name', 'middle_name', 'last_name', 'folder_number', 'phone', 'has_insurance']
                     },
                     {
                         model: Department,

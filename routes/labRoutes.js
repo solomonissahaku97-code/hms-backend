@@ -18,7 +18,8 @@ const {
   getRecentLabTestsByVisitId,
   getRecentLabTests,
   getPendingLabTests,
-  updateResultAttachments
+  updateResultAttachments,
+  getResultsByVisitId
 } = require('../controllers/lab/labController');
 const authenticateToken = require('../middlewares/authMiddlewares');
 const { upload, labAttachmentsUpload, sftpUpload } = require('../middlewares/profile_multer');
@@ -59,6 +60,7 @@ router.delete('/ranges/:id', authenticateToken, deleteLabRange);
 router.get('/test-stats', authenticateToken, getLabTestStats); // stats by department
 router.get('/recent-tests/visit/:visit_id', authenticateToken, getRecentLabTestsByVisitId); // recent tests by visit ID
 router.get('/results/pending', authenticateToken, getPendingLabTests); // pending tests for Lab department work queue
+router.get('/results/visit/:visit_id', authenticateToken, getResultsByVisitId);
 
 // Multer error handler -> clean 400 instead of 500 (e.g. file too large / wrong type)
 router.use((err, req, res, next) => {

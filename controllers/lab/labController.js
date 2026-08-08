@@ -594,7 +594,7 @@ exports.getResultsByVisitId = async (req, res, next) => {
         },
         {
           model: Staff,
-          as: 'createdByUser',
+          as: 'creator',
         }
       ],
       order: [['createdAt', 'DESC']]
