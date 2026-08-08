@@ -16,6 +16,11 @@ const sequelize = require('./config/database');
 const { port } = require('./config/conf');
 const NotificationService = require('./service/notificationService');
 
+// Dynamically override swagger host from APP_URL so production doesn't show localhost
+if (process.env.APP_URL) {
+  swaggerFile.host = process.env.APP_URL;
+}
+
 // Models
 const VitalSignsRecord = require('./models/vital_signs_records');
 const TheatrePatients = require('./models/theatre/TheatrePatients');
