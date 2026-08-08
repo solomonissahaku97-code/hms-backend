@@ -62,11 +62,11 @@ const Staff = sequelize.define('Staff', {
         allowNull: false
     },
     logic_question: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true,
     },
     logic_answer_hash: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true,
     },
     admin_id: {
@@ -78,7 +78,7 @@ const Staff = sequelize.define('Staff', {
         allowNull: true
     },
     token: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true,
     },
     token_expiration: {

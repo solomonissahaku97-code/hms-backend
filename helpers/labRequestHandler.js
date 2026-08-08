@@ -14,7 +14,7 @@ const labRequestHandler = async (ws, messageData, currentUser) => {
     }
 
     const { doctorId, patientId, institutionId, priority, testId, departmentId, message } = messageData.labRequest;
-
+    
     try {
         // Create lab screening request entry in the database
         const labRequestEntry = await LabScreeningRequest.create({

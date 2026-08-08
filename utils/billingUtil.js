@@ -53,7 +53,7 @@ async function handleBilling({
                     throw new Error(`LabTest with ID ${service_id} not found`);
                 }
                 if (!description) {
-                    description = labTest.test_name;
+                    description = 'Lab Test';
                 }
                 break;
             case 'Procedure':

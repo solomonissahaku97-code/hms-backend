@@ -77,8 +77,12 @@ jobs:
 
             echo ""
             echo "--- Waiting for backend to be healthy ---"
-            sleep 10
+            sleep 15
 
+            echo "--- Running database migrations ---"
+            docker compose exec ${{ env.SERVICE_NAME }} npx sequelize-cli db:migrate
+
+            echo ""
             echo "--- Backend container status ---"
             docker compose ps ${{ env.SERVICE_NAME }}
 

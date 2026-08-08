@@ -16,8 +16,9 @@ const { handleBilling } = require('../../utils/billingUtil');
 const Department = require('../../models/department');
 const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
+const ServiceBill = require('../../models/serviceBill');
 const Notification = require('../../models/notification'); 
-const { sendPushEngageNotification } = require('../../service/pushEngageService');
+const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
 
 
 // Helper function to notify lab staff
@@ -245,21 +246,37 @@ exports.createResult = async (req, res, next) => {
       return next(new AppError('No visit found with that ID', 404));
     }
 
-    // Prepare result data
+    // Resolve Lab department for this institution
+    const labDepartment = await Department.findOne({
+      where: {
+        institution_id: visit.institution_id,
+        departmentType: 'Lab'
+      },
+      transaction
+    });
+
     const resultData = {
       templateId,
       visit_id,
       patient_id: visit.patient_id,
       institution_id: visit.institution_id,
-      department_id: department_id || visit.department_id || null,
-      notes: note || request_notes || null, // legacy combined notes
-      request_notes: request_notes || note || null, // doctor/requester comment
+      department_id: labDepartment ? labDepartment.id : (department_id || visit.department_id || null),
+      notes: note || request_notes || null,
+      request_notes: request_notes || note || null,
       createdBy: user,
       status: 'pending'
     };
 
-    // 3) Create result
+    console.log('[Lab] Creating result:', {
+      templateId,
+      visit_id,
+      institution_id: visit.institution_id,
+      department_id: resultData.department_id,
+      labDepartment: labDepartment ? { id: labDepartment.id, name: labDepartment.name } : null
+    });
+
     const result = await LabTestResults.create(resultData, { transaction });
+    console.log('[Lab] Created result ID:', result.id);
 
     // 3.5) Create billing record for this lab test
     const tariff = template.lab_tarrif || {};
@@ -272,28 +289,25 @@ exports.createResult = async (req, res, next) => {
     });
 
     if (!existingBill) {
-      try {
-        await handleBilling({
-          transaction,
-          patient_id: visit.patient_id,
-          visit_id,
-          service_id: result.id,
-          service_type: 'LabTest',
-          description: tariff.test_description || 'Lab Test',
-          unit_price: marketPrice,
-          nhia_unit_price: tariffGhc,
-          quantity: template.quantity || 1,
-          department_id: result.department_id || visit.department_id,
-          institution_id: visit.institution_id,
-          claim_id: null,
-          gdrg_code: tariff.g_drg_code
-        });
-      } catch (billingError) {
-        console.error('Error creating billing for lab test:', billingError);
-      }
+      await handleBilling({
+        transaction,
+        patient_id: visit.patient_id,
+        visit_id,
+        service_id: null,
+        service_type: 'LabTest',
+        description: tariff.test_description || 'Lab Test',
+        unit_price: marketPrice,
+        nhia_unit_price: tariffGhc,
+        quantity: template.quantity || 1,
+        department_id: result.department_id || visit.department_id,
+        institution_id: visit.institution_id,
+        claim_id: null,
+        gdrg_code: tariff.g_drg_code
+      });
     }
 
     await transaction.commit();
+    console.log('[Lab] Transaction committed for result:', result.id);
 
     // Notify lab staff about new lab request (after commit to not block the response)
     // We need to fetch visit without transaction for notification
@@ -409,6 +423,74 @@ exports.getResults = async (req, res,next) => {
     res.status(200).json(data);
   } catch (error) {
     console.log(error)
+    next(error);
+  }
+};
+
+exports.getPendingLabTests = async (req, res, next) => {
+  try {
+    const { institution_id } = req.query;
+
+    if (!institution_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'institution_id is required'
+      });
+    }
+
+    const labDepartment = await Department.findOne({
+      where: {
+        institution_id,
+        departmentType: 'Lab'
+      }
+    });
+
+    if (!labDepartment) {
+      return res.status(200).json({
+        status: 'success',
+        results: 0,
+        data: { pendingTests: [] }
+      });
+    }
+
+    const pendingTests = await LabTestResult.findAll({
+      where: {
+        department_id: labDepartment.id,
+        status: 'pending'
+      },
+      include: [
+        {
+          model: LabTestTemplate,
+          as: 'template',
+          include: [
+            { model: LabTestField, as: 'fields' },
+            { model: LabInvestigation, as: 'lab_tarrif' }
+          ]
+        },
+        {
+          model: Visit,
+          as: 'visit',
+          include: [
+            { model: Patient, as: 'patient' },
+            { model: Claim, as: 'claims' }
+          ]
+        },
+        {
+          model: Staff,
+          as: 'creator',
+          attributes: ['id', 'firstName', 'lastName']
+        }
+      ],
+      order: [['createdAt', 'ASC']]
+    });
+
+    res.status(200).json({
+      status: 'success',
+      results: pendingTests.length,
+      data: { pendingTests }
+    });
+  } catch (error) {
+    console.error('Error fetching pending lab tests:', error);
     next(error);
   }
 };
