@@ -7,11 +7,13 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerFile = require('./swagger/swagger-output.json');
 const basicAuth = require('express-basic-auth');
 
-// Dynamically override swagger host so production doesn't show localhost
+// Dynamically override swagger host and schemes so production doesn't show http
 if (process.env.NODE_ENV === 'production' && process.env.APP_URL) {
   swaggerFile.host = process.env.APP_URL;
+  swaggerFile.schemes = ['https'];
 } else if (process.env.NODE_ENV !== 'production' && process.env.APP_URL_DEV) {
   swaggerFile.host = process.env.APP_URL_DEV;
+  swaggerFile.schemes = ['http'];
 }
 
 // Initialize express app

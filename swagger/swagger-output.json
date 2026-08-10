@@ -8,7 +8,6 @@
   "host": "api.tonitel.com",
   "basePath": "/api/v1",
   "schemes": [
-    "http",
     "https"
   ],
   "securityDefinitions": {

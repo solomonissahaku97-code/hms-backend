@@ -8,7 +8,7 @@ const doc = {
   },
   host: process.env.NODE_ENV === 'production' ? process.env.APP_URL : 'localhost:5008',
   basePath: '/api/v1',
-  schemes: ['http', 'https'],
+  schemes: process.env.NODE_ENV === 'production' ? ['https'] : ['http'],
   securityDefinitions: {
     bearerAuth: {
       type: 'apiKey',
