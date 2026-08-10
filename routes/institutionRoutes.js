@@ -4,11 +4,13 @@ const institutionController = require('../controllers/institution/institutionCon
 const institutionPayment = require('../controllers/institution/institutionPaymentController')
 const adminMiddleware = require('../middlewares/adminMiddleware');
 const institutionAccountSetup = require('../controllers/institution/institutionAccountsController')
+const institutionPricingController = require('../controllers/institution/institutionPricingController');
 
 const { upload, sftpUpload } = require('../middlewares/profile_multer')
 const { galleryUpload, sftpUpload: sftpUploadGallery } = require('../middlewares/profile_multer')
 
 const eitherAuthOrAdmin = require('../middlewares/eitherAuthOrAdminMiddleware')
+const authenticateToken = require('../middlewares/authMiddlewares');
 
 router.post('/institutions', upload.single('logo'), sftpUpload('logo', 'logos'), institutionController.createInstitution);
 router.get('/institutions', eitherAuthOrAdmin, institutionController.getAllInstitutions);
@@ -32,5 +34,11 @@ router.post('/institution/payment', institutionPayment.makePaymentForInstitution
 
 // SETUP INSTITUTION ACCOUNTS 
 router.post('/institution/accounts/create', eitherAuthOrAdmin, institutionAccountSetup.setupInstitutionAccount)
+
+// INSTITUTION PRICING ROUTES
+router.get('/institutions/:institution_id/pricing', authenticateToken, institutionPricingController.getAvailablePricingCatalog);
+router.get('/institutions/:institution_id/pricing/:type', authenticateToken, institutionPricingController.getInstitutionPricing);
+router.put('/institutions/:institution_id/pricing/:type', authenticateToken, institutionPricingController.setInstitutionPricing);
+router.delete('/institutions/:institution_id/pricing/:type', authenticateToken, institutionPricingController.clearInstitutionPricing);
 
 module.exports = router;

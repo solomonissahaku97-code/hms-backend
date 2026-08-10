@@ -3,7 +3,8 @@ const path = require('path');
 
 // Utility function to get base URL
 const getBaseUrl = () => {
-  return `${process.env.APP_URL}/uploads/logos/`;
+  const baseUrl = process.env.NODE_ENV === 'production' ? process.env.APP_URL : (process.env.APP_URL_DEV || 'http://localhost:5008');
+  return `${baseUrl}/uploads/logos/`;
 };
 
 // Helper function to save a base64 image

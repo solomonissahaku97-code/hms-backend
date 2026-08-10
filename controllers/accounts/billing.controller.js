@@ -1,5 +1,6 @@
 const { Invoice, ServiceBill, Visit, Patient, Payment, LabTestResult, LabTestTemplate } = require('../../models');
 const LabInvestigation = require('../../models/claims/LabInvestigations');
+const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
 const { Op, Sequelize } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 
@@ -293,8 +294,18 @@ exports.makePatientPayment = async (req, res) => {
 
           if (labResult) {
             const tariff = labResult.template?.lab_tarrif || {};
-            const marketPrice = parseFloat(tariff.market_price || 0);
-            const tariffGhc = parseFloat(tariff.tariff_ghc || 0);
+
+            // Check for institution-specific price override
+            const institutionOverride = await InstitutionLabTariff.findOne({
+                where: {
+                    institution_id: visit.institution_id,
+                    lab_investigation_id: tariff.id,
+                    is_active: true
+                }
+            });
+
+            const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(tariff.market_price || 0);
+            const tariffGhc = institutionOverride ? parseFloat(institutionOverride.tariff_ghc || 0) : parseFloat(tariff.tariff_ghc || 0);
             const totalAmount = marketPrice > 0 ? marketPrice : tariffGhc;
 
             const patient = await Patient.findByPk(patient_id, { transaction });

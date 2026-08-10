@@ -82,6 +82,7 @@ exports.updateDepartmentBeds = async (req, res) => {
     }
 };
 
+
 // Get all departments with the total number of patients and staff in each department for a specific institution
 exports.getDepartmentsByInstitution = async (req, res) => {
     const { institution_id } = req.query;

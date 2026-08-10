@@ -2,76 +2,54 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn('institutions', 'short_description', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'about', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'mission', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'vision', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'core_values', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'website', {
-      type: Sequelize.STRING,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'opening_hours', {
-      type: Sequelize.JSON,
-      allowNull: true,
-      defaultValue: [],
-    });
-    await queryInterface.addColumn('institutions', 'emergency_contact', {
-      type: Sequelize.STRING,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'services_offered', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'facilities_available', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    });
-    await queryInterface.addColumn('institutions', 'social_media_links', {
-      type: Sequelize.JSON,
-      allowNull: true,
-      defaultValue: {},
-    });
-    await queryInterface.addColumn('institutions', 'gallery_images', {
-      type: Sequelize.JSON,
-      allowNull: true,
-      defaultValue: [],
-    });
-    await queryInterface.addColumn('institutions', 'banner_image_url', {
-      type: Sequelize.STRING,
-      allowNull: true,
-    });
+    const columns = [
+      { name: 'short_description', type: Sequelize.TEXT },
+      { name: 'about', type: Sequelize.TEXT },
+      { name: 'mission', type: Sequelize.TEXT },
+      { name: 'vision', type: Sequelize.TEXT },
+      { name: 'core_values', type: Sequelize.TEXT },
+      { name: 'website', type: Sequelize.STRING },
+      { name: 'opening_hours', type: Sequelize.JSON, defaultValue: [] },
+      { name: 'emergency_contact', type: Sequelize.STRING },
+      { name: 'services_offered', type: Sequelize.TEXT },
+      { name: 'facilities_available', type: Sequelize.TEXT },
+      { name: 'social_media_links', type: Sequelize.JSON, defaultValue: {} },
+      { name: 'gallery_images', type: Sequelize.JSON, defaultValue: [] },
+      { name: 'banner_image_url', type: Sequelize.STRING }
+    ];
+
+    for (const col of columns) {
+      try {
+        await queryInterface.addColumn('institutions', col.name, {
+          type: col.type,
+          allowNull: true,
+          ...(col.defaultValue !== undefined ? { defaultValue: col.defaultValue } : {})
+        });
+      } catch (err) {
+        if (err.message && err.message.includes('already exists')) {
+          continue;
+        }
+        throw err;
+      }
+    }
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn('institutions', 'short_description');
-    await queryInterface.removeColumn('institutions', 'about');
-    await queryInterface.removeColumn('institutions', 'mission');
-    await queryInterface.removeColumn('institutions', 'vision');
-    await queryInterface.removeColumn('institutions', 'core_values');
-    await queryInterface.removeColumn('institutions', 'website');
-    await queryInterface.removeColumn('institutions', 'opening_hours');
-    await queryInterface.removeColumn('institutions', 'emergency_contact');
-    await queryInterface.removeColumn('institutions', 'services_offered');
-    await queryInterface.removeColumn('institutions', 'facilities_available');
-    await queryInterface.removeColumn('institutions', 'social_media_links');
-    await queryInterface.removeColumn('institutions', 'gallery_images');
-    await queryInterface.removeColumn('institutions', 'banner_image_url');
-  },
+    const columns = [
+      'short_description', 'about', 'mission', 'vision', 'core_values', 'website',
+      'opening_hours', 'emergency_contact', 'services_offered', 'facilities_available',
+      'social_media_links', 'gallery_images', 'banner_image_url'
+    ];
+
+    for (const col of columns) {
+      try {
+        await queryInterface.removeColumn('institutions', col);
+      } catch (err) {
+        if (err.message && err.message.includes('does not exist')) {
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
 };

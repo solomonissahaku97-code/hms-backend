@@ -5,7 +5,7 @@
     "description": "Healthcare Management System API documentation. All endpoints require authentication unless otherwise stated.",
     "version": "1.0.0"
   },
-  "host": "localhost:5008",
+  "host": "api.tonitel.com",
   "basePath": "/api/v1",
   "schemes": [
     "http",

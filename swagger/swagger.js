@@ -6,7 +6,7 @@ const doc = {
     description: 'Healthcare Management System API documentation. All endpoints require authentication unless otherwise stated.',
     version: '1.0.0',
   },
-  host: process.env.APP_URL || 'localhost:5008',
+  host: process.env.NODE_ENV === 'production' ? process.env.APP_URL : 'localhost:5008',
   basePath: '/api/v1',
   schemes: ['http', 'https'],
   securityDefinitions: {

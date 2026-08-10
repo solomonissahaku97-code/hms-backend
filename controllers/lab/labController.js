@@ -18,6 +18,7 @@ const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
 const ServiceBill = require('../../models/serviceBill');
 const Notification = require('../../models/notification'); 
+const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
 const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
 
 
@@ -280,8 +281,18 @@ exports.createResult = async (req, res, next) => {
 
     // 3.5) Create billing record for this lab test
     const tariff = template.lab_tarrif || {};
-    const marketPrice = parseFloat(tariff.market_price || 0);
-    const tariffGhc = parseFloat(tariff.tariff_ghc || 0);
+
+    // Check for institution-specific price override
+    const institutionOverride = await InstitutionLabTariff.findOne({
+        where: {
+            institution_id: visit.institution_id,
+            lab_investigation_id: tariff.id,
+            is_active: true
+        }
+    });
+
+    const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(tariff.market_price || 0);
+    const tariffGhc = institutionOverride ? parseFloat(institutionOverride.tariff_ghc || 0) : parseFloat(tariff.tariff_ghc || 0);
 
     const existingBill = await ServiceBill.findOne({
       where: { service_id: result.id },
@@ -719,6 +730,18 @@ exports.updateResult = async (req, res, next) => {
         return next(new AppError('Test code and description are required', 400));
       }
 
+      // Check for institution-specific price override
+      const institutionOverride = await InstitutionLabTariff.findOne({
+        where: {
+          institution_id: visit.institution_id,
+          lab_investigation_id: labInvestigation.id,
+          is_active: true
+        }
+      });
+
+      const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(labInvestigation.market_price || 0);
+      const tariffGhc = institutionOverride ? parseFloat(institutionOverride.tariff_ghc || 0) : parseFloat(labInvestigation.tariff_ghc || 0);
+
       billingResult = await handleBilling({
         transaction,
         patient_id: visit.patient_id,
@@ -727,8 +750,8 @@ exports.updateResult = async (req, res, next) => {
         service_type: 'LabTest',
         description: labInvestigation.test_description,
         g_drg_code: labInvestigation.g_drg_code,
-        unit_price: labInvestigation.market_price,
-        nhia_unit_price: labInvestigation.tariff_ghc,
+        unit_price: marketPrice,
+        nhia_unit_price: tariffGhc,
         quantity: 1,
         department_id: labInvestigation.department_id || result.department_id,
         institution_id: visit.institution_id,

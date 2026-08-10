@@ -8,6 +8,7 @@ const GDRGCode = require("../../models/claims/GDRGCode");
 const ServiceBill = require("../../models/serviceBill");
 const sequelize = require('../../config/database')
 const { handleBilling } = require('../../utils/billingUtil')
+const InstitutionProcedurePrice = require("../../models/InstitutionProcedurePrice");
 
 const ProcedureController = {
     /**
@@ -102,8 +103,18 @@ const ProcedureController = {
                     
                     if (!existingBill) {
                         const gdrgCode = await GDRGCode.findByPk(procedure.selected_procedure_id, { transaction });
-                        const marketPrice = parseFloat(gdrgCode?.market_price || 0);
-                        const nhiaPrice = parseFloat(gdrgCode?.nhia_price || 0);
+                        
+                        // Check for institution-specific price override
+                        const institutionOverride = await InstitutionProcedurePrice.findOne({
+                            where: {
+                                institution_id: procedure.institution_id,
+                                gdrg_code_id: procedure.selected_procedure_id,
+                                is_active: true
+                            }
+                        });
+
+                        const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(gdrgCode?.market_price || 0);
+                        const nhiaPrice = institutionOverride ? parseFloat(institutionOverride.nhia_price || 0) : parseFloat(gdrgCode?.nhia_price || 0);
                         const totalAmount = marketPrice > 0 ? marketPrice : nhiaPrice;
                         const hasInsurance = patient?.has_insurance || false;
                         const nhiaAmount = hasInsurance ? Math.min(nhiaPrice, totalAmount) : 0;
@@ -331,14 +342,26 @@ const ProcedureController = {
                 });
 
                 if (!existingBill) {
+                    // Check for institution-specific price override
+                    const institutionOverride = await InstitutionProcedurePrice.findOne({
+                        where: {
+                            institution_id: institution_id,
+                            gdrg_code_id: procedure.selected_procedure_id,
+                            is_active: true
+                        }
+                    });
+
+                    const unitPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(gdrgCode.market_price || 0);
+                    const nhiaPrice = institutionOverride ? parseFloat(institutionOverride.nhia_price || 0) : parseFloat(gdrgCode.nhia_price || 0);
+
                     billingResult = await handleBilling({
                         transaction,
                         patient_id: patient_id,
                         service_id: procedure_id,
                         service_type: 'Procedure', // Fixed type for procedures
                         description: gdrgCode.description || `Procedure #${procedure_id}`,
-                        nhia_unit_price: gdrgCode.nhia_price,
-                        unit_price: gdrgCode.market_price,
+                        nhia_unit_price: nhiaPrice,
+                        unit_price: unitPrice,
                         quantity: 1, // Procedures always have quantity=1
                         department_id: procedure.department_id,
                         visit_id,

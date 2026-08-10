@@ -73,9 +73,10 @@ exports.createBackup = async (req, res) => {
 
     // Get database name from config
     const dbConfig = require('../config/config');
-    const dbName = dbConfig.development.database;
-    const dbUser = dbConfig.development.username;
-    const dbHost = dbConfig.development.host || 'localhost';
+    const env = process.env.NODE_ENV || 'development';
+    const dbName = dbConfig[env].database;
+    const dbUser = dbConfig[env].username;
+    const dbHost = dbConfig[env].host || 'localhost';
 
     let backupData = null;
     let fileSize = 0;
@@ -979,12 +980,13 @@ exports.updateSystemConfig = async (req, res) => {
 exports.getDatabaseInfo = async (req, res) => {
   try {
     const dbConfig = require('../config/config');
+    const env = process.env.NODE_ENV || 'development';
     
     let dbInfo = {
-      dialect: dbConfig.development.dialect,
-      database: dbConfig.development.database,
-      host: dbConfig.development.host || 'localhost',
-      port: dbConfig.development.port,
+      dialect: dbConfig[env].dialect,
+      database: dbConfig[env].database,
+      host: dbConfig[env].host || 'localhost',
+      port: dbConfig[env].port,
       status: 'unknown'
     };
 

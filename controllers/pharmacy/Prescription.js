@@ -14,6 +14,7 @@ const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
 const Notification = require('../../models/notification');
 const { sendPushEngageNotification } = require('../../service/pushEngageService');
+const InstitutionPharmacyPrice = require('../../models/InstitutionPharmacyPrice');
 
 // Helper function to find Pharmacy department
 async function findPharmacyDepartment(institution_id) {
@@ -312,8 +313,18 @@ async function createSinglePrescription(prescriptionData, res, req) {
         });
         if (!existingBill) {
             try {
-                const marketPrice = parseFloat(medication.market_price || 0);
-                const nhiaPrice = parseFloat(medication.nhia_price || 0);
+                // Check for institution-specific price override
+                const institutionOverride = await InstitutionPharmacyPrice.findOne({
+                    where: {
+                        institution_id: prescription.institution_id,
+                        medicine_id: medication.id,
+                        is_active: true
+                    }
+                });
+
+                const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(medication.market_price || 0);
+                const nhiaPrice = institutionOverride ? parseFloat(institutionOverride.nhia_price || 0) : parseFloat(medication.nhia_price || 0);
+
                 await handleBilling({
                     transaction,
                     patient_id: patient?.id || (await Visit.findByPk(visit_id))?.patient_id,
@@ -640,6 +651,18 @@ exports.updatePrescriptionStatus = async (req, res) => {
             where: { service_id: prescription.id, service_type: 'Medication' }
         });
 
+        // Check for institution-specific price override
+        const institutionOverride = await InstitutionPharmacyPrice.findOne({
+            where: {
+                institution_id: prescription.visit.institution_id,
+                medicine_id: medication.id,
+                is_active: true
+            }
+        });
+
+        const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(medication.market_price || 0);
+        const nhiaPrice = institutionOverride ? parseFloat(institutionOverride.nhia_price || 0) : parseFloat(medication.nhia_price || 0);
+
         const billingResult = existingBill ? null : await handleBilling({
             transaction,
             patient_id: prescription.visit.patient_id, // From visit
@@ -648,8 +671,8 @@ exports.updatePrescriptionStatus = async (req, res) => {
             service_id: prescription.id,
             service_type: "Medication",
             description: `${medication.generic_name} - ${dispensed_quantity || prescription.quantity} units`,
-            unit_price: medication.market_price,
-            nhia_unit_price: medication.nhia_price || 0,
+            unit_price: marketPrice,
+            nhia_unit_price: nhiaPrice,
             quantity: dispensed_quantity || prescription.quantity, // Use dispensed quantity if available
             department_id: prescription.department_id,
             claim_id: claim_id
