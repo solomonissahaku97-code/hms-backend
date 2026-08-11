@@ -24,6 +24,7 @@ router.delete('/institutions/profile/gallery/:index', eitherAuthOrAdmin, institu
 // Generic /:id routes must come AFTER specific routes
 router.put('/institutions/:id', eitherAuthOrAdmin, upload.single('logo'), sftpUpload('logo', 'logos'), institutionController.updateInstitution);
 router.get('/institutions/:id', institutionController.getInstitutionById);
+router.delete('/institutions/:id', eitherAuthOrAdmin, institutionController.deleteInstitution);
 router.get('/institutions/:id/reviews', institutionController.getInstitutionReviews);
 router.post('/institutions/:id/reviews', institutionController.createInstitutionReview);
 router.get('/institution-admins/:institution_id', institutionController.getAllInstitutionAdmins)

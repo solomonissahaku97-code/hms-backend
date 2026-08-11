@@ -213,76 +213,51 @@ exports.getTemplates = async (req, res, next) => {
   }
 };
 
-// Create test result
-exports.createResult = async (req, res, next) => {
-  const transaction = await sequelize.transaction();
-  try {
-    const { templateId, visit_id, note, request_notes, user, department_id } = req.body;
-
-    // Validate required fields
-    if (!templateId || !visit_id || !user) {
-      await transaction.rollback();
-      return next(new AppError('templateId, visit_id, and user are required fields', 400));
-    }
-
-    // 1) Validate template exists
+// Helper: create one lab result + billing
+async function createSingleLabResult({ transaction, templateId, visit_id, user, request_notes, department_id, notify = true }) {
     const template = await LabTestTemplate.findByPk(templateId, {
-      include: [{
-        model: LabTestField,
-        as: 'fields',
-      }, {
-        model: LabInvestigation,
-        as: 'lab_tarrif'
-      }],
-      transaction
+        include: [{
+            model: LabTestField,
+            as: 'fields',
+        }, {
+            model: LabInvestigation,
+            as: 'lab_tarrif'
+        }],
+        transaction
     });
 
     if (!template) {
-      await transaction.rollback();
-      return next(new AppError('No template found with that ID', 404));
-    }
-    const visit = await Visit.findByPk(visit_id, { transaction });
-    if (!visit) {
-      await transaction.rollback();
-      return next(new AppError('No visit found with that ID', 404));
+        throw new AppError(`No template found with that ID: ${templateId}`, 404);
     }
 
-    // Resolve Lab department for this institution
+    const visit = await Visit.findByPk(visit_id, { transaction });
+    if (!visit) {
+        throw new AppError('No visit found with that ID', 404);
+    }
+
     const labDepartment = await Department.findOne({
-      where: {
-        institution_id: visit.institution_id,
-        departmentType: 'Lab'
-      },
-      transaction
+        where: {
+            institution_id: visit.institution_id,
+            departmentType: 'Lab'
+        },
+        transaction
     });
 
     const resultData = {
-      templateId,
-      visit_id,
-      patient_id: visit.patient_id,
-      institution_id: visit.institution_id,
-      department_id: labDepartment ? labDepartment.id : (department_id || visit.department_id || null),
-      notes: note || request_notes || null,
-      request_notes: request_notes || note || null,
-      createdBy: user,
-      status: 'pending'
+        templateId,
+        visit_id,
+        patient_id: visit.patient_id,
+        institution_id: visit.institution_id,
+        department_id: labDepartment ? labDepartment.id : (department_id || visit.department_id || null),
+        notes: request_notes || null,
+        request_notes: request_notes || null,
+        createdBy: user,
+        status: 'pending'
     };
 
-    console.log('[Lab] Creating result:', {
-      templateId,
-      visit_id,
-      institution_id: visit.institution_id,
-      department_id: resultData.department_id,
-      labDepartment: labDepartment ? { id: labDepartment.id, name: labDepartment.name } : null
-    });
-
     const result = await LabTestResults.create(resultData, { transaction });
-    console.log('[Lab] Created result ID:', result.id);
 
-    // 3.5) Create billing record for this lab test
     const tariff = template.lab_tarrif || {};
-
-    // Check for institution-specific price override
     const institutionOverride = await InstitutionLabTariff.findOne({
         where: {
             institution_id: visit.institution_id,
@@ -295,91 +270,188 @@ exports.createResult = async (req, res, next) => {
     const tariffGhc = institutionOverride ? parseFloat(institutionOverride.tariff_ghc || 0) : parseFloat(tariff.tariff_ghc || 0);
 
     const existingBill = await ServiceBill.findOne({
-      where: { service_id: result.id },
-      transaction
+        where: { service_id: result.id },
+        transaction
     });
 
     if (!existingBill) {
-      await handleBilling({
-        transaction,
-        patient_id: visit.patient_id,
-        visit_id,
-        service_id: null,
-        service_type: 'LabTest',
-        description: tariff.test_description || 'Lab Test',
-        unit_price: marketPrice,
-        nhia_unit_price: tariffGhc,
-        quantity: template.quantity || 1,
-        department_id: result.department_id || visit.department_id,
-        institution_id: visit.institution_id,
-        claim_id: null,
-        gdrg_code: tariff.g_drg_code
-      });
+        await handleBilling({
+            transaction,
+            patient_id: visit.patient_id,
+            visit_id,
+            service_id: null,
+            service_type: 'LabTest',
+            description: tariff.test_description || 'Lab Test',
+            unit_price: marketPrice,
+            nhia_unit_price: tariffGhc,
+            quantity: template.quantity || 1,
+            department_id: result.department_id || visit.department_id,
+            institution_id: visit.institution_id,
+            claim_id: null,
+            gdrg_code: tariff.g_drg_code
+        });
+    }
+
+    return { result, visit, template, tariff };
+}
+
+// Create test result (supports single object OR array for batch requests)
+exports.createResult = async (req, res, next) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const body = req.body;
+    const isBatch = Array.isArray(body);
+
+    if (!isBatch) {
+        const { templateId, visit_id, note, request_notes, user, department_id } = body;
+        if (!templateId || !visit_id || !user) {
+            await transaction.rollback();
+            return next(new AppError('templateId, visit_id, and user are required fields', 400));
+        }
+
+        const { result, visit, template } = await createSingleLabResult({
+            transaction,
+            templateId,
+            visit_id,
+            user,
+            request_notes: note || request_notes,
+            department_id
+        });
+
+        await transaction.commit();
+
+        // Notify lab staff (fire and forget)
+        const visitForNotify = await Visit.findByPk(visit_id);
+        const templateForNotify = await LabTestTemplate.findByPk(templateId, {
+            include: [{ model: LabInvestigation, as: 'lab_tarrif' }]
+        });
+        notifyLabStaff(result, templateForNotify, visitForNotify, req).catch(err =>
+            console.error('Error notifying lab staff:', err)
+        );
+
+        Patient.findByPk(visitForNotify.patient_id).then(async patient => {
+            try {
+                const labDepartment = await Department.findOne({
+                    where: { institution_id: visitForNotify.institution_id, departmentType: 'Lab' }
+                });
+                const payload = {
+                    title: 'New Lab Request',
+                    message: `New lab test requested: ${templateForNotify?.lab_tarrif?.test_description || 'Lab Test'}. Patient: ${patient ? `${patient.first_name || ''} ${patient.last_name || ''}` : 'Unknown'}`,
+                    url: `${process.env.FRONTEND_URL || ''}/lab`
+                };
+                if (labDepartment) {
+                    await sendPushEngageDepartmentNotification({ departmentId: labDepartment.id, ...payload });
+                } else {
+                    await sendPushEngageNotification({ ...payload, tag: 'lab-request' });
+                }
+            } catch (err) {
+                console.error('Error sending PushEngage notification:', err);
+            }
+        }).catch(err => console.error('Error fetching patient for PushEngage notification:', err));
+
+        return res.status(201).json({
+            status: 'success',
+            data: {
+                result,
+                message: 'Test result created successfully'
+            }
+        });
+    }
+
+    // BATCH MODE
+    if (!body.length) {
+        await transaction.rollback();
+        return next(new AppError('tests array is empty', 400));
+    }
+
+    const visit_id = body[0]?.visit_id;
+    const user = body[0]?.user;
+
+    if (!visit_id || !user) {
+        await transaction.rollback();
+        return next(new AppError('visit_id and user are required for batch requests', 400));
+    }
+
+    const createdResults = [];
+    const notifications = [];
+
+    for (const item of body) {
+        const { templateId, request_notes, department_id } = item;
+        if (!templateId) {
+            await transaction.rollback();
+            return next(new AppError('templateId is required for each test in batch', 400));
+        }
+
+        try {
+            const { result, visit, template } = await createSingleLabResult({
+                transaction,
+                templateId,
+                visit_id,
+                user,
+                request_notes: request_notes || '',
+                department_id,
+                notify: false
+            });
+            createdResults.push(result);
+            notifications.push({ result, visit, template });
+        } catch (err) {
+            await transaction.rollback();
+            return next(err);
+        }
     }
 
     await transaction.commit();
-    console.log('[Lab] Transaction committed for result:', result.id);
 
-    // Notify lab staff about new lab request (after commit to not block the response)
-    // We need to fetch visit without transaction for notification
-    const visitForNotify = await Visit.findByPk(visit_id);
-    const templateForNotify = await LabTestTemplate.findByPk(templateId, {
-      include: [{ model: LabInvestigation, as: 'lab_tarrif' }]
-    });
-    
-    // Send notification to lab staff (fire and forget - don't await)
-    notifyLabStaff(result, templateForNotify, visitForNotify, req).catch(err => 
-      console.error('Error notifying lab staff:', err)
-    );
-    console.log(`📣 Notification process initiated for lab staff regarding new test result ID: ${result.id}`);
-
-    Patient.findByPk(visitForNotify.patient_id).then(async patient => {
-      try {
-        const labDepartment = await Department.findOne({
-          where: {
-            institution_id: visitForNotify.institution_id,
-            departmentType: 'Lab'
-          }
+    // Fire notifications after commit (non-blocking)
+    for (const note of notifications) {
+        const visitForNotify = await Visit.findByPk(note.visit.id);
+        const templateForNotify = await LabTestTemplate.findByPk(note.template.id, {
+            include: [{ model: LabInvestigation, as: 'lab_tarrif' }]
         });
+        notifyLabStaff(note.result, templateForNotify, visitForNotify, req).catch(err =>
+            console.error('Error notifying lab staff:', err)
+        );
 
-        const payload = {
-          title: 'New Lab Request',
-          message: `New lab test requested: ${templateForNotify?.lab_tarrif?.test_description || 'Lab Test'}. Patient: ${patient ? `${patient.first_name || ''} ${patient.last_name || ''}` : 'Unknown'}`,
-          url: `${process.env.FRONTEND_URL || ''}/lab`
-        };
+        Patient.findByPk(visitForNotify.patient_id).then(async patient => {
+            try {
+                const labDepartment = await Department.findOne({
+                    where: { institution_id: visitForNotify.institution_id, departmentType: 'Lab' }
+                });
+                const payload = {
+                    title: 'New Lab Request',
+                    message: `New lab test requested: ${templateForNotify?.lab_tarrif?.test_description || 'Lab Test'}. Patient: ${patient ? `${patient.first_name || ''} ${patient.last_name || ''}` : 'Unknown'}`,
+                    url: `${process.env.FRONTEND_URL || ''}/lab`
+                };
+                if (labDepartment) {
+                    await sendPushEngageDepartmentNotification({ departmentId: labDepartment.id, ...payload });
+                } else {
+                    await sendPushEngageNotification({ ...payload, tag: 'lab-request' });
+                }
+            } catch (err) {
+                console.error('Error sending PushEngage notification:', err);
+            }
+        }).catch(err => console.error('Error fetching patient for PushEngage notification:', err));
+    }
 
-        if (labDepartment) {
-          await sendPushEngageDepartmentNotification({ departmentId: labDepartment.id, ...payload });
-        } else {
-          await sendPushEngageNotification({ ...payload, tag: 'lab-request' });
+    return res.status(201).json({
+        status: 'success',
+        data: {
+            results: createdResults,
+            message: `${createdResults.length} lab test(s) requested successfully`
         }
-      } catch (err) {
-        console.error('Error sending PushEngage notification:', err);
-      }
-    }).catch(err => console.error('Error fetching patient for PushEngage notification:', err));
-
-    res.status(201).json({
-      status: 'success',
-      data: {
-        result,
-        message: 'Test result created successfully'
-      }
     });
   } catch (error) {
     await transaction.rollback();
-    console.error('Error creating test result:', error);
-
-    // More detailed error response
+    console.error('Error creating test result(s):', error);
     const errorResponse = {
       status: 'error',
-      message: 'Failed to create test result',
+      message: 'Failed to create test result(s)',
       details: {
         error: error.message,
         modelError: error.errors ? error.errors.map(e => e.message) : null,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       }
     };
-
     res.status(500).json(errorResponse);
   }
 };

@@ -60,7 +60,7 @@ exports.getAllServices = async (req, res) => {
 
     try {
         const institution = await Institution.findOne({ where: { id: institution_id } })
-        if (!institution) res.status(404).json({ error: 'institution does not exist' })
+        if (!institution) return res.status(404).json({ error: 'institution does not exist' })
         const services = await Service.findAll()
         return res.status(200).json(services)
     } catch (error) {
@@ -72,11 +72,11 @@ exports.deleteServiceBill = async (req, res) => {
     const { institution_id, admin_id, bill_id } = req.params;
 
     try {
-        const admin = await Admin.findOne({ where: { institution_id: institution_id, id: admin_id } })
-        if (!admin) res.status(404).json({ error: 'Admin does not exist' })
+        const admin = await Admin.findOne({ where: { institution_id, id: admin_id } })
+        if (!admin) return res.status(404).json({ error: 'Admin does not exist' })
 
         const service = await Service.findByPk(bill_id)
-        if (!service) res.status(404).json({ error: 'Service does not exist' })
+        if (!service) return res.status(404).json({ error: 'Service does not exist' })
 
         const deleteService = service.destroy()
 

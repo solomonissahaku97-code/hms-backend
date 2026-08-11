@@ -12,206 +12,257 @@
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            background-color: #f2f5f7;
             line-height: 1.6;
-            color: #333;
+            color: #1f2937;
+        }
+        .email-wrapper {
+            width: 100%;
+            padding: 40px 20px;
         }
         .email-container {
-            max-width: 650px;
+            max-width: 620px;
             margin: 0 auto;
             background-color: #ffffff;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            border-radius: 12px;
+            border-radius: 10px;
             overflow: hidden;
+            border: 1px solid #e5eaf0;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
+            background-color: #19417D;
+            color: #ffffff;
+            padding: 36px 32px;
+        }
+        .header .brand-mark {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #00DFA2;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .header .eyebrow {
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #A9C6E8;
+            font-weight: 600;
         }
         .header h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
-            margin-bottom: 8px;
-        }
-        .header p {
-            font-size: 16px;
-            opacity: 0.95;
+            margin-top: 10px;
+            color: #ffffff;
         }
         .content {
-            padding: 40px 30px;
+            padding: 36px 32px;
         }
-        .welcome-section {
-            text-align: center;
-            margin-bottom: 30px;
+        .greeting {
+            font-size: 16px;
+            color: #1f2937;
+            margin-bottom: 8px;
         }
-        .welcome-section h2 {
-            color: #667eea;
-            font-size: 22px;
-            margin-bottom: 10px;
+        .intro-text {
+            font-size: 14.5px;
+            color: #4b5563;
+            margin-bottom: 24px;
         }
-        .institution-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-            border: 2px solid #667eea30;
-            padding: 16px 24px;
-            border-radius: 12px;
-            margin: 20px 0;
+        .intro-text strong {
+            color: #19417D;
         }
-        .institution-badge h3 {
-            color: #667eea;
-            font-size: 20px;
+        .institution-card {
+            background-color: #F4FBF8;
+            border: 1px solid #CCF2E3;
+            border-left: 4px solid #00DFA2;
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+        }
+        .institution-card .label {
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #0FA477;
+            font-weight: 700;
             margin-bottom: 4px;
         }
-        .institution-badge p {
-            color: #666;
-            font-size: 14px;
+        .institution-card .name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #19417D;
+        }
+        .institution-card .code {
+            font-size: 13px;
+            color: #4b5563;
+            margin-top: 4px;
+        }
+        .section-title {
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #19417D;
+            margin-bottom: 14px;
         }
         .credentials-box {
-            background-color: #f8f9ff;
-            border: 1px solid #e8ecff;
-            border-radius: 10px;
-            padding: 24px;
-            margin: 24px 0;
+            background-color: #F8FAFC;
+            border: 1px solid #E5EAF0;
+            border-radius: 8px;
+            padding: 6px 20px;
+            margin-bottom: 24px;
         }
-        .credentials-box h3 {
-            color: #333;
-            font-size: 18px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .credential-item {
+        .credential-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e8ecff;
+            padding: 14px 0;
+            border-bottom: 1px solid #E5EAF0;
         }
-        .credential-item:last-child {
+        .credential-row:last-child {
             border-bottom: none;
         }
         .credential-label {
+            font-size: 13.5px;
+            color: #6b7280;
             font-weight: 600;
-            color: #555;
-            font-size: 14px;
         }
         .credential-value {
             font-family: 'Courier New', monospace;
-            background-color: #fff;
+            background-color: #ffffff;
             padding: 6px 12px;
             border-radius: 6px;
-            border: 1px solid #ddd;
-            font-size: 14px;
-            color: #333;
+            border: 1px solid #dbe2ea;
+            font-size: 13.5px;
+            color: #19417D;
+            font-weight: 600;
+        }
+        .notice {
+            display: flex;
+            gap: 10px;
+            background-color: #FFF8EC;
+            border: 1px solid #F5E3BE;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+        .notice p {
+            font-size: 13.5px;
+            color: #92600E;
+            margin: 0;
+        }
+        .notice p strong {
+            color: #7A4E08;
+        }
+        .cta-wrap {
+            text-align: center;
+            margin: 28px 0;
         }
         .login-button {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background-color: #00DFA2;
+            color: #0B2E52;
             text-decoration: none;
-            padding: 14px 32px;
+            padding: 14px 36px;
             border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 24px 0;
-            transition: transform 0.2s;
+            font-weight: 700;
+            font-size: 15px;
         }
-        .login-button:hover {
-            transform: translateY(-2px);
+        .support-note {
+            background-color: #F0F6FC;
+            border: 1px solid #DCE9F7;
+            border-radius: 8px;
+            padding: 14px 16px;
         }
-        .info-box {
-            background-color: #fff8e6;
-            border-left: 4px solid #f59e0b;
-            padding: 16px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-        .info-box p {
-            color: #92400e;
-            font-size: 14px;
+        .support-note p {
+            font-size: 13.5px;
+            color: #19417D;
             margin: 0;
         }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 24px 30px;
-            text-align: center;
-            border-top: 1px solid #e8ecff;
+        .support-note p strong {
+            color: #0B2E52;
         }
-        .footer p {
-            color: #888;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-        .footer a {
-            color: #667eea;
+        .support-note a {
+            color: #19417D;
+            font-weight: 600;
             text-decoration: none;
         }
-        .icon {
-            font-size: 20px;
+        .footer {
+            background-color: #F8FAFC;
+            padding: 22px 32px;
+            text-align: center;
+            border-top: 1px solid #E5EAF0;
+        }
+        .footer p {
+            color: #9AA5B1;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        .footer a {
+            color: #19417D;
+            text-decoration: none;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="email-container">
-        <div class="header">
-            <h1>🏥 Welcome to Tonitel HMS</h1>
-            <p>Your institution has been successfully registered</p>
-        </div>
-
-        <div class="content">
-            <div class="welcome-section">
-                <h2>Hello, <%= username %>! 👋</h2>
-                <p>Your institution <strong><%= institutionName %></strong> has been successfully registered on the Tonitel Hospital Management System. You can now access your admin dashboard.</p>
+    <div class="email-wrapper">
+        <div class="email-container">
+            <div class="header">
+                <span class="brand-mark"></span><span class="eyebrow">Tonitel Health Systems</span>
+                <h1>Your institution is ready</h1>
             </div>
 
-            <div class="institution-badge">
-                <h3>🏛️ <%= institutionName %></h3>
-                <p>Institution Code: <strong><%= institutionCode || 'N/A' %></strong></p>
-            </div>
+            <div class="content">
+                <p class="greeting">Hello, <%= username %>,</p>
+                <p class="intro-text">Your institution <strong><%= institutionName %></strong> has been successfully registered on Tonitel HMS. Your admin dashboard is now ready to use.</p>
 
-            <div class="credentials-box">
-                <h3><span class="icon">🔐</span> Your Login Credentials</h3>
-                <div class="credential-item">
-                    <span class="credential-label">Email Address</span>
-                    <span class="credential-value"><%= email %></span>
+                <div class="institution-card">
+                    <div class="label">Institution</div>
+                    <div class="name"><%= institutionName %></div>
+                    <div class="code">Institution Code: <strong><%= institutionCode || 'N/A' %></strong></div>
                 </div>
-                <div class="credential-item">
-                    <span class="credential-label">Password</span>
-                    <span class="credential-value"><%= password %></span>
+
+                <div class="section-title">Login Credentials</div>
+                <div class="credentials-box">
+                    <div class="credential-row">
+                        <span class="credential-label">Email Address</span>
+                        <span class="credential-value"><%= email %></span>
+                    </div>
+                    <div class="credential-row">
+                        <span class="credential-label">Password</span>
+                        <span class="credential-value"><%= password %></span>
+                    </div>
+                    <div class="credential-row">
+                        <span class="credential-label">Institution</span>
+                        <span class="credential-value"><%= institutionName %></span>
+                    </div>
+                    <div class="credential-row">
+                        <span class="credential-label">Region</span>
+                        <span class="credential-value"><%= institutionRegion || 'N/A' %></span>
+                    </div>
+                    <div class="credential-row">
+                        <span class="credential-label">Country</span>
+                        <span class="credential-value"><%= institutionCountry || 'N/A' %></span>
+                    </div>
                 </div>
-                <div class="credential-item">
-                    <span class="credential-label">Institution</span>
-                    <span class="credential-value"><%= institutionName %></span>
+
+                <div class="notice">
+                    <p>⚠️ <strong>Security Notice:</strong> For your security, please change your password immediately after your first login. Do not share your credentials with anyone.</p>
                 </div>
-                <div class="credential-item">
-                    <span class="credential-label">Region</span>
-                    <span class="credential-value"><%= institutionRegion || 'N/A' %></span>
+
+                <div class="cta-wrap">
+                    <a href="<%= frontendUrl %>/login" class="login-button">Login to Your Dashboard →</a>
                 </div>
-                <div class="credential-item">
-                    <span class="credential-label">Country</span>
-                    <span class="credential-value"><%= institutionCountry || 'N/A' %></span>
+
+                <div class="support-note">
+                    <p>📞 <strong>Need help?</strong> Contact our support team at support@tonitel.com or call +233 30 123 4567.</p>
                 </div>
             </div>
 
-            <div class="info-box">
-                <p>⚠️ <strong>Security Notice:</strong> For your security, please change your password immediately after your first login. Do not share your credentials with anyone.</p>
+            <div class="footer">
+                <p>&copy; <%= new Date().getFullYear() %> Tonitel HMS. All rights reserved.</p>
+                <p>Powered by <a href="https://tonitel.com">Tonitel</a> | Secure Healthcare Management</p>
             </div>
-
-            <div style="text-align: center;">
-                <a href="<%= frontendUrl %>/login" class="login-button">Login to Your Dashboard →</a>
-            </div>
-
-            <div class="info-box" style="background-color: #e6f7ff; border-left-color: #1890ff;">
-                <p>📞 <strong>Need Help?</strong> If you have any questions or need assistance with your account, please contact our support team at support@tonitel.com or call +233 30 123 4567.</p>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>&copy; <%= new Date().getFullYear() %> Tonitel HMS. All rights reserved.</p>
-            <p>Powered by <a href="https://tonitel.com">Tonitel</a> | Secure Healthcare Management</p>
         </div>
     </div>
 </body>

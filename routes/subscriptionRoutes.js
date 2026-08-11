@@ -13,7 +13,7 @@ router.delete('/subscriptions/:id', deleteSubscription)
 
 router.get('/subscriptions', getAllSubscriptions);
 router.get('/subscriptions/institution', getInstitutionSubscription);
-
+ 
 // Route to initiate subscription (Paystack payment)
 router.post('/subscriptions/subscribe', initiateSubscription);
 

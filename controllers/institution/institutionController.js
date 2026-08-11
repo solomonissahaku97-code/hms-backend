@@ -13,7 +13,7 @@ const handleReferralDiscount = require('../../helpers/handleReferDiscount');
 const InstitutionSubAccounts = require('../../models/InsitutionSubAccounts');
 
 exports.createInstitution = async (req, res) => {
-    const { name, address, contact, description, google_map_link, fax, region, email, serial_code, website, country, referralCode } = req.body;
+    const { name, address, contact, description, google_map_link, fax, region, email, serial_code, website, country, referralCode, workflow_mode } = req.body;
 
 
     try {
@@ -35,7 +35,7 @@ exports.createInstitution = async (req, res) => {
 
         const institution = await Institution.create({
             name, address, contact, description, google_map_link, fax, logo_url, serial_code: generated_serial_code,
-            region, email, website, country
+            region, email, website, country, workflow_mode: workflow_mode || 'full'
         }, { transaction });
 
         const freeTrial = await Subscription.findOne({ where: { name: 'Free Trial' } });
@@ -64,7 +64,7 @@ exports.createInstitution = async (req, res) => {
 // Update an existing institution by ID
 exports.updateInstitution = async (req, res) => {
     const { id } = req.params;
-    const { name, address, contact, description, google_map_link, fax } = req.body;
+    const { name, address, contact, description, google_map_link, fax, workflow_mode } = req.body;
 
     try {
         const institution = await Institution.findByPk(id);
@@ -85,6 +85,9 @@ exports.updateInstitution = async (req, res) => {
         institution.description = description || institution.description;
         institution.google_map_link = google_map_link || institution.google_map_link;
         institution.fax = fax || institution.fax;
+        if (workflow_mode) {
+            institution.workflow_mode = workflow_mode;
+        }
 
         await institution.save();
 
@@ -96,10 +99,30 @@ exports.updateInstitution = async (req, res) => {
 };
 
 
+// Delete an institution (soft delete)
+exports.deleteInstitution = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const institution = await Institution.findByPk(id);
+
+        if (!institution) {
+            return res.status(404).json({ error: 'Institution not found' });
+        }
+
+        await institution.destroy();
+
+        res.status(200).json({ message: 'Institution deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting institution:', error);
+        res.status(500).json({ error: 'An error occurred while deleting the institution' });
+    }
+};
+
 // Get all institutions 
 exports.getAllInstitutions = async (req, res) => {
     try {
-        const institutions = await Institution.findAll();
+        const institutions = await Institution.findAll({ paranoid: false });
         res.status(200).json(institutions);
     } catch (error) {
         console.error(error);
@@ -145,6 +168,7 @@ exports.getInstitutionById = async (req, res) => {
             established_date: institution.established_date,
             google_map_link: institution.google_map_link,
             serial_code: institution.serial_code,
+            workflow_mode: institution.workflow_mode,
         };
 
         res.status(200).json(publicProfile);
@@ -423,7 +447,7 @@ exports.getInstitutionProfile = async (req, res) => {
             'id', 'name', 'short_description', 'about', 'mission', 'vision', 'core_values',
             'website', 'opening_hours', 'emergency_contact', 'services_offered',
             'facilities_available', 'social_media_links', 'gallery_images', 'banner_image_url',
-            'logo_url', 'address', 'contact', 'email', 'country', 'region', 'fax'
+            'logo_url', 'address', 'contact', 'email', 'country', 'region', 'fax', 'workflow_mode'
         ];
 
         const profile = {};
@@ -479,6 +503,11 @@ exports.updateInstitutionProfile = async (req, res) => {
                 updated = true;
             }
         });
+
+        if (req.body.workflow_mode && ['full', 'lab_only', 'opd_only', 'records_lab'].includes(req.body.workflow_mode)) {
+            institution.workflow_mode = req.body.workflow_mode;
+            updated = true;
+        }
 
         if (req.body.banner_image) {
             institution.banner_image_url = req.body.banner_image;

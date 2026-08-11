@@ -259,29 +259,47 @@ exports.getAllDoctors = async (req, res) => {
 // RESET PASSWORD ROUTE
 exports.resetPassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
-    const { staffId } = req;
 
     try {
-        // Fetch the staff member by ID
-        const staff = await Staff.findByPk(staffId);
+        let user;
+        let isAdmin = false;
 
-        if (!staff) {
-            return res.status(404).json({ error: 'Staff member not found' });
+        if (req.admin) {
+            user = req.admin;
+            isAdmin = true;
+        } else if (req.staffId) {
+            user = await Staff.findByPk(req.staffId);
+        } else if (req.user) {
+            user = req.user;
+            if (user instanceof Admin) {
+                isAdmin = true;
+            }
         }
 
-        // Compare old password with the stored hashed password
-        const isMatch = await bcrypt.compare(oldPassword, staff.password);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const passwordField = isAdmin ? user.password_hash : user.password;
+
+        if (!passwordField) {
+            return res.status(400).json({ error: 'Password not set for this account' });
+        }
+
+        const isMatch = await bcrypt.compare(oldPassword, passwordField);
 
         if (!isMatch) {
             return res.status(400).json({ error: 'Old password is incorrect' });
         }
 
-        // Hash the new password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-        // Update the staff member's password
-        staff.password = hashedNewPassword;
-        await staff.save();
+        if (isAdmin) {
+            await user.update({ password_hash: hashedNewPassword });
+        } else {
+            user.password = hashedNewPassword;
+            await user.save();
+        }
 
         return res.status(200).json({ message: 'Password updated successfully' });
     } catch (error) {

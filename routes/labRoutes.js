@@ -24,6 +24,7 @@ const {
 const authenticateToken = require('../middlewares/authMiddlewares');
 const { upload, labAttachmentsUpload, sftpUpload } = require('../middlewares/profile_multer');
 const labAnalysisController = require('../controllers/lab/labAnalysisController');
+const labStandaloneController = require('../controllers/lab/labStandaloneController');
 
 // Template routes
 router.post('/templates',authenticateToken, createTemplate);
@@ -61,6 +62,15 @@ router.get('/test-stats', authenticateToken, getLabTestStats); // stats by depar
 router.get('/recent-tests/visit/:visit_id', authenticateToken, getRecentLabTestsByVisitId); // recent tests by visit ID
 router.get('/results/pending', authenticateToken, getPendingLabTests); // pending tests for Lab department work queue
 router.get('/results/visit/:visit_id', authenticateToken, getResultsByVisitId);
+
+// Standalone lab routes for lab-only institutions
+router.get('/standalone/patients/search', authenticateToken, labStandaloneController.searchPatients);
+router.get('/standalone/patient/:id', authenticateToken, labStandaloneController.getPatientDetails);
+router.get('/standalone/patient/:id/history', authenticateToken, labStandaloneController.getPatientLabHistory);
+router.get('/standalone/records/search', authenticateToken, labStandaloneController.searchVisits);
+router.post('/standalone/request', authenticateToken, labStandaloneController.createStandaloneLabRequest);
+router.get('/standalone/stats', authenticateToken, labStandaloneController.getStandaloneLabStats);
+router.get('/standalone/pending-tests', authenticateToken, labStandaloneController.getStandalonePendingTests);
 
 // Multer error handler -> clean 400 instead of 500 (e.g. file too large / wrong type)
 router.use((err, req, res, next) => {

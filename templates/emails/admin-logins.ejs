@@ -1,54 +1,323 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #F4F8FC;
+            font-family: Arial, Helvetica, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #26364A;
         }
+
+        .email-wrapper {
+            width: 100%;
+            padding: 40px 15px;
+            box-sizing: border-box;
+            background-color: #F4F8FC;
+        }
+
         .container {
-            width: 90%;
+            max-width: 650px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
-            border-radius: 5px;
+            background-color: #FFFFFF;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(30, 75, 120, 0.08);
         }
+
+        /* Header */
         .header {
+            background: linear-gradient(135deg, #0F5B78, #087F8C);
+            padding: 35px 30px;
             text-align: center;
-            padding-bottom: 10px;
         }
+
+        .logo {
+            color: #FFFFFF;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 10px;
+        }
+
+        .header h2 {
+            color: #FFFFFF;
+            font-size: 24px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .header p {
+            color: #DDF7F7;
+            margin: 8px 0 0;
+            font-size: 14px;
+        }
+
+        /* Content */
         .content {
-            margin: 20px 0;
+            padding: 35px 40px;
         }
-        .footer {
+
+        .content p {
+            margin: 0 0 18px;
+            font-size: 15px;
+            color: #46576A;
+        }
+
+        .content strong {
+            color: #173B56;
+        }
+
+        .welcome {
+            font-size: 17px !important;
+            color: #26364A !important;
+        }
+
+        /* Credentials */
+        .credentials {
+            margin: 25px 0;
+            padding: 22px 25px;
+            background-color: #F0F9FA;
+            border: 1px solid #C9E8EA;
+            border-left: 4px solid #087F8C;
+            border-radius: 10px;
+        }
+
+        .credentials-title {
+            margin: 0 0 15px;
+            color: #0F5B78;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .credential-row {
+            padding: 10px 0;
+            border-bottom: 1px solid #D8ECEE;
+            font-size: 14px;
+        }
+
+        .credential-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .credential-label {
+            display: inline-block;
+            width: 75px;
+            font-weight: 700;
+            color: #466275;
+        }
+
+        .credential-value {
+            color: #173B56;
+        }
+
+        /* Security Notice */
+        .security {
+            margin: 25px 0;
+            padding: 15px 18px;
+            background-color: #FFF8E8;
+            border: 1px solid #F2DEAA;
+            border-radius: 8px;
+            color: #765A20;
+            font-size: 13px;
+        }
+
+        .security strong {
+            color: #765A20;
+        }
+
+        /* Button */
+        .button-wrapper {
             text-align: center;
-            padding-top: 10px;
+            margin: 30px 0 10px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 13px 28px;
+            background-color: #087F8C;
+            color: #FFFFFF !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .button:hover {
+            background-color: #0F5B78;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 25px 30px;
+            text-align: center;
+            background-color: #F7FAFC;
+            border-top: 1px solid #E5EDF3;
+        }
+
+        .footer-brand {
+            color: #0F5B78;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .footer p {
+            margin: 4px 0;
             font-size: 12px;
-            color: #666;
+            color: #718096;
+        }
+
+        .footer a {
+            color: #087F8C;
+            text-decoration: none;
+        }
+
+        /* Mobile */
+        @media only screen and (max-width: 600px) {
+            .email-wrapper {
+                padding: 20px 10px;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .content {
+                padding: 28px 22px;
+            }
+
+            .header h2 {
+                font-size: 21px;
+            }
+
+            .credential-label {
+                width: 65px;
+            }
         }
     </style>
 </head>
+
 <body>
+
+<div class="email-wrapper">
+
     <div class="container">
+
+        <!-- Header -->
         <div class="header">
-            <h2>Welcome to FalconHive!</h2>
+
+            <div class="logo">
+                Tonitel
+            </div>
+
+            <h2>Welcome to Tonitel!</h2>
+
+            <p>Hospital Management System</p>
+
         </div>
+
+        <!-- Content -->
         <div class="content">
-            <p>Dear <strong><%= username %></strong>,</p>
-            <p>We are excited to inform you that your institution, <strong><%= institutionName %></strong>, has been successfully registered on the FalconHive Hospital Management System. As the administrator, you now have the ability to manage and oversee various activities within your institution.</p>
-            <p>Below are your login credentials:</p>
-            <ul>
-                <li><strong>Email:</strong> <%= email %></li>
-                <li><strong>Password:</strong> <%= password %></li>
-            </ul>
-            <p>Please log in to your account to start managing your institution's activities, including creating and managing departments, overseeing daily operations, and much more. For security reasons, we recommend changing your password upon your first login.</p>
-            <p>If you have any questions or need assistance, our support team is here to help.</p>
-            <p>We look forward to supporting your institution's growth and success with FalconHive.</p>
+
+            <p class="welcome">
+                Dear <strong><%= username %></strong>,
+            </p>
+
+            <p>
+                We are excited to inform you that your institution,
+                <strong><%= institutionName %></strong>, has been successfully
+                registered on the <strong>Tonitel Hospital Management System</strong>.
+            </p>
+
+            <p>
+                As the administrator, you now have the ability to manage and
+                oversee your institution's operations, including departments,
+                staff, patients, services, and other activities.
+            </p>
+
+            <!-- Credentials -->
+            <div class="credentials">
+
+                <p class="credentials-title">
+                    Your Login Credentials
+                </p>
+
+                <div class="credential-row">
+                    <span class="credential-label">Email:</span>
+                    <span class="credential-value">
+                        <%= email %>
+                    </span>
+                </div>
+
+                <div class="credential-row">
+                    <span class="credential-label">Password:</span>
+                    <span class="credential-value">
+                        <%= password %>
+                    </span>
+                </div>
+
+            </div>
+
+            <p>
+                Please log in to your account to begin managing your institution.
+                You can create and manage departments, oversee daily operations,
+                manage users, and configure your institution according to your needs.
+            </p>
+
+            <!-- Security Notice -->
+            <div class="security">
+                <strong>Security reminder:</strong>
+                For your security, we strongly recommend changing your password
+                after your first login and keeping your login credentials private.
+            </div>
+
+            <!-- Login Button -->
+            <div class="button-wrapper">
+                <a href="<%= loginUrl %>" class="button">
+                    Log In to Tonitel
+                </a>
+            </div>
+
+            <p style="margin-top: 28px;">
+                If you have any questions or need assistance, our support team
+                is available to help.
+            </p>
+
+            <p>
+                We look forward to supporting your institution's growth and
+                delivering a better healthcare management experience with Tonitel.
+            </p>
+
         </div>
+
+        <!-- Footer -->
         <div class="footer">
-            <p>&copy; <%= new Date().getFullYear() %> FalconHive. All rights reserved.</p>
+
+            <div class="footer-brand">
+                Tonitel
+            </div>
+
+            <p>
+                Hospital Management System
+            </p>
+
+            <p>
+                &copy; <%= new Date().getFullYear() %> Tonitel.
+                All rights reserved.
+            </p>
+
         </div>
+
     </div>
+
+</div>
+
 </body>
 </html>

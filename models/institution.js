@@ -132,18 +132,21 @@ const Institution = sequelize.define('Institution', {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    workflow_mode: {
+        type: DataTypes.ENUM('full', 'lab_only', 'opd_only', 'records_lab'),
+        allowNull: true,
+        defaultValue: 'full'
+    }
     
 }, {
     sequelize,
     modelName: 'Institution',
     timestamps: true,
     tableName: 'institutions',
+    paranoid: true,
 });
 
-// Hook to generate a secure referral_code before creating an institution
-
-
-Institution.associations = (models) => {
+Institution.associate = (models) => {
     Institution.hasMany(models.Patient, { foreignKey: 'institution_id', as: 'patients' });
     Institution.hasMany(models.Department, { foreignKey: 'institution_id', as: 'departments' });
     Institution.hasMany(models.Staff, { foreignKey: 'institution_id', as: 'staffs' });

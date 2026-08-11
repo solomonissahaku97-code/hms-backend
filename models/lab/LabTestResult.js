@@ -16,7 +16,7 @@ const LabTestResult = sequelize.define('LabTestResult', {
     },
     visit_id: {
         type: DataTypes.UUID,
-        allowNull: false,
+        allowNull: true,
         onDelete: 'CASCADE'
     },
     patient_id: {
