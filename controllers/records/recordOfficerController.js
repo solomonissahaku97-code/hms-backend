@@ -54,15 +54,13 @@ const patientSchema = Joi.object({
     is_antenatal_patient: Joi.boolean().optional(),
     nhis_number: Joi.string().optional(),
     ghana_card_number: Joi.string().optional(),
-    // Relatives information
-    next_of_kin_name: Joi.string().optional(),
-    next_of_kin_phone: Joi.string()
-        .pattern(/^\+?[0-9]{5,15}$/).min(5).max(15).optional()
-    ,
-    next_of_kin_relationship: Joi.string().optional(),
-    emergency_contact_name: Joi.string().optional(),
-    emergency_contact_phone: Joi.string().pattern(/^\+?[0-9]{5,15}$/).min(5).max(15).optional(),
-    emergency_contact_relationship: Joi.string().optional(),
+    // Relatives information - all optional, phone pattern validation only applies to non-empty values
+    next_of_kin_name: Joi.string().allow('', null).optional(),
+    next_of_kin_phone: Joi.string().allow('', null).optional(),
+    next_of_kin_relationship: Joi.string().allow('', null).optional(),
+    emergency_contact_name: Joi.string().allow('', null).optional(),
+    emergency_contact_phone: Joi.string().allow('', null).optional(),
+    emergency_contact_relationship: Joi.string().allow('', null).optional(),
     has_insurance: Joi.boolean().optional(),
     insurance_provider: Joi.string().optional().valid('NHIS', 'Private', 'Other'),
     insurance_expiry_date: Joi.date().optional(),
@@ -82,8 +80,12 @@ exports.createNewPatient = async (req, res) => {
     // Validate the request body
     const { error } = patientSchema.validate(req.body);
     if (error) {
-        console.log(error)
-        return res.status(400).json({ error: error.details[0].message });
+        console.log(error);
+        return res.status(400).json({
+            success: false,
+            error: error.details[0].message,
+            message: error.details[0].message
+        });
     }
 
     const transaction = await sequelize.transaction();
@@ -92,7 +94,11 @@ exports.createNewPatient = async (req, res) => {
         const institution = await Institution.findByPk(institution_id, { transaction });
         if (!institution) {
             await transaction.rollback();
-            return res.status(404).json({ error: 'Institution not found' });
+            return res.status(404).json({
+            success: false,
+            error: 'Institution not found',
+            message: 'Institution not found'
+        });
         }
 
         // Prepare metadata with relatives information
@@ -156,7 +162,11 @@ exports.createNewPatient = async (req, res) => {
     } catch (error) {
         await transaction.rollback();
         console.log(error);
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({
+            success: false,
+            error: error.message,
+            message: error.message
+        });
     }
 };
 

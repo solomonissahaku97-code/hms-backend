@@ -903,13 +903,20 @@ const AccountsController = {
             const { invoice_id } = req.params;
             const { payment_method, paid_by, notes } = req.body;
 
+            console.log('payInvoice body:', req.body, 'invoice_id:', invoice_id);
+
             if (!invoice_id || !payment_method) {
                 await transaction.rollback();
                 return res.status(400).json({ success: false, error: "invoice_id and payment_method are required" });
             }
 
+            const invoiceWhereClause = { id: invoice_id };
+            if (req.admin?.institution_id) {
+                invoiceWhereClause.institution_id = req.admin.institution_id;
+            }
+
             const invoice = await Invoice.findByPk(invoice_id, {
-                where: { institution_id: req.admin?.institution_id },
+                where: invoiceWhereClause,
                 include: [
                     { model: ServiceBill, as: 'service_bills' }
                 ],
