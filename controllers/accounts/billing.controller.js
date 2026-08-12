@@ -137,7 +137,7 @@ exports.getPatientBillingHistory = async (req, res) => {
         {
           model: Invoice,
           as: 'invoices',
-          attributes: ['id', 'invoice_number', 'total_amount', 'amount_paid', 'balance_due', 'status', 'due_date', 'createdAt']
+          attributes: ['id', 'invoice_number', 'total_amount', 'amount_paid', 'balance_due', 'status', 'due_date', 'createdAt', 'institution_id']
         }
       ]
     });
@@ -204,6 +204,7 @@ exports.getPatientBillingHistory = async (req, res) => {
           total_amount: parseFloat(inv.total_amount) || 0,
           amount_paid: parseFloat(inv.amount_paid) || 0,
           balance_due: parseFloat(inv.balance_due) || 0,
+          institution_id: inv.institution_id,
           status: inv.status,
           due_date: inv.due_date,
           created_at: inv.createdAt

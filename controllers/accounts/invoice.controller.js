@@ -386,7 +386,13 @@ exports.sendInvoiceSMS = async (req, res) => {
     const invoice = await Invoice.findOne({
       where: { id, institution_id: institutionId },
       include: [
-        { model: Visit, as: 'visit', include: [{ model: Patient, as: 'patient' }] }
+        { 
+          model: Visit, as: 'visit', 
+          include: [
+            { model: Patient, as: 'patient' },
+            { model: Institution, as: 'institution', attributes: ['id', 'name'] }
+          ] 
+        }
       ]
     });
 
@@ -407,7 +413,14 @@ exports.sendInvoiceSMS = async (req, res) => {
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const invoiceUrl = `${baseUrl}/invoices/${invoice.token}`;
 
-    const message = `Dear ${invoice.visit?.patient?.first_name || 'Patient'}, your hospital invoice ${invoice.invoice_number} for GHS ${parseFloat(invoice.balance_due || invoice.total_amount).toFixed(2)} is ready. View and pay online: ${invoiceUrl}`;
+    const institutionName = invoice.visit?.institution?.name || 'Hospital';
+    const patientName = invoice.visit?.patient?.first_name || 'Patient';
+    const totalAmount = parseFloat(invoice.total_amount || 0).toFixed(2);
+    const amountPaid = parseFloat(invoice.amount_paid || 0).toFixed(2);
+    const balanceDue = parseFloat(invoice.balance_due || 0).toFixed(2);
+    const ref = invoice.reference || invoice.invoice_number;
+
+    const message = `${institutionName}: Dear ${patientName}, your invoice ${invoice.invoice_number} | Total: GHS ${totalAmount} | Paid: GHS ${amountPaid} | Balance: GHS ${balanceDue} | Ref: ${ref} | View and pay: ${invoiceUrl}`;
 
     const smsResult = await sendSMS(patientPhone, message);
 
