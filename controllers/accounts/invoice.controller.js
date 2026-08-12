@@ -349,8 +349,13 @@ exports.generateInvoiceToken = async (req, res) => {
     const { id } = req.params;
     const institutionId = req.body.institution_id || req.admin?.institution_id;
 
+    const whereClause = { id };
+    if (institutionId) {
+      whereClause.institution_id = institutionId;
+    }
+
     const invoice = await Invoice.findOne({
-      where: { id, institution_id: institutionId }
+      where: whereClause
     });
 
     if (!invoice) {
@@ -383,8 +388,13 @@ exports.sendInvoiceSMS = async (req, res) => {
     const { phone_number } = req.body;
     const institutionId = req.body.institution_id || req.admin?.institution_id;
 
+    const whereClause = { id };
+    if (institutionId) {
+      whereClause.institution_id = institutionId;
+    }
+
     const invoice = await Invoice.findOne({
-      where: { id, institution_id: institutionId },
+      where: whereClause,
       include: [
         { 
           model: Visit, as: 'visit', 

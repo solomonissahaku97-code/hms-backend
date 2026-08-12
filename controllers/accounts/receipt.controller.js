@@ -16,8 +16,13 @@ exports.generateReceipt = async (req, res) => {
             return res.status(400).json({ success: false, message: 'invoice_id is required' });
         }
 
+        const invoiceWhereClause = { id: invoice_id };
+        if (institutionId) {
+            invoiceWhereClause.institution_id = institutionId;
+        }
+
         const invoice = await Invoice.findOne({
-            where: { id: invoice_id, institution_id: institutionId },
+            where: invoiceWhereClause,
             include: [
                 { model: Visit, as: 'visit', include: [{ model: Patient, as: 'patient' }] }
             ]
@@ -97,8 +102,13 @@ exports.sendReceiptSMS = async (req, res) => {
         const { receipt_id } = req.params;
         const institutionId = req.body.institution_id || req.admin?.institution_id;
 
+        const whereClause = { id: receipt_id };
+        if (institutionId) {
+            whereClause.institution_id = institutionId;
+        }
+
         const receipt = await Receipt.findOne({
-            where: { id: receipt_id, institution_id: institutionId },
+            where: whereClause,
             include: [
                 { 
                     model: Patient, 
@@ -237,6 +247,10 @@ exports.getInstitutionReceipts = async (req, res) => {
     try {
         const institutionId = req.body.institution_id || req.admin?.institution_id;
         const { page = 1, limit = 20, patient_id } = req.query;
+
+        if (!institutionId) {
+            return res.status(400).json({ success: false, message: 'institution_id is required' });
+        }
 
         const where = { institution_id: institutionId };
         if (patient_id) {

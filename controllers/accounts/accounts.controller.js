@@ -457,6 +457,7 @@ const AccountsController = {
             bill.paid_amount = parseFloat(paid_amount);
             bill.payment_method = payment_method;
             bill.paid_at = new Date();
+            bill.has_paid = isFullyPaid;
             bill.payment_status = isFullyPaid ? "Paid" : "Pending";
             if (req.body.paid_by && req.body.paid_by !== 'Staff') {
                 bill.staff_id = req.body.paid_by;
@@ -595,7 +596,19 @@ const AccountsController = {
                 const computedTotalPatient = bills.reduce((s, sb) => s + parseFloat(sb.patient_amount || 0), 0);
                 const computedTotalNhia = bills.reduce((s, sb) => s + parseFloat(sb.nhia_amount || 0), 0);
                 const computedTotal = computedTotalPatient + computedTotalNhia;
-                const computedCollected = bills.filter(b => b.has_paid).reduce((s, b) => s + parseFloat(b.patient_amount || 0), 0);
+                const computedCollected = bills.filter(b => b.has_paid).reduce((s, b) => s + parseFloat(b.patient_amount || 0) + parseFloat(b.nhia_amount || 0), 0);
+                const computedBalanceDue = computedTotal - computedCollected;
+
+                let derivedStatus = inv.status;
+                if (['cancelled', 'refunded', 'draft'].includes(inv.status)) {
+                    // Preserve special statuses from database
+                } else if (Math.abs(computedBalanceDue) < 0.01) {
+                    derivedStatus = 'paid';
+                } else if (computedCollected > 0) {
+                    derivedStatus = 'partially_paid';
+                } else {
+                    derivedStatus = 'unpaid';
+                }
 
                 return {
                     id: inv.id,
@@ -606,8 +619,8 @@ const AccountsController = {
                     patient_amount: computedTotalPatient,
                     nhia_amount: computedTotalNhia,
                     amount_paid: computedCollected,
-                    balance_due: computedTotal - computedCollected,
-                    status: inv.status,
+                    balance_due: computedBalanceDue,
+                    status: derivedStatus,
                     payment_method: inv.payment_method,
                     patient: inv.visit?.patient ? {
                         id: inv.visit.patient.id,
