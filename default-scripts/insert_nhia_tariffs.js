@@ -10,7 +10,6 @@ const tariffs = [
  
 const insertTariffs = async () => {
     try {
-        await sequelize.sync(); // Ensure table exists
         await NHIATariffs.bulkCreate(tariffs, { ignoreDuplicates: true });
         console.log('NHIA Tariffs inserted successfully!');
     } catch (error) {

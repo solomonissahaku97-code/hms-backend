@@ -1,6 +1,6 @@
 const { Claim, ClaimItem, Diagnosis, Visit, Patient, Insurance } = require('../models');
 const { generateClaimsReference } = require('./generateFolderNumber');
-const Medicine = require('../models/claims/medication');
+const Medicine = require('../models/claims/medication'); 
 const Prescription = require('../models/prescription');
 const sequelize = require('../config/database');
 const LabTestResult = require('../models/lab/LabTestResult');

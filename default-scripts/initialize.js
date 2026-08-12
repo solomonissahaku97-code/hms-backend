@@ -4,9 +4,6 @@ const createRoles = require('./createRoles');
 
 async function initializeDatabase() {
   try {
-    // Sync database
-    await sequelize.sync();
-
     // Seed access controls
     await createAccessControls();
 

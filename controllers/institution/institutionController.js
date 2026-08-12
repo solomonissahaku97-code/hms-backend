@@ -110,6 +110,14 @@ exports.deleteInstitution = async (req, res) => {
             return res.status(404).json({ error: 'Institution not found' });
         }
 
+        await Promise.all([
+            Admin.destroy({ where: { institution_id: id } }),
+            Staff.destroy({ where: { institution_id: id } }),
+            Patient.destroy({ where: { institution_id: id }, force: true }),
+            Department.destroy({ where: { institution_id: id } }),
+            InstitutionSubAccounts.destroy({ where: { institution_id: id } }),
+        ]);
+
         await institution.destroy();
 
         res.status(200).json({ message: 'Institution deleted successfully' });

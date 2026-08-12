@@ -25,12 +25,6 @@ if (process.env.NODE_ENV === 'production' && process.env.APP_URL) {
   swaggerFile.schemes = ['http'];
 }
 
-// Models
-const VitalSignsRecord = require('./models/vital_signs_records');
-const TheatrePatients = require('./models/theatre/TheatrePatients');
-const PreOpChecklist = require('./models/theatre/PreOpChecklist');
-const EducationMaterials = require('./models/theatre/EducationalMaterials');
-const PatientAllergies = require('./models/theatre/PatientAllergies');
 // Initialize express app
 const app = express();
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -153,126 +147,6 @@ cron.schedule("0 1 * * *", async () => {
 });
 
 /* -------------------------------------------------------------------------- */
-/*                            DATABASE SYNC                                  */
-/* -------------------------------------------------------------------------- */
-
-// Store models sync
-async function syncStoreModels() {
-  try {
-    // Import store models to ensure they're loaded
-    const Item = require('./models/store/item');
-    const ItemBatch = require('./models/store/ItemBatch');
-    const Supplier = require('./models/store/Supplier');
-    const StockRequest = require('./models/store/StockRequest');
-    const StockRequestItem = require('./models/store/StockRequestItem');
-    const StockTransfer = require('./models/store/StockTransfer');
-    const StockTransferItem = require('./models/store/StockTransferItem');
-    const StockAdjustment = require('./models/store/StockAdjustment');
-    const StockAlert = require('./models/store/StockAlert');
-    const PurchaseOrder = require('./models/store/PurchaseOrder');
-    const PurchaseOrderItem = require('./models/store/PurchaseOrderItem');
-    const InventoryRecord = require('./models/store/inventoryRecord');
-    const IssuedItem = require('./models/store/IssuedItem');
-    const ExpiredItem = require('./models/store/ExpiredItem');
-
-    // Sync store models in order (dependencies first)
-    await Supplier.sync({ alter: true });
-    console.log('✅ Supplier table synced');
-    
-    await Item.sync({ alter: true });
-    console.log('✅ Item table synced');
-    
-    await ItemBatch.sync({ alter: true });
-    console.log('✅ ItemBatch table synced');
-    
-    await StockRequest.sync({ alter: true });
-    console.log('✅ StockRequest table synced');
-
-    await SuperAdmin.sync({alter:true})
-    console.log('super-admin synced successfully')
-    
-    await StockRequestItem.sync({ alter: true });
-    console.log('✅ StockRequestItem table synced');
-    
-    await StockTransfer.sync({ alter: true });
-    console.log('✅ StockTransfer table synced');
-    
-    await StockTransferItem.sync({ alter: true });
-    console.log('✅ StockTransferItem table synced');
-    
-    await StockAdjustment.sync({ alter: true });
-    console.log('✅ StockAdjustment table synced');
-    
-    await StockAlert.sync({ alter: true });
-    console.log('✅ StockAlert table synced');
-    
-    await PurchaseOrder.sync({ alter: true });
-    console.log('✅ PurchaseOrder table synced');
-    
-    await PurchaseOrderItem.sync({ alter: true });
-    console.log('✅ PurchaseOrderItem table synced');
-    
-    await InventoryRecord.sync({ alter: true });
-    console.log('✅ InventoryRecord table synced');
-    
-    await IssuedItem.sync({ alter: true });
-    console.log('✅ IssuedItem table synced');
-    
-    await ExpiredItem.sync({ alter: true });
-    console.log('✅ ExpiredItem table synced');
-    
-    console.log('✅ All store models synced successfully');
-  } catch (error) {
-    console.error('❌ Error syncing store models:', error);
-  }
-}
-
-async function syncVitalSignsRecord() {
-  try {
-    await VitalSignsRecord.sync({ alter: true });
-    console.log('✅ VitalSignsRecord table synced successfully');
-  } catch (error) {
-    console.error('❌ Error syncing VitalSignsRecord:', error);
-  }
-}
-
-async function syncTheatre() {
-  try {
-    // Import OperatingRoom first - it must be synced before TheatrePatients
-    const OperatingRoom = require('./models/theatre/OperatingRoom');
-    
-    // Sync OperatingRoom FIRST (before TheatrePatients which has FK to it)
-    await OperatingRoom.sync({ alter: true });
-    console.log('✅ OperatingRoom table synced');
-    
-    // Now sync TheatrePatients (it has FK to OperatingRoom)
-    await TheatrePatients.sync({ alter: true });
-    console.log('✅ TheatrePatients table synced');
-    
-    await PreOpChecklist.sync({ alter: true });
-    console.log('✅ PreOpChecklist table synced');
-    
-    await EducationMaterials.sync({ alter: true });
-    console.log('✅ EducationMaterials table synced');
-    
-    await PatientAllergies.sync({ alter: true });
-    console.log('✅ PatientAllergies table synced');
-    
-    console.log('✅ All theatre models synced successfully');
-  } catch (error) {
-    console.error('❌ Error syncing TheatrePatients:', error);
-  }
-}
-
-db.sequelize.sync({ alter: true }) 
-  .then(() => {
-    console.log('✅ Database synchronized successfully.');
-  })
-  .catch((error) => { 
-    console.error('❌ Error synchronizing the database:', error);
-  });
-
-/* -------------------------------------------------------------------------- */
 /*                               ROUTES                                      */
 /* -------------------------------------------------------------------------- */
 const setupRoutes = require('./routes/index');
@@ -337,7 +211,6 @@ const callSocketHandler = new CallSocketHandler(io);
 
 // Initialize ChatService for messaging
 const ChatService = require('./service/ChatService');
-const SuperAdmin = require('./models/superadmin');
 const { alter } = require('./validators/validateInstitution');
 const chatService = new ChatService(io);
 
@@ -345,14 +218,7 @@ const chatService = new ChatService(io);
 server.listen(port, '0.0.0.0', async () => {
   console.log(`🚀 Server is running on http://localhost:${port}`);
   try {
-    // First sync store models (they are needed by other modules)
-    await syncStoreModels();
-    // Run seeders
     await runAllSeeders();
-    // Sync vital signs
-    await syncVitalSignsRecord();
-    // Sync theatre models (requires OperatingRoom before TheatrePatients)
-    await syncTheatre();
     console.log('✅ All startup processes completed successfully');
   } catch (error) {
     console.error('❀ Startup process completed with some errors, but server is running:', error.message);

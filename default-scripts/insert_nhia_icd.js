@@ -11,8 +11,6 @@ const nhiaICDCodes = [
  
 async function insertNHIA_ICD() {
     try {
-        await sequelize.sync();
-
         // Insert NHIA ICD-10 codes
         for (let icd of nhiaICDCodes) {
             await NHIA_ICD.findOrCreate({
