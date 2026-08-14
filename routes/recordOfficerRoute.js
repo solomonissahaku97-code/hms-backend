@@ -18,6 +18,7 @@ router.post('/patient/initiate',adminAuthOrUserAuth,recordOfficer.initializeNewP
 
 // Get all active visits in an institution
 router.get('/visit/active',adminAuthOrUserAuth,recordOfficer.getActiveVisits)
+router.get('/visit/search',adminAuthOrUserAuth,recordOfficer.searchActiveVisits)
 router.get('/insurance',adminAuthOrUserAuth,recordOfficer.getAllInsuranceProviders)
 router.get('/visit/by-type',adminAuthOrUserAuth,recordOfficer.getVisitsByType);
 router.get('/visits/:visit_id',adminAuthOrUserAuth,recordOfficer.getVisitDetails);

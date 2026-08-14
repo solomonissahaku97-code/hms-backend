@@ -4,6 +4,7 @@ const Admin = require('../../models/admin');
 const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
 const { handleBilling } = require('../../utils/billingUtil');
 const { Op } = require('sequelize');
+const Claim = require('../../models/claims/claim');
 
 // @desc    Search patients for standalone lab workflow
 // @route   GET /lab/standalone/patients/search
@@ -36,7 +37,6 @@ exports.searchPatients = async (req, res) => {
             limit: 20,
             order: [['createdAt', 'DESC']]
         });
-
         res.json({ success: true, data: patients });
     } catch (error) {
         console.error('Error searching patients for standalone lab:', error);
@@ -44,9 +44,7 @@ exports.searchPatients = async (req, res) => {
     }
 };
 
-// @desc    Get patient details for standalone lab
-// @route   GET /lab/standalone/patient/:id
-// @access  Authenticated
+
 exports.getPatientDetails = async (req, res) => {
     try {
         const { institution_id } = req.user;
@@ -405,7 +403,7 @@ exports.getStandalonePendingTests = async (req, res) => {
                     as: 'visit',
                     include: [
                         { model: Patient, as: 'patient' },
-                        { model: require('../../models/claims/Claim'), as: 'claims' }
+                        { model:Claim, as: 'claims' }
                     ]
                 },
                 {

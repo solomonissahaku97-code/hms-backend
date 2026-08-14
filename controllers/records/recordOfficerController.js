@@ -30,6 +30,7 @@ const Appointment = require("../../models/appointment");
 const GDRGCode = require("../../models/claims/GDRGCode");
 const ANC = require("../../models/maternity/ANC");
 const LabTestField = require("../../models/lab/LabTestField");
+const { Op } = require("sequelize");
 
 
 
@@ -638,6 +639,110 @@ exports.getActiveVisits = async (req, res) => {
     }
 };
 
+exports.searchActiveVisits = async (req, res) => {
+    const { institution_id, query } = req.query;
+
+    if (!institution_id) {
+        return res.status(400).json({
+            success: false,
+            message: 'institution_id is required'
+        });
+    }
+
+    const searchQuery = query?.trim();
+
+    if (!searchQuery || searchQuery.length < 2) {
+        return res.status(200).json({
+            success: true,
+            count: 0,
+            data: []
+        });
+    }
+
+    try {
+        const visits = await Visit.findAll({
+            where: {
+                institution_id,
+                status: 'Active'
+            },
+
+            include: [
+                {
+                    model: Patient,
+                    as: 'patient',
+                    required: true,
+                    attributes: [
+                        'id',
+                        'first_name',
+                        'middle_name',
+                        'last_name',
+                        'folder_number',
+                        'phone'
+                    ],
+                    where: {
+                        [Op.or]: [
+                            {
+                                first_name: {
+                                    [Op.iLike]: `%${searchQuery}%`
+                                }
+                            },
+                            {
+                                middle_name: {
+                                    [Op.iLike]: `%${searchQuery}%`
+                                }
+                            },
+                            {
+                                last_name: {
+                                    [Op.iLike]: `%${searchQuery}%`
+                                }
+                            },
+                            {
+                                folder_number: {
+                                    [Op.iLike]: `%${searchQuery}%`
+                                }
+                            },
+                            {
+                                phone: {
+                                    [Op.iLike]: `%${searchQuery}%`
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    model: Institution,
+                    as: 'institution',
+                    attributes: ['id', 'name']
+                },
+                {
+                    model: Department,
+                    as: 'department',
+                    attributes: ['id', 'name']
+                }
+            ],
+
+            limit: 20,
+
+            order: [
+                ['createdAt', 'DESC']
+            ]
+        });
+
+        return res.status(200).json({
+            success: true,
+            count: visits.length,
+            data: visits
+        });
+
+    } catch (err) {
+        console.error('Error searching active visits:', err);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to search active visits.'
+        });
+    }
+};
 // get active visit by department_id
 
 

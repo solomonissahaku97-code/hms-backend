@@ -4,7 +4,7 @@ const { getAllAccessControls, getAllRoles, updateStaffPermissions, getAllPermiss
 const { getAllStaffPermissions, updateUserPermissions } = require('../controllers/permissionControllers');
 const eitherAuthOrAdmin = require('../middlewares/eitherAuthOrAdminMiddleware')
 const checkTrialStatus = require('../middlewares/checkTrialStatus')
-
+ 
 
 
 router.get('/access-controls', getAllAccessControls); 

@@ -81,6 +81,7 @@ const systemRoutes = require('./systemRoutes')
 const scheduleRoutes = require('./scheduleRoutes')
 const staffDocumentsRoutes = require('./staffDocuments.route')
 const aiRoutes = require('./aiRoutes');
+const syncRoutes = require('./syncRoutes');
 
 // middle ware
 
@@ -206,4 +207,5 @@ module.exports = (app) => {
     // SYSTEM MANAGEMENT (Backup, Health, Dashboard Stats)
     app.use('/api/v1/system', systemRoutes);
     app.use('/api/v1/ai', aiRoutes);
+    app.use('/api/v1/sync', syncRoutes);
 };
