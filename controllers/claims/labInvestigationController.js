@@ -25,6 +25,11 @@ exports.create = async (req, res) => {
       return res.status(400).json({ error: 'All fields (test_description, g_drg_code, tariff_ghc) are required' });
     }
 
+    const existing = await LabInvestigation.findOne({ where: { g_drg_code } });
+    if (existing) {
+      return res.status(409).json({ error: `G-DRG code "${g_drg_code}" already exists. Please use a unique code.` });
+    }
+
     const investigation = await LabInvestigation.create({
       test_description,
       g_drg_code,
@@ -101,7 +106,7 @@ exports.findOne = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { test_description, g_drg_code, tariff_ghc ,market_price} = req.body;
+    const { test_description, g_drg_code ,market_price} = req.body;
 
     const investigation = await LabInvestigation.findByPk(id);
     if (!investigation) {
@@ -110,9 +115,19 @@ exports.update = async (req, res) => {
 
     // Only update fields that are provided
     if (test_description !== undefined && test_description !== null && test_description !== '') investigation.test_description = test_description;
-    if (g_drg_code !== undefined && g_drg_code !== null && g_drg_code !== '') investigation.g_drg_code = g_drg_code;
-    if (tariff_ghc !== undefined && tariff_ghc !== null && tariff_ghc !== '') investigation.tariff_ghc = tariff_ghc;
     if (market_price !== undefined && market_price !== null && market_price !== '') investigation.market_price = market_price;
+
+    if (g_drg_code && g_drg_code.trim() !== '') {
+      const existing = await LabInvestigation.findOne({ 
+        where: { g_drg_code, id: { [Op.ne]: id } } 
+      });
+      if (existing) {
+        return res.status(409).json({ error: `G-DRG code "${g_drg_code}" already exists. Please use a unique code.` });
+      }
+      investigation.g_drg_code = g_drg_code;
+    }
+
+    if (tariff_ghc !== undefined && tariff_ghc !== null && tariff_ghc !== '') investigation.tariff_ghc = tariff_ghc;
 
     await investigation.save();
 
