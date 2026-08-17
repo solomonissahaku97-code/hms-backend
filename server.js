@@ -75,16 +75,6 @@ async function runAllSeeders() {
   let successful = 0;
   let failed = 0;
 
-  // Sync all models once before running seeders to avoid repeated force-sync issues
-  try {
-    console.log('🔄 Syncing database models...');
-    await db.sequelize.sync({ alter: true });
-    console.log('✅ Database models synced');
-  } catch (error) {
-    console.error('❌ Failed to sync database models:', error.message);
-    throw error;
-  }
-
   for (const seeder of seeders) {
     try {
       console.log(`\n🌱 Running ${seeder.name}...`);

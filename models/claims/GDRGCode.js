@@ -42,7 +42,13 @@ const GDRGCode = sequelize.define('GDRGCode', {
   timestamps: true,
   tableName: 'gdrg_codes',
   underscored: true
-
 });
+
+GDRGCode.associate = (models) => {
+  GDRGCode.hasMany(models.institutionProcedurePrice, {
+    foreignKey: 'gdrg_code_id',
+    as: 'institutionProcedurePrices'
+  });
+};
 
 module.exports = GDRGCode;

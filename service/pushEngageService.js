@@ -33,7 +33,13 @@ async function sendPushEngageNotification({ title, message, url, targetType = 'a
     console.log(`PushEngage notification sent: ${response.data?.id || payload.id}`);
     return response.data;
   } catch (error) {
-    console.error('Failed to send PushEngage notification:', error.response?.data || error.message);
+    const status = error.response?.status;
+    const data = error.response?.data;
+    const isHtml = typeof data === 'string' && data.trim().startsWith('<!DOCTYPE');
+    const message = isHtml
+      ? `PushEngage returned ${status || 'error'} (HTML response)`
+      : (data?.message || data?.error || error.message);
+    console.error('Failed to send PushEngage notification:', message);
   }
 }
 

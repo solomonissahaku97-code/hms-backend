@@ -41,7 +41,7 @@ const PatientNote = sequelize.define('patientNote', {
 }, {
     tableName: 'patient_notes', // Optional: specify the table name if different from the model name
     timestamps: true, // Automatically manage createdAt and updatedAt fields
-    paranoid: true, // Enable soft deletion\
+    paranoid: true, // Enable soft deletion
     underscored: true, // Use snake_case for column names
     indexes: [
         {

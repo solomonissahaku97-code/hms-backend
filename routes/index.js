@@ -3,6 +3,7 @@ const recordOfficerRoutes = require('./recordOfficerRoute');
 const vitalSignsRoutes = require('./vitalSignsRoutes');
 const appointmentRoutes = require('./shdeduleAppointmentRoute');
 const lab = require('./labRoutes');
+const referralRoutes = require('./referralRoutes');
 const patientLabRoutes = require('./patientLabRoutes');
 
 const prescriptionRoutes = require('./prescriptionRoute');
@@ -163,6 +164,9 @@ module.exports = (app) => {
 
     // LAB TEST ROUTE
     app.use('/api/v1/lab', lab );
+
+    // INTER-INSTITUTION LAB REFERRAL ROUTES
+    app.use('/api/v1/lab-referrals', referralRoutes);
 
     // PATIENT LABS
     app.use('/api/v1/lab', patientLabRoutes);

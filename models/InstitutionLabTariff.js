@@ -53,10 +53,10 @@ InstitutionLabTariff.associate = (models) => {
         foreignKey: 'institution_id',
         as: 'institution'
     });
-    // InstitutionLabTariff.belongsTo(models.LabInvestigation, {
-    //     foreignKey: 'lab_investigation_id',
-    //     as: 'labInvestigation'
-    // });
+    InstitutionLabTariff.belongsTo(LabInvestigation, {
+        foreignKey: 'lab_investigation_id',
+        as: 'labInvestigation'
+    });
 };
 
 module.exports = InstitutionLabTariff;

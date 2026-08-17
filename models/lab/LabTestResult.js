@@ -129,6 +129,11 @@ const LabTestResult = sequelize.define('LabTestResult', {
         type: DataTypes.INTEGER,
         allowNull: true,
         comment: 'Turnaround time in minutes'
+    },
+    referral_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'If this result belongs to an inter-institution referral'
     }
 }, {
     timestamps: true,
@@ -170,6 +175,11 @@ LabTestResult.associate = (models) => {
     LabTestResult.belongsTo(models.LabTestResult, {
         foreignKey: 'rerun_of_id',
         as: 'rerunOf'
+    });
+
+    LabTestResult.belongsTo(models.LabReferral, {
+        foreignKey: 'referral_id',
+        as: 'referral'
     });
 };
 

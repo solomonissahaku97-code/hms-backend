@@ -12,6 +12,8 @@ const Visit = require('./Visit');
 const Procedure = require('./procedure/procedure');
 const Prescription = require('./prescription');
 const LabTestResult = require('./lab/LabTestResult');
+const Service = require('./service');
+const Consultation = require('./Consultation');
 
 const ServiceBill = sequelize.define('ServiceBill', {
     id: {
@@ -158,6 +160,11 @@ ServiceBill.prototype.getService = async function() {
             return await LabTestResult.findByPk(this.service_id);
         case 'Procedure':
             return await Procedure.findByPk(this.service_id);
+        case 'Service':
+        case 'Other':
+            return await Service.findByPk(this.service_id);
+        case 'Consultation':
+            return await Consultation.findByPk(this.service_id);
         default:
             return null;
     }

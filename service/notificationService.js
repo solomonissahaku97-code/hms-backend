@@ -116,7 +116,7 @@ class NotificationService {
       return;
     }
 
-    console.log(`📣 Emitting notification ${notification.id} to staff ${notification.to_staff_id}`);
+    console.log(`📣 Emitting notification ${notification.id}${notification.to_staff_id ? ` to staff ${notification.to_staff_id}` : ''}${notification.to_department_id ? ` to department ${notification.to_department_id}` : ''}`);
 
     try {
       // To a specific staff

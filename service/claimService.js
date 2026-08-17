@@ -7,6 +7,9 @@ const LabTestResult = require('../models/lab/LabTestResult');
 const LabTestTemplate = require('../models/lab/LabTestTemplate');
 const LabInvestigation = require('../models/claims/LabInvestigations');
 const Procedure = require('../models/procedure/procedure');
+const InstitutionLabTariff = require('../models/InstitutionLabTariff');
+const InstitutionPharmacyPrice = require('../models/InstitutionPharmacyPrice');
+const InstitutionProcedurePrice = require('../models/InstitutionProcedurePrice');
 
 // small helper to safely parse stored floats
 const parseData = (v) => parseFloat(v) || 0;
@@ -88,6 +91,10 @@ const addClaimItem = async (claimId, itemData, transaction) => {
   const visitId = claim.visit_id;
   const insured = await isPatientInsured(visitId, transaction);
 
+  // Resolve patient institution for institution-specific pricing
+  const visit = await Visit.findByPk(visitId, { transaction });
+  const patientInstitutionId = visit?.institution_id || null;
+
   // Type-specific processing
   switch (itemData.item_type) {
     case 'Medication': {
@@ -97,9 +104,27 @@ const addClaimItem = async (claimId, itemData, transaction) => {
       const medication = await Medicine.findByPk(prescription.medication_id, { transaction });
       if (!medication) throw new Error('Medication not found');
 
+      let marketPrice = parseFloat(medication.market_price || 0);
+      let nhiaPrice = parseFloat(medication.nhia_price || 0);
+
+      if (patientInstitutionId) {
+        const institutionOverride = await InstitutionPharmacyPrice.findOne({
+          where: {
+            institution_id: patientInstitutionId,
+            medicine_id: medication.id,
+            is_active: true
+          },
+          transaction
+        });
+
+        if (institutionOverride) {
+          marketPrice = parseFloat(institutionOverride.market_price || marketPrice);
+          nhiaPrice = parseFloat(institutionOverride.nhia_price || nhiaPrice);
+        }
+      }
+
       if (!medication.is_nhia_covered) {
-        // Not covered by NHIA -> patient pays full market price
-        itemData.unit_price = medication.market_price || 0;
+        itemData.unit_price = marketPrice;
         itemData.description = medication.generic_name;
         itemData.quantity = prescription.quantity || 1;
         itemData.gdrg_code = medication.code;
@@ -107,20 +132,19 @@ const addClaimItem = async (claimId, itemData, transaction) => {
         break;
       }
 
-      itemData.unit_price = medication.market_price || medication.nhia_price || 0;
+      itemData.unit_price = marketPrice || nhiaPrice || 0;
       itemData.description = medication.generic_name;
       itemData.quantity = prescription.quantity || 1;
       itemData.gdrg_code = medication.code;
       applySplit(itemData, {
         insured,
         covered: true,
-        nhiaRate: medication.nhia_price || 0,
+        nhiaRate: nhiaPrice || 0,
       });
       break;
     }
 
     case 'LabTest': {
-      // First find the lab request/test record
       const labTestResult = await LabTestResult.findOne({
         where: { id: itemData.item_id },
         include: [{
@@ -140,15 +164,33 @@ const addClaimItem = async (claimId, itemData, transaction) => {
 
       const labInvestigation = labTestResult.template.lab_tarrif;
 
-      // Set claim item data from the lab investigation
-      itemData.unit_price = labInvestigation.market_price || labInvestigation.tariff_ghc || 0;
+      let marketPrice = parseFloat(labInvestigation.market_price || 0);
+      let tariffGhc = parseFloat(labInvestigation.tariff_ghc || 0);
+
+      if (patientInstitutionId) {
+        const institutionOverride = await InstitutionLabTariff.findOne({
+          where: {
+            institution_id: patientInstitutionId,
+            lab_investigation_id: labInvestigation.id,
+            is_active: true
+          },
+          transaction
+        });
+
+        if (institutionOverride) {
+          marketPrice = parseFloat(institutionOverride.market_price || marketPrice);
+          tariffGhc = parseFloat(institutionOverride.tariff_ghc || tariffGhc);
+        }
+      }
+
+      itemData.unit_price = marketPrice || tariffGhc || 0;
       itemData.description = labInvestigation.test_description;
       itemData.gdrg_code = labInvestigation.g_drg_code;
       itemData.quantity = 1;
       applySplit(itemData, {
         insured,
         covered: true,
-        nhiaRate: labInvestigation.tariff_ghc || 0,
+        nhiaRate: tariffGhc || 0,
       });
       break;
     }
@@ -161,8 +203,6 @@ const addClaimItem = async (claimId, itemData, transaction) => {
       itemData.quantity = itemData.quantity || 1;
       itemData.description = itemData.description || 'Diagnosis Item';
       itemData.gdrg_code = itemData.gdrg_code || null;
-      // Diagnosis codes themselves are not priced by NHIA tariff; treat as
-      // patient-responsible unless an explicit nhia_amount was provided.
       const providedNhia = parseFloat(itemData.nhia_amount) || 0;
       applySplit(itemData, {
         insured,
@@ -179,13 +219,28 @@ const addClaimItem = async (claimId, itemData, transaction) => {
         if (!procedure) throw new Error('Procedure not found');
       }
 
-      // Procedure pricing comes from its linked GDRG code (market + nhia rates)
       const gdrg = procedure && procedure.selected_procedure_id
         ? await sequelize.models.GDRGCode?.findByPk(procedure.selected_procedure_id, { transaction })
         : null;
 
-      const marketPrice = gdrg ? (parseFloat(gdrg.market_price) || 0) : (parseFloat(itemData.unit_price) || 0);
-      const nhiaPrice = gdrg ? (parseFloat(gdrg.nhia_price) || 0) : 0;
+      let marketPrice = gdrg ? (parseFloat(gdrg.market_price) || 0) : (parseFloat(itemData.unit_price) || 0);
+      let nhiaPrice = gdrg ? (parseFloat(gdrg.nhia_price) || 0) : 0;
+
+      if (patientInstitutionId && gdrg) {
+        const institutionOverride = await InstitutionProcedurePrice.findOne({
+          where: {
+            institution_id: patientInstitutionId,
+            gdrg_code_id: gdrg.id,
+            is_active: true
+          },
+          transaction
+        });
+
+        if (institutionOverride) {
+          marketPrice = parseFloat(institutionOverride.market_price || marketPrice);
+          nhiaPrice = parseFloat(institutionOverride.nhia_price || nhiaPrice);
+        }
+      }
 
       itemData.unit_price = marketPrice;
       itemData.description = itemData.description || gdrg?.description || procedure?.Procedure?.procedure_name || 'Procedure';
@@ -195,9 +250,7 @@ const addClaimItem = async (claimId, itemData, transaction) => {
       break;
     }
 
-    // Add cases for other types as needed
     default: {
-      // Fallback: use whatever unit_price/quantity the caller supplied
       itemData.quantity = itemData.quantity || 1;
       applySplit(itemData, { insured, covered: false, nhiaRate: 0 });
       break;

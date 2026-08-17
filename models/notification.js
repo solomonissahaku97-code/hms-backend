@@ -53,7 +53,7 @@ const Notification = sequelize.define('Notification', {
     defaultValue: false,
   },
   type: {
-    type: DataTypes.ENUM('Alert', 'Message', 'Reminder', 'System', 'Comment'),
+    type: DataTypes.ENUM('Alert', 'Message', 'Reminder', 'System', 'Comment', 'Lab_Result', 'Stock_Issue', 'Stock_Request'),
     defaultValue: 'Message',
   },
   broadcast: {

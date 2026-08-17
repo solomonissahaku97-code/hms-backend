@@ -319,7 +319,7 @@ exports.makePatientPayment = async (req, res) => {
               patient_id,
               institution_id: visit.institution_id,
               department_id: labResult.department_id || visit.department_id,
-              service_id: null,
+              service_id: labResult.id,
               service_type: 'LabTest',
               description: tariff.test_description || 'Lab Test',
               unit_price: marketPrice || tariffGhc,

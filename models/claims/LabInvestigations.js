@@ -65,6 +65,10 @@ LabInvestigation.associate = (models)=>{
     foreignKey: 'department_id',
     as: 'department'
   });
+  LabInvestigation.hasMany(models.institutionLabTariff, {
+    foreignKey: 'lab_investigation_id',
+    as: 'institutionLabTariffs'
+  });
 };
 
 module.exports = LabInvestigation;

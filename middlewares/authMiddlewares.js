@@ -3,7 +3,8 @@ const { jwtSecret } = require('../config/conf');
 const { Staff, Admin } = require('../models');
 
 const authenticateToken = async (req, res, next) => {
-  const token = req.header('Authorization')?.split(' ')[1];
+  const authHeader = req.header('Authorization');
+  const token = authHeader ? authHeader.split(' ').pop() : null;
 
   if (!token) {
     return next(null);
@@ -18,7 +19,7 @@ const authenticateToken = async (req, res, next) => {
     
     const user = await Staff.findByPk(decoded.id);
 
-    if (user && user.token_expiration >= new Date()) {
+    if (user && (!user.token_expiration || user.token_expiration >= new Date())) {
       req.user = user;
       req.staffId = user.id;
       return next();

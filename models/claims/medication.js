@@ -9,7 +9,7 @@ const Medicine = sequelize.define('Medicine', {
   },
   code: {
     type: DataTypes.STRING,
-    unique: true, // if you still want code to be unique
+    unique: true,
   },
   generic_name: DataTypes.STRING,
   unit_of_pricing: {
@@ -26,12 +26,10 @@ const Medicine = sequelize.define('Medicine', {
     type: DataTypes.FLOAT,
     allowNull: false,
     defaultValue: 0
-
   },
   is_nhia_covered:{
     type:DataTypes.BOOLEAN,
     defaultValue:true,
-    
   },
   level_of_prescribing: DataTypes.STRING,
 }, {
@@ -39,5 +37,11 @@ const Medicine = sequelize.define('Medicine', {
   timestamps: false
 });
 
-// Define associations if necessary
+Medicine.associate = (models) => {
+  Medicine.hasMany(models.institutionPharmacyPrice, {
+    foreignKey: 'medicine_id',
+    as: 'institutionPharmacyPrices'
+  });
+};
+
 module.exports = Medicine;

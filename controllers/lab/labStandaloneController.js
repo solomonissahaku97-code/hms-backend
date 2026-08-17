@@ -159,7 +159,7 @@ exports.createStandaloneLabRequest = async (req, res) => {
                     transaction,
                     patient_id,
                     visit_id: visit_id || null,
-                    service_id: null,
+                    service_id: result.id,
                     service_type: 'LabTest',
                     description: tariff.test_description || template.name || 'Lab Test',
                     unit_price: marketPrice,

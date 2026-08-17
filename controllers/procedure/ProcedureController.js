@@ -115,27 +115,21 @@ const ProcedureController = {
 
                         const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(gdrgCode?.market_price || 0);
                         const nhiaPrice = institutionOverride ? parseFloat(institutionOverride.nhia_price || 0) : parseFloat(gdrgCode?.nhia_price || 0);
-                        const totalAmount = marketPrice > 0 ? marketPrice : nhiaPrice;
-                        const hasInsurance = patient?.has_insurance || false;
-                        const nhiaAmount = hasInsurance ? Math.min(nhiaPrice, totalAmount) : 0;
-                        const patientAmount = hasInsurance ? (totalAmount - nhiaAmount) : totalAmount;
                         
-                        await ServiceBill.create({
-                            visit_id: procedure.visit_id,
+                        await handleBilling({
+                            transaction,
                             patient_id: visit?.patient_id,
-                            institution_id: procedure.institution_id,
-                            department_id: procedure.department_id,
+                            visit_id,
                             service_id: procedure.id,
                             service_type: 'Procedure',
                             description: gdrgCode?.description || `Procedure #${procedure.id}`,
                             unit_price: marketPrice || nhiaPrice,
+                            nhia_unit_price: nhiaPrice,
                             quantity: 1,
-                            total_amount: totalAmount,
-                            nhia_amount: nhiaAmount,
-                            patient_amount: patientAmount,
-                            payment_status: 'Pending',
-                            has_paid: false
-                        }, { transaction });
+                            department_id: procedure.department_id,
+                            institution_id: procedure.institution_id,
+                            claim_id: claim_id || null
+                        });
                     }
                 }
 
