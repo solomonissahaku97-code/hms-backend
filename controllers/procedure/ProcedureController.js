@@ -94,6 +94,9 @@ const ProcedureController = {
                 // Create billing records for each procedure if they don't exist
                 const visit = await Visit.findByPk(visit_id, { transaction });
                 const patient = visit ? await Patient.findByPk(visit.patient_id, { transaction }) : null;
+                // The Procedure model/table has no institution_id column, so the
+                // institution is always derived from the visit (fallback: body).
+                const procedureInstitutionId = (visit && visit.institution_id) || institution_id || null;
                 
                 for (const procedure of results) {
                     const existingBill = await ServiceBill.findOne({
@@ -107,7 +110,7 @@ const ProcedureController = {
                         // Check for institution-specific price override
                         const institutionOverride = await InstitutionProcedurePrice.findOne({
                             where: {
-                                institution_id: procedure.institution_id,
+                                institution_id: procedureInstitutionId,
                                 gdrg_code_id: procedure.selected_procedure_id,
                                 is_active: true
                             }
@@ -127,7 +130,7 @@ const ProcedureController = {
                             nhia_unit_price: nhiaPrice,
                             quantity: 1,
                             department_id: procedure.department_id,
-                            institution_id: procedure.institution_id,
+                            institution_id: procedureInstitutionId,
                             claim_id: claim_id || null
                         });
                     }

@@ -141,53 +141,13 @@ exports.deleteService = async (req, res) => {
     }
 };
 
-exports.createPatientInvoice = async (req, res) => {
-    const { patient_id, department_id, service_id, staff_id, has_paid, institution_id } = req.body;
-    const transaction = await ServiceBill.sequelize.transaction();
-    try {
-        const patient = await Patient.findByPk(patient_id, { transaction });
-        if (!patient) {
-            await transaction.rollback();
-            return res.status(404).json({ success: false, error: "patient does not exist" });
-        }
-
-        const service = await Service.findByPk(service_id, { transaction });
-        if (!service) {
-            await transaction.rollback();
-            return res.status(404).json({ success: false, error: "service does not exist" });
-        }
-
-        const requesterInstitutionId = getRequesterInstitutionId(req);
-        if (!requesterInstitutionId || service.institution_id !== requesterInstitutionId) {
-            await transaction.rollback();
-            return res.status(403).json({ success: false, message: 'You can only bill services for your own institution.' });
-        }
-
-        const invoice = await ServiceBill.create({
-            patient_id,
-            department_id,
-            service_id,
-            staff_id,
-            has_paid: !!has_paid,
-            institution_id: service.institution_id,
-            service_type: 'Service',
-            description: service.name,
-            unit_price: service.cost,
-            total_amount: service.cost,
-            patient_amount: service.cost,
-            nhia_amount: 0,
-            payment_status: 'Pending',
-        }, { transaction });
-
-        await transaction.commit();
-
-        return res.status(201).json({ success: true, data: invoice });
-    } catch (error) {
-        await transaction.rollback();
-        console.error('Error creating patient invoice:', error);
-        return res.status(500).json({ success: false, error: 'An error occurred while creating the invoice', details: error.message });
-    }
-};
+// DEPRECATED/REMOVED: exports.createPatientInvoice used to live here and was
+// mounted at POST /invoices in routes/serviceRoutes.js. It was shadowed by
+// routes/invoice.routes.js -> invoiceController.createInvoice and performed a
+// raw ServiceBill.create() without a visit_id (ServiceBill.visit_id is NOT
+// NULL), so it could never succeed. Generic Service billing now goes through
+// the single canonical path: POST /api/v1/invoices -> invoiceController.
+// createInvoice -> handleBilling().
 
 exports.getPatientInvoices = async (req, res) => {
     try {

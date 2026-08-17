@@ -4,9 +4,12 @@ const router = express.Router();
 const invoiceController = require('../controllers/accounts/invoice.controller');
 const serviceBillController = require('../controllers/accounts/service.controller');
 const billingController = require('../controllers/accounts/billing.controller');
+const authenticateToken = require('../middlewares/authMiddlewares');
 
 // Invoice routes
-router.post('/invoices', invoiceController.createInvoice);
+// POST /invoices is the canonical generic Service billing path (handleBilling).
+// Auth is required so the institution is resolved from the authenticated user.
+router.post('/invoices', authenticateToken, invoiceController.createInvoice);
 router.get('/invoices', invoiceController.getInvoices);
 router.get('/invoices/visit', invoiceController.getInvoiceByVisitId);
 router.put('/invoices/:id', invoiceController.updateInvoice);

@@ -1,5 +1,6 @@
 const {
   ClaimItem,
+  Claim,
   Prescription,
   LabTestResult,
   Diagnosis,
@@ -7,13 +8,35 @@ const {
 } = require("../../models");
 
 const sequelize = require("../../config/database");
+const { resolveServiceBillSnapshot } = require("../../service/claimService");
 
 const ClaimItemController = {
   // CREATE
   async create(req, res) {
     const transaction = await sequelize.transaction();
     try {
-      const item = await ClaimItem.create(req.body, { transaction });
+      const body = { ...req.body };
+
+      // J7: every ClaimItem keeps its visit_id (from the claim when the caller
+      // did not supply one).
+      if (!body.visit_id && body.claim_id) {
+        const claim = await Claim.findByPk(body.claim_id, { transaction });
+        if (!claim) {
+          await transaction.rollback();
+          return res.status(400).json({ error: "Claim not found" });
+        }
+        body.visit_id = claim.visit_id;
+      }
+
+      // J7 + snapshot pricing: when the item has already been billed, link it
+      // to the ServiceBill and use the bill's price snapshot (never the current
+      // catalog price). Only items with no ServiceBill keep client/catalog
+      // pricing.
+      if (body.item_id && body.item_type) {
+        await resolveServiceBillSnapshot(body, transaction);
+      }
+
+      const item = await ClaimItem.create(body, { transaction });
 
       await ClaimItemController._syncLinkedModel(item, transaction, "create");
 

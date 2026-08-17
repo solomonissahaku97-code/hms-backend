@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { createNHISXML } = require('../../utils/claimExportUtils');
+const { createNHISXML, validateClaimsForExport } = require('../../utils/claimExportUtils');
 const Claim = require('../../models/claims/claim');
 const Patient = require('../../models/patient');
 const Department = require('../../models/department');
@@ -8,6 +8,8 @@ const Visit = require('../../models/Visit');
 const Institution = require('../../models/institution');
 const Staff = require('../../models/staff');
 const Diagnosis = require('../../models/diagnosis');
+const systemDiagnosis = require('../../models/claims/systemDiagnosis');
+const Insurance = require('../../models/insuranceTable');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -21,11 +23,19 @@ function generateBatchNumber(institution) {
 }
 
 
+// Resolve the requester's institution. The authenticated staff/admin context
+// takes precedence; a request-body institution_id is only used when the
+// authenticated user has no institution context (e.g. superadmin).
+function resolveInstitutionId(req) {
+    const authId = (req.admin && req.admin.institution_id) || (req.user && req.user.institution_id) || null;
+    if (authId) return authId;
+    return req.body && req.body.institution_id ? req.body.institution_id : null;
+}
+
 // In your nhiaClaimGenerationController.js - add these logs
 exports.generateXMLReport = async (req, res) => {
     try {
         const {
-            institution_id,
             dateRange,
             patientCategory = [],
             claimTypes = [],
@@ -40,11 +50,21 @@ exports.generateXMLReport = async (req, res) => {
             exportFormat = 'xml'
         } = req.body;
 
+        // J9 - institution isolation: an institution can ONLY export its own
+        // claims. The institution is always taken from the authenticated user;
+        // a body-supplied institution_id is never trusted when the user has an
+        // institution context.
+        const institution_id = resolveInstitutionId(req);
+        if (!institution_id) {
+            return res.status(400).json({ message: 'Institution context is required to generate an NHIS XML export' });
+        }
+
         console.log('📦 Received request body:', JSON.stringify(req.body, null, 2));
-        console.log('🏥 Institution ID:', institution_id);
+        console.log('🏥 Institution ID (authenticated):', institution_id);
 
         const whereClause = {};
-        const visitWhere = {};
+        // Scope every export to the authenticated institution.
+        const visitWhere = { institution_id };
         const patientWhere = {};
 
         // 📅 Date Filter
@@ -84,9 +104,9 @@ exports.generateXMLReport = async (req, res) => {
         console.log('🔍 Final visitWhere:', JSON.stringify(visitWhere, null, 2));
         console.log('🔍 Final patientWhere:', JSON.stringify(patientWhere, null, 2));
 
-        // 🔍 Fetch filtered claims
+        // 🔍 Fetch filtered claims with the REAL clinical data the export needs
+        //    (diagnosis -> ICD-10, provider staff, insurance, claim items).
         console.log('🔍 Starting database query...');
-        // In your controller - update the include to get more data
         const claims = await Claim.findAll({
             where: whereClause,
             include: [
@@ -99,30 +119,30 @@ exports.generateXMLReport = async (req, res) => {
                             model: Patient,
                             as: 'patient',
                             where: patientWhere,
-                            attributes: ['id', 'first_name', 'middle_name', 'last_name', 'gender', 'date_of_birth', 'has_insurance']
+                            attributes: ['id', 'first_name', 'middle_name', 'last_name', 'gender', 'date_of_birth', 'has_insurance'],
+                            include: [{ model: Insurance, as: 'insurance' }]
                         },
                         {
                             model: Institution,
                             as: 'institution',
-                            attributes: ['id', 'name', 'address', 'contact']
+                            attributes: ['id', 'name', 'serial_code', 'address', 'contact']
                         },
-                        // {
-                        //     model: Staff, // If you have a Staff model for service providers
-                        //     as: 'attending_staff',
-                        //     attributes: ['id', 'first_name', 'last_name', 'staff_id']
-                        // }
+                        {
+                            model: Diagnosis,
+                            as: 'diagnosis',
+                            include: [
+                                { model: systemDiagnosis, as: 'systemDiagnosis' },
+                                { model: Staff, as: 'staff' }
+                            ]
+                        }
                     ]
                 },
                 {
                     model: ClaimItem,
                     as: 'items',
-                    attributes: ['id', 'description', 'gdrg_code', 'item_type', 'quantity', 'unit_price', 'amount', 'nhia_amount', 'co_payment', 'date_performed', 'performed_by']
-                },
-                // {
-                //     model: Diagnosis, // If you have diagnosis data
-                //     as: 'diagnosis',
-                //     attributes: ['id', 'diagnosis_code', 'diagnosis_description', 'diagnosis_type']
-                // }
+                    attributes: ['id', 'description', 'gdrg_code', 'item_type', 'quantity', 'unit_price', 'amount', 'nhia_amount', 'co_payment', 'date_performed', 'performed_by'],
+                    include: [{ model: Staff, as: 'staff', attributes: ['id', 'firstName', 'lastName', 'role_manager'] }]
+                }
             ],
             order: [['createdAt', 'DESC']]
         });
@@ -154,6 +174,22 @@ exports.generateXMLReport = async (req, res) => {
         const institution = await Institution.findByPk(institution_id);
         if (!institution)
             return res.status(404).json({ message: 'Institution not found' });
+        // Defense in depth: the fetched institution must match the authenticated
+        // institution so a non-existent/mismatched body id cannot be used.
+        if (institution.id !== institution_id) {
+            return res.status(403).json({ message: 'Institution mismatch' });
+        }
+
+        // ✅ NHIA export validation (J1): never generate an invalid XML file.
+        //    Claims missing a real diagnosis, items or consistent amounts are
+        //    reported by reference instead of exporting fabricated data.
+        const validationErrors = validateClaimsForExport(claims, institution_id);
+        if (validationErrors.length > 0) {
+            return res.status(422).json({
+                message: 'NHIS export blocked: claims are missing required information',
+                errors: validationErrors
+            });
+        }
 
         // 🔢 Generate batch and file info
         const batch_number = generateBatchNumber(institution);
@@ -214,8 +250,11 @@ exports.listExportBatches = async (req, res) => {
       };
     }
 
-    // 🏥 Institution filter
-    if (institution_id) where.institution_id = institution_id;
+    // 🏥 Institution filter - always scoped to the authenticated user's
+    // institution when they have one (J9).
+    const authInstitutionId = (req.admin && req.admin.institution_id) || (req.user && req.user.institution_id) || null;
+    if (authInstitutionId) where.institution_id = authInstitutionId;
+    else if (institution_id) where.institution_id = institution_id;
 
     // 👤 Staff who generated the export
     if (generated_by) where.generated_by = generated_by;

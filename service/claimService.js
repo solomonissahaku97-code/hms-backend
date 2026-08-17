@@ -1,5 +1,6 @@
-const { Claim, ClaimItem, Diagnosis, Visit, Patient, Insurance } = require('../models');
+const { Claim, ClaimItem, Diagnosis, Visit, Patient } = require('../models');
 const { generateClaimsReference } = require('./generateFolderNumber');
+const { isPatientInsuredByVisit } = require('./insuranceService');
 const Medicine = require('../models/claims/medication'); 
 const Prescription = require('../models/prescription');
 const sequelize = require('../config/database');
@@ -7,6 +8,7 @@ const LabTestResult = require('../models/lab/LabTestResult');
 const LabTestTemplate = require('../models/lab/LabTestTemplate');
 const LabInvestigation = require('../models/claims/LabInvestigations');
 const Procedure = require('../models/procedure/procedure');
+const ServiceBill = require('../models/serviceBill');
 const InstitutionLabTariff = require('../models/InstitutionLabTariff');
 const InstitutionPharmacyPrice = require('../models/InstitutionPharmacyPrice');
 const InstitutionProcedurePrice = require('../models/InstitutionProcedurePrice');
@@ -14,18 +16,41 @@ const InstitutionProcedurePrice = require('../models/InstitutionProcedurePrice')
 // small helper to safely parse stored floats
 const parseData = (v) => parseFloat(v) || 0;
 
+/**
+ * Resolve the ServiceBill behind a claim item and apply its price snapshot.
+ *
+ * Source of truth for an already-billed service is the ServiceBill row
+ * (unit_price / quantity / total_amount / nhia_amount / patient_amount), NOT
+ * the current catalog price. Catalog prices may change after billing; the
+ * claim must reflect what was actually billed.
+ *
+ * Returns true when a bill was found and applied; false when there is no bill
+ * yet (caller should then resolve catalog pricing).
+ */
+const resolveServiceBillSnapshot = async (itemData, transaction) => {
+  let bill = null;
+  if (itemData.service_bill_id) {
+    bill = await ServiceBill.findByPk(itemData.service_bill_id, { transaction });
+  } else if (itemData.item_id && itemData.item_type && itemData.item_type !== 'Diagnosis') {
+    bill = await ServiceBill.findOne({
+      where: { service_id: itemData.item_id, service_type: itemData.item_type },
+      transaction,
+    });
+  }
 
-// Determine whether the patient on a given visit is actively insured.
-// A patient counts as insured only when the patient flag is set AND the
-// linked insurance record is marked insured (covers NHIS / PRIVATE).
-const isPatientInsured = async (visitId, transaction) => {
-  const visit = await Visit.findByPk(visitId, {
-    include: [{ model: Patient, as: 'patient', include: [{ model: Insurance, as: 'insurance' }] }],
-    transaction,
-  });
-  if (!visit || !visit.patient) return false;
-  if (!visit.patient.has_insurance) return false;
-  return !!(visit.patient.insurance && visit.patient.insurance.insured);
+  if (!bill) return false;
+
+  itemData.service_bill_id = bill.id;
+  itemData.unit_price = parseData(bill.unit_price);
+  itemData.quantity = bill.quantity || 1;
+  itemData.amount = parseData(bill.total_amount);
+  itemData.nhia_amount = parseData(bill.nhia_amount);
+  itemData.co_payment = parseData(bill.patient_amount);
+  itemData.actual_amount = parseData(bill.patient_amount);
+  itemData.paid_by_patient = !(parseData(bill.nhia_amount) > 0);
+  if (!itemData.description && bill.description) itemData.description = bill.description;
+  if (!itemData.gdrg_code) itemData.gdrg_code = bill.gdrg_code || null;
+  return true;
 };
 
 // Resolve the visit id that a claim belongs to (used to look up insurance).
@@ -89,14 +114,28 @@ const addClaimItem = async (claimId, itemData, transaction) => {
   if (!claim) throw new Error('Claim not found');
 
   const visitId = claim.visit_id;
-  const insured = await isPatientInsured(visitId, transaction);
+  const insured = await isPatientInsuredByVisit(visitId, { transaction });
+
+  // Idempotency: the same billed item on the same claim must produce exactly
+  // one ClaimItem (same ServiceBill + same claim => one ClaimItem).
+  if (itemData.item_id && itemData.item_type) {
+    const existing = await ClaimItem.findOne({
+      where: { claim_id: claimId, item_type: itemData.item_type, item_id: itemData.item_id },
+      transaction,
+    });
+    if (existing) return existing;
+  }
+
+  // Prefer the ServiceBill price snapshot when the item has already been
+  // billed (J7). Only fall back to catalog pricing when there is no bill.
+  const usedSnapshot = await resolveServiceBillSnapshot(itemData, transaction);
 
   // Resolve patient institution for institution-specific pricing
   const visit = await Visit.findByPk(visitId, { transaction });
   const patientInstitutionId = visit?.institution_id || null;
 
-  // Type-specific processing
-  switch (itemData.item_type) {
+  // Type-specific processing (only when there is no ServiceBill snapshot)
+  if (!usedSnapshot) switch (itemData.item_type) {
     case 'Medication': {
       const prescription = await Prescription.findByPk(itemData.item_id, { transaction });
       if (!prescription) throw new Error('Prescription not found');
@@ -257,7 +296,7 @@ const addClaimItem = async (claimId, itemData, transaction) => {
     }
   }
 
-  const claimItem = await ClaimItem.create({ ...itemData, claim_id: claimId }, { transaction });
+  const claimItem = await ClaimItem.create({ ...itemData, claim_id: claimId, visit_id: visitId }, { transaction });
   await updateClaimTotal(claimId, transaction);
   return claimItem;
 };
@@ -313,7 +352,7 @@ const updateClaimItem = async (claimId, itemId, updateData, transaction) => {
 
   if (!claimItem) throw new Error('Claim item not found');
 
-  const insured = await isPatientInsured(claim.visit_id, transaction);
+  const insured = await isPatientInsuredByVisit(claim.visit_id, { transaction });
   let covered = false;
   let nhiaRate = 0;
 
@@ -476,5 +515,6 @@ module.exports = {
   addClaimItem,
   updateClaimTotal,
   removeClaimItem,
-  updateClaimItem // Fixed typo from updateCliamItem
+  updateClaimItem, // Fixed typo from updateCliamItem
+  resolveServiceBillSnapshot,
 };

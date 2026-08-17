@@ -241,7 +241,7 @@ exports.getPatientDetails = async (req, res) => {
                                     model: ClaimItem,
                                     as: 'items',                 // ← **alias must match the hasMany**
                                     include: [
-                                        { model: LabResult, as: 'labTest' },
+                                        { model: LabResult, as: 'legacyLabTest' },
                                         // { model: Medicine, as: 'medicine' },
                                         { model: Procedure, as: 'procedure' },
                                         {
@@ -570,7 +570,7 @@ exports.getActiveVisits = async (req, res) => {
                                 },
                                 {
                                     model: LabResult,
-                                    as: "labTest"
+                                    as: "legacyLabTest"
                                 },
                                 {
                                     model: Staff,
@@ -839,7 +839,7 @@ exports.getVisitDetails = async (req, res) => {
                     include: [
                         {
                             model: LabResult,
-                            as: "labTest"
+                            as: "legacyLabTest"
                         },
                         {
                             model: Prescription,

@@ -2,155 +2,187 @@ const { Invoice, ServiceBill, Visit, Patient, Staff, Institution, Service, Presc
 const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const { sendSMS } = require('../../service/smsService');
+const { handleBilling } = require('../../utils/billingUtil');
 
+/**
+ * Resolve the authenticated requester's institution.
+ * The institution is taken from the authenticated staff/admin context ONLY -
+ * never from the request body (prevents cross-institution billing).
+ */
+const getRequesterInstitutionId = (req) => {
+  const admin = req.admin;
+  const user = req.user;
+  if (admin && admin.institution_id) return admin.institution_id;
+  if (user && user.institution_id) return user.institution_id;
+  return null;
+};
+
+/**
+ * Canonical generic Service billing endpoint (POST /api/v1/invoices).
+ *
+ * This is the ONE standardized path for billing a Service from the institution
+ * service catalog. It always goes through handleBilling() so a ServiceBill,
+ * a draft Invoice (per visit) and - when a claim is supplied - a ClaimItem are
+ * created consistently.
+ *
+ * Security rules:
+ *  - service_type is always 'Service' and service_id is the catalog Service id.
+ *  - The unit price comes ONLY from Service.cost on the server.
+ *  - Client-supplied prices (unit_price, total_amount, nhia_amount,
+ *    patient_amount, payment_status, has_paid) are NEVER trusted.
+ *  - The institution comes from the authenticated user, never the body.
+ *  - visit_id is resolved to the patient's current Active visit (or created)
+ *    because ServiceBill.visit_id is NOT NULL.
+ *
+ * Accepted payloads (single service or array):
+ *   { patient_id, service_id, quantity?, visit_id?, department_id?, claim_id?, notes? }
+ *   { patient_id, visit_id?, services: [{ service_id, quantity?, department_id?, claim_id? }], notes? }
+ */
 exports.createInvoice = async (req, res) => {
   const transaction = await Invoice.sequelize.transaction();
   try {
-    const { visit_id, institution_id, services, notes, discount_amount, tax_amount } = req.body;
+    const requesterInstitutionId = getRequesterInstitutionId(req);
+    if (!requesterInstitutionId) {
+      await transaction.rollback();
+      return res.status(401).json({ success: false, message: 'Authentication required: unable to determine institution' });
+    }
 
-    if (!visit_id || !institution_id || !services || !Array.isArray(services) || services.length === 0) {
+    const body = req.body || {};
+    const patient_id = body.patient_id;
+    const notes = body.notes;
+
+    // Build the list of catalog services to bill
+    let items = [];
+    if (body.service_id) {
+      items = [{
+        service_id: body.service_id,
+        quantity: body.quantity,
+        department_id: body.department_id,
+        claim_id: body.claim_id || null,
+      }];
+    } else if (Array.isArray(body.services) && body.services.length > 0) {
+      items = body.services.map((s) => ({
+        service_id: s.service_id || s.id,
+        quantity: s.quantity,
+        department_id: s.department_id || body.department_id,
+        claim_id: s.claim_id || body.claim_id || null,
+      }));
+    }
+
+    if (!patient_id) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: 'patient_id is required' });
+    }
+    if (items.length === 0 || items.some((i) => !i.service_id)) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'visit_id, institution_id, and a non-empty services array are required'
+        message: 'service_id is required (single service) or a non-empty services[] array with service_id per item. Free-form manual pricing is not supported.',
       });
     }
 
-    // Validate visit exists
-    const visit = await Visit.findByPk(visit_id, { transaction });
-    if (!visit) {
+    // Resolve and verify the patient belongs to the requester's institution
+    const patient = await Patient.findByPk(patient_id, { transaction });
+    if (!patient) {
       await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Visit not found'
-      });
+      return res.status(404).json({ success: false, message: 'Patient not found' });
     }
-
-    // Validate institution exists
-    const institution = await Institution.findByPk(institution_id, { transaction });
-    if (!institution) {
+    if (patient.institution_id !== requesterInstitutionId) {
       await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Institution not found'
-      });
+      return res.status(403).json({ success: false, message: 'Patient does not belong to your institution' });
     }
 
-    // Validate each service exists and compute totals
-    let subtotal = 0;
-    const validatedServices = [];
+    // Resolve visit_id: use the supplied visit if it matches, otherwise fall
+    // back to the patient's most recent Active visit; create one if none exists.
+    let visitId = body.visit_id || null;
+    if (visitId) {
+      const visit = await Visit.findByPk(visitId, { transaction });
+      if (!visit) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Visit not found' });
+      }
+      if (visit.patient_id !== patient.id || visit.institution_id !== requesterInstitutionId) {
+        await transaction.rollback();
+        return res.status(403).json({ success: false, message: 'Visit does not belong to this patient/institution' });
+      }
+    } else {
+      const activeVisit = await Visit.findOne({
+        where: { patient_id: patient.id, institution_id: requesterInstitutionId, status: 'Active' },
+        order: [['createdAt', 'DESC']],
+        transaction,
+      });
+      if (activeVisit) {
+        visitId = activeVisit.id;
+      } else {
+        const newVisit = await Visit.create({
+          patient_id: patient.id,
+          institution_id: requesterInstitutionId,
+          status: 'Active',
+          visit_date: new Date(),
+          attendance_type: 'New',
+          visit_type: 'General OPD',
+        }, { transaction });
+        visitId = newVisit.id;
+      }
+    }
 
-    for (const service of services) {
-      const unitPrice = parseFloat(service.unit_price) || 0;
-      const quantity = parseInt(service.quantity, 10) || 1;
-
-      // Validate service existence based on service_type
-      switch (service.service_type) {
-        case 'Medication':
-          if (service.service_id) {
-            const medication = await Prescription.findByPk(service.service_id, { transaction });
-            if (!medication) {
-              await transaction.rollback();
-              return res.status(404).json({
-                success: false,
-                message: `Medication with ID ${service.service_id} not found`
-              });
-            }
-            if (!service.description) service.description = medication.generic_name;
-          }
-          break;
-        case 'LabTest':
-          if (service.service_id) {
-            const labTest = await LabTestResult.findByPk(service.service_id, { transaction });
-            if (!labTest) {
-              await transaction.rollback();
-              return res.status(404).json({
-                success: false,
-                message: `LabTest with ID ${service.service_id} not found`
-              });
-            }
-            if (!service.description) service.description = labTest.test_name;
-          }
-          break;
-        case 'Procedure':
-          if (service.service_id) {
-            const procedure = await Procedure.findByPk(service.service_id, { transaction });
-            if (!procedure) {
-              await transaction.rollback();
-              return res.status(404).json({
-                success: false,
-                message: `Procedure with ID ${service.service_id} not found`
-              });
-            }
-            if (!service.description) service.description = procedure.procedure_name;
-          }
-          break;
-        default:
-          break;
+    // Bill every catalog service through the canonical pipeline
+    const billingResults = [];
+    for (const item of items) {
+      const service = await Service.findByPk(item.service_id, { transaction });
+      if (!service) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: `Service with ID ${item.service_id} not found` });
+      }
+      if (service.institution_id !== requesterInstitutionId) {
+        await transaction.rollback();
+        return res.status(403).json({ success: false, message: 'Service does not belong to your institution' });
       }
 
-      const lineTotal = unitPrice * quantity;
-      subtotal += lineTotal;
-      validatedServices.push({
-        ...service,
+      // Server-side price ONLY - client-supplied prices are never read here.
+      const unitPrice = service.is_free ? 0 : (parseFloat(service.cost) || 0);
+      const quantity = Math.max(1, parseInt(item.quantity, 10) || 1);
+
+      billingResults.push(await handleBilling({
+        transaction,
+        patient_id: patient.id,
+        visit_id: visitId,
+        service_id: service.id,
+        service_type: 'Service',
+        description: service.description || service.name,
         unit_price: unitPrice,
+        nhia_unit_price: 0,
         quantity,
-        total_amount: lineTotal,
-        patient_amount: lineTotal,
-        nhia_amount: 0,
-        payment_status: 'Pending',
-        has_paid: false
-      });
+        department_id: item.department_id || null,
+        admin_id: (req.admin && req.admin.id) || null,
+        claim_id: item.claim_id || null,
+        institution_id: requesterInstitutionId,
+      }));
     }
 
-    const total_amount = Math.round((subtotal - (discount_amount || 0) + (tax_amount || 0)) * 100) / 100;
-
-    // Generate invoice number
-    const invoiceCount = await Invoice.count({ where: { institution_id }, transaction });
-    const invoice_number = `INV-${new Date().getFullYear()}-${(invoiceCount + 1).toString().padStart(4, '0')}`;
-
-    const invoice = await Invoice.create({
-      visit_id,
-      institution_id,
-      invoice_number,
-      invoice_date: new Date(),
-      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      subtotal: Math.round(subtotal * 100) / 100,
-      discount_amount: discount_amount || 0,
-      tax_amount: tax_amount || 0,
-      total_amount,
-      balance_due: total_amount,
-      status: 'draft',
-      notes,
-      created_by: req.user.id
-    }, { transaction });
-
-    // Create service bills and associate with invoice
-    for (const service of validatedServices) {
-      await ServiceBill.create({
-        ...service,
-        invoice_id: invoice.id,
-        visit_id,
-        patient_id: service.patient_id || visit.patient_id,
-        institution_id,
-      }, { transaction });
-    }
-
-    await transaction.commit();
-
-    // Fetch the complete invoice with associations
-    const completeInvoice = await Invoice.findByPk(invoice.id, {
+    // J8: fetch the final invoice data BEFORE commit so a query failure rolls
+    // back instead of leaving a committed invoice behind (which previously
+    // caused frontend retries and duplicate invoices).
+    const completeInvoice = await Invoice.findOne({
+      where: { visit_id: visitId, status: 'draft' },
       include: [
         { model: Visit, as: 'visit', include: [{ model: Patient, as: 'patient' }] },
         { model: Institution, as: 'institution' },
         { model: Staff, as: 'creator' },
-        { model: ServiceBill, as: 'serviceBills' }
-      ]
+        { model: ServiceBill, as: 'service_bills' }
+      ],
+      transaction
     });
+
+    await transaction.commit();
 
     res.status(201).json({
       success: true,
-      data: completeInvoice
+      data: {
+        invoice: completeInvoice,
+        visit_id: visitId,
+        billing: billingResults,
+      },
     });
   } catch (error) {
     await transaction.rollback();

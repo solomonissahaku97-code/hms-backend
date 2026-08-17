@@ -5,14 +5,35 @@ const LabInvestigation = require('../../models/claims/LabInvestigations');
 // Create a new lab investigation
 exports.create = async (req, res) => {
   try {
-    const { test_description, g_drg_code, tariff_ghc,market_price } = req.body;
+    const { test_description, g_drg_code, tariff_ghc, market_price } = req.body;
+
+    console.log('[LAB-TARIFF] Create request body', {
+      test_description,
+      g_drg_code,
+      tariff_ghc,
+      market_price,
+      raw_body: req.body
+    });
     
-    // Validate required fields
-    if (!test_description || !g_drg_code || !tariff_ghc) {
+    // Validate required fields - check explicitly for null/undefined/empty string
+    // so that 0 is still accepted as a valid tariff_ghc value
+    if (
+      test_description === undefined || test_description === null || test_description === '' ||
+      g_drg_code === undefined || g_drg_code === null || g_drg_code === '' ||
+      tariff_ghc === undefined || tariff_ghc === null || tariff_ghc === ''
+    ) {
       return res.status(400).json({ error: 'All fields (test_description, g_drg_code, tariff_ghc) are required' });
     }
 
     const investigation = await LabInvestigation.create({
+      test_description,
+      g_drg_code,
+      tariff_ghc,
+      market_price
+    });
+
+    console.log('[LAB-TARIFF] Created investigation tariff', {
+      id: investigation.id,
       test_description,
       g_drg_code,
       tariff_ghc,
@@ -88,12 +109,20 @@ exports.update = async (req, res) => {
     }
 
     // Only update fields that are provided
-    if (test_description) investigation.test_description = test_description;
-    if (g_drg_code) investigation.g_drg_code = g_drg_code;
-    if (tariff_ghc) investigation.tariff_ghc = tariff_ghc;
-    if (market_price) investigation.market_price = market_price;
+    if (test_description !== undefined && test_description !== null && test_description !== '') investigation.test_description = test_description;
+    if (g_drg_code !== undefined && g_drg_code !== null && g_drg_code !== '') investigation.g_drg_code = g_drg_code;
+    if (tariff_ghc !== undefined && tariff_ghc !== null && tariff_ghc !== '') investigation.tariff_ghc = tariff_ghc;
+    if (market_price !== undefined && market_price !== null && market_price !== '') investigation.market_price = market_price;
 
     await investigation.save();
+
+    console.log('[LAB-TARIFF] Updated investigation tariff', {
+      id: investigation.id,
+      test_description: investigation.test_description,
+      g_drg_code: investigation.g_drg_code,
+      tariff_ghc: investigation.tariff_ghc,
+      market_price: investigation.market_price
+    });
 
     res.json(investigation);
   } catch (error) {

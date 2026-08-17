@@ -1,5 +1,6 @@
-const { ServiceBill, Insurance, Invoice, Visit, Claim, Payment, Patient, Service, Prescription, LabTestResult, Procedure } = require("../models");
+const { ServiceBill, Invoice, Visit, Claim, Payment, Patient, Service, Prescription, LabTestResult, Procedure } = require("../models");
 const { addClaimItem } = require("../service/claimService");
+const { isPatientInsured } = require("../service/insuranceService");
 const { v4: uuidv4 } = require("uuid");
 
 /**
@@ -70,34 +71,17 @@ async function handleBilling({
         }
     }
 
-    // ✅ Check if patient has insurance
-    const insurance = await Insurance.findOne({
-        where: { patient_id, insured: true },
-        transaction
-    });
+    // ✅ Check if patient has insurance (canonical detection — same semantics
+    //    everywhere: patient.has_insurance AND insurance.insured).
+    const insured = await isPatientInsured(patient_id, { transaction });
 
-    if (insurance) {
+    // ✅ Compute the NHIA/patient split BEFORE creating the bill so the bill
+    //    row and the invoice total reflect the same amounts.
+    if (insured) {
         if (nhia_unit_price > 0) {
             nhiaAmount = Math.min(nhia_unit_price * quantity, totalAmount);
             patientAmount = totalAmount - nhiaAmount;
             if (patientAmount < 0) patientAmount = 0;
-        }
-
-        if (claim_id) {
-            await addClaimItem(
-                claim_id,
-                {
-                    item_type: service_type,
-                    item_id: service_id,
-                    gdrg_code,
-                    description,
-                    unit_price: effectiveUnitPrice,
-                    quantity,
-                    nhia_amount: nhiaAmount,
-                    amount: patientAmount,
-                },
-                transaction
-            );
         }
     } else {
         patientAmount = totalAmount;
@@ -126,7 +110,8 @@ async function handleBilling({
         }, { transaction });
     }
 
-    // ✅ Create service bill
+    // ✅ Create service bill FIRST so the claim item (if any) can be linked
+    //    back to it via claim_items.service_bill_id.
     const serviceBill = await ServiceBill.create({
         visit_id,
         patient_id,
@@ -155,14 +140,34 @@ async function handleBilling({
         total_amount: Math.round((currentPatientTotal + patientAmount) * 100) / 100,
     }, { transaction });
 
-    // update and compute claims total amount here
+    // ✅ When a bill is explicitly attached to a claim, the ClaimItem is
+    //    mandatory — never silently bill without it. addClaimItem() is
+    //    idempotent (same claim + same item => one ClaimItem).
     if (claim_id) {
         const claim = await Claim.findByPk(claim_id, { transaction });
-        if (claim) {
-            const claimItems = await claim.getItems({ transaction });
-            const totalClaimAmount = claimItems.reduce((sum, item) => sum + (item.amount || 0), 0);
-            await claim.update({ total_amount: totalClaimAmount }, { transaction });
+        if (!claim) {
+            throw new Error(`Claim with ID ${claim_id} not found — cannot attach billed service ${service_id} to a claim`);
         }
+
+        await addClaimItem(
+            claim_id,
+            {
+                item_type: service_type,
+                item_id: service_id,
+                service_bill_id: serviceBill.id,
+                gdrg_code,
+                description,
+                unit_price: effectiveUnitPrice,
+                quantity,
+                nhia_amount: nhiaAmount,
+                amount: totalAmount,
+            },
+            transaction
+        );
+
+        const claimItems = await claim.getItems({ transaction });
+        const totalClaimAmount = claimItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+        await claim.update({ total_amount: totalClaimAmount }, { transaction });
     }
 
     // Return billing details
@@ -305,6 +310,10 @@ async function applyNhisPayment({
         throw new Error('Claim not found');
     }
 
+    // J5 fix: the previous implementation declared `const paymentAmount` and
+    // then reassigned it in the loop, which throws a TypeError at runtime.
+    // `remaining` now tracks the unapplied portion; `appliedAmount` records
+    // what was actually consumed by NHIA-covered claim items.
     const paymentAmount = parseFloat(amount_paid);
     if (paymentAmount <= 0) {
         throw new Error('Payment amount must be greater than zero');
@@ -317,31 +326,37 @@ async function applyNhisPayment({
     }, { transaction });
 
     // Update all claim items that are NHIA-covered
+    let remaining = paymentAmount;
+    let appliedAmount = 0;
     const claimItems = await claim.getItems({ transaction });
     for (const item of claimItems) {
-        if (parseFloat(item.nhia_amount || 0) > 0) {
-            const remainingNhia = parseFloat(item.nhia_amount) - paymentAmount;
-            if (remainingNhia <= 0) {
-                await item.update({
-                    paid_by_patient: false,
-                    nhia_amount: parseFloat(item.nhia_amount)
-                }, { transaction });
-                paymentAmount = paymentAmount - parseFloat(item.nhia_amount);
-            } else {
-                await item.update({
-                    nhia_amount: remainingNhia
-                }, { transaction });
-                break;
-            }
+        if (remaining <= 0) break;
+        const itemNhia = parseFloat(item.nhia_amount || 0);
+        if (itemNhia > 0) {
+            const cover = Math.min(itemNhia, remaining);
+            // Mark the covered portion as paid by NHIA (keep nhia_amount
+            // unchanged — it is the covered amount, not a running balance).
+            await item.update({
+                paid_by_patient: false,
+                nhia_amount: itemNhia
+            }, { transaction });
+            remaining -= cover;
+            appliedAmount += cover;
         }
     }
 
-    // Create a payment record for the NHIS payment
+    // The payment record reflects the amount actually applied. If nothing was
+    // applied (no NHIA-covered items), record the full payment for audit.
+    const recordedAmount = appliedAmount > 0 ? appliedAmount : paymentAmount;
+
+    // Create a payment record for the NHIS payment.
+    // NOTE: the Payment model has NO claim_id column, so claim linkage is not
+    // persisted — documented as a Phase 4 database-hardening item.
     await Payment.create({
         id: uuidv4(),
         transactionId: payment_reference || uuidv4(),
         status: 'completed',
-        amount: paymentAmount,
+        amount: recordedAmount,
         currency: 'GHS',
         paidAt: new Date(),
         claim_id,
@@ -353,7 +368,7 @@ async function applyNhisPayment({
     return {
         claim_id,
         claim_reference: claim.claim_reference_number,
-        amount_applied: paymentAmount,
+        amount_applied: appliedAmount,
         payment_reference: payment_reference || 'N/A',
         status: 'Applied'
     };

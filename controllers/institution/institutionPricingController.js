@@ -10,7 +10,7 @@ const Institution = require('../../models/institution');
 exports.getInstitutionPricing = async (req, res) => {
     try {
         const { institution_id } = req.params;
-        const { type = 'lab' } = req.query;
+        const { type = 'lab' } = req.params;
 
         // Ensure the authenticated user belongs to this institution
         if (!req.user || req.user.institution_id !== institution_id) {
@@ -97,7 +97,16 @@ exports.getInstitutionPricing = async (req, res) => {
 exports.setInstitutionPricing = async (req, res) => {
     try {
         const { institution_id } = req.params;
-        const { type } = req.query;
+        const { type } = req.params;
+
+        console.log('[PRICING] setInstitutionPricing called', {
+          institution_id,
+          type,
+          source_id: req.body?.source_id,
+          prices: req.body?.prices,
+          user: req.user?.id,
+          user_institution_id: req.user?.institution_id
+        });
 
         if (!req.user || req.user.institution_id !== institution_id) {
             return res.status(403).json({ success: false, message: 'Access denied. You can only set pricing for your own institution.' });
@@ -125,11 +134,30 @@ exports.setInstitutionPricing = async (req, res) => {
                 }
             });
 
+            if (override.isNewRecord) {
+                console.log('[PRICING] Created lab tariff', {
+                  id: override.id,
+                  institution_id,
+                  lab_investigation_id: source_id,
+                  tariff_ghc: prices.tariff_ghc,
+                  market_price: prices.market_price,
+                  is_active: true
+                });
+            }
+
             if (!override.isNewRecord) {
                 override.tariff_ghc = prices.tariff_ghc;
                 override.market_price = prices.market_price;
                 override.is_active = true;
                 await override.save();
+                console.log('[PRICING] Updated lab tariff', {
+                  id: override.id,
+                  institution_id,
+                  lab_investigation_id: source_id,
+                  tariff_ghc: prices.tariff_ghc,
+                  market_price: prices.market_price,
+                  is_active: true
+                });
             }
         } else if (type === 'pharmacy') {
             commonWhere.medicine_id = source_id;
@@ -144,11 +172,30 @@ exports.setInstitutionPricing = async (req, res) => {
                 }
             });
 
+            if (override.isNewRecord) {
+                console.log('[PRICING] Created pharmacy price', {
+                  id: override.id,
+                  institution_id,
+                  medicine_id: source_id,
+                  market_price: prices.market_price,
+                  nhia_price: prices.nhia_price,
+                  is_active: true
+                });
+            }
+
             if (!override.isNewRecord) {
                 override.market_price = prices.market_price;
                 override.nhia_price = prices.nhia_price;
                 override.is_active = true;
                 await override.save();
+                console.log('[PRICING] Updated pharmacy price', {
+                  id: override.id,
+                  institution_id,
+                  medicine_id: source_id,
+                  market_price: prices.market_price,
+                  nhia_price: prices.nhia_price,
+                  is_active: true
+                });
             }
         } else if (type === 'procedure') {
             commonWhere.gdrg_code_id = source_id;
@@ -163,11 +210,30 @@ exports.setInstitutionPricing = async (req, res) => {
                 }
             });
 
+            if (override.isNewRecord) {
+                console.log('[PRICING] Created procedure price', {
+                  id: override.id,
+                  institution_id,
+                  gdrg_code_id: source_id,
+                  market_price: prices.market_price,
+                  nhia_price: prices.nhia_price,
+                  is_active: true
+                });
+            }
+
             if (!override.isNewRecord) {
                 override.market_price = prices.market_price;
                 override.nhia_price = prices.nhia_price;
                 override.is_active = true;
                 await override.save();
+                console.log('[PRICING] Updated procedure price', {
+                  id: override.id,
+                  institution_id,
+                  gdrg_code_id: source_id,
+                  market_price: prices.market_price,
+                  nhia_price: prices.nhia_price,
+                  is_active: true
+                });
             }
         }
 
@@ -181,7 +247,7 @@ exports.setInstitutionPricing = async (req, res) => {
 exports.clearInstitutionPricing = async (req, res) => {
     try {
         const { institution_id } = req.params;
-        const { type } = req.query;
+        const { type } = req.params;
 
         if (!req.user || req.user.institution_id !== institution_id) {
             return res.status(403).json({ success: false, message: 'Access denied. You can only clear pricing for your own institution.' });

@@ -17,6 +17,8 @@ const Department = require('../../models/department');
 const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
 const ServiceBill = require('../../models/serviceBill');
+const ClaimItem = require('../../models/claims/claimItem');
+const { addClaimItem } = require('../../service/claimService');
 const Notification = require('../../models/notification'); 
 const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
 const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
@@ -270,7 +272,7 @@ async function createSingleLabResult({ transaction, templateId, visit_id, user, 
     const tariffGhc = institutionOverride ? parseFloat(institutionOverride.tariff_ghc || 0) : parseFloat(tariff.tariff_ghc || 0);
 
     const existingBill = await ServiceBill.findOne({
-        where: { service_id: result.id },
+        where: { service_id: result.id, service_type: 'LabTest' },
         transaction
     });
 
@@ -814,22 +816,58 @@ exports.updateResult = async (req, res, next) => {
       const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(labInvestigation.market_price || 0);
       const tariffGhc = institutionOverride ? parseFloat(institutionOverride.tariff_ghc || 0) : parseFloat(labInvestigation.tariff_ghc || 0);
 
-      billingResult = await handleBilling({
-        transaction,
-        patient_id: visit.patient_id,
-        visit_id: result.visit_id,
-        service_id: result.id,
-        service_type: 'LabTest',
-        description: labInvestigation.test_description,
-        g_drg_code: labInvestigation.g_drg_code,
-        unit_price: marketPrice,
-        nhia_unit_price: tariffGhc,
-        quantity: 1,
-        department_id: labInvestigation.department_id || result.department_id,
-        institution_id: visit.institution_id,
-        claim_id,
-        gdrg_code: labInvestigation.g_drg_code
+      // J4 — idempotent billing: a LabTestResult must never produce a second
+      // ServiceBill. If one already exists (e.g. it was billed at creation),
+      // reuse it and only link/create the ClaimItem when it is missing.
+      const existingBill = await ServiceBill.findOne({
+        where: { service_id: result.id, service_type: 'LabTest' },
+        transaction
       });
+
+      if (existingBill) {
+        const existingClaimItem = await ClaimItem.findOne({
+          where: { claim_id, item_type: 'LabTest', item_id: result.id },
+          transaction
+        });
+
+        if (!existingClaimItem) {
+          await addClaimItem(
+            claim_id,
+            {
+              item_type: 'LabTest',
+              item_id: result.id,
+              service_bill_id: existingBill.id,
+              gdrg_code: labInvestigation.g_drg_code,
+              description: labInvestigation.test_description,
+            },
+            transaction
+          );
+        }
+
+        billingResult = {
+          reused_existing_bill: true,
+          service_bill_id: existingBill.id,
+          invoice_id: existingBill.invoice_id,
+          message: 'Existing ServiceBill reused; no duplicate bill created'
+        };
+      } else {
+        billingResult = await handleBilling({
+          transaction,
+          patient_id: visit.patient_id,
+          visit_id: result.visit_id,
+          service_id: result.id,
+          service_type: 'LabTest',
+          description: labInvestigation.test_description,
+          g_drg_code: labInvestigation.g_drg_code,
+          unit_price: marketPrice,
+          nhia_unit_price: tariffGhc,
+          quantity: 1,
+          department_id: labInvestigation.department_id || result.department_id,
+          institution_id: visit.institution_id,
+          claim_id,
+          gdrg_code: labInvestigation.g_drg_code
+        });
+      }
     }
 
     await transaction.commit();

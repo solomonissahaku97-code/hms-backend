@@ -14,6 +14,11 @@ const ClaimItem = sequelize.define('ClaimItem', {
         type: DataTypes.UUID,
         allowNull: false
     },
+    visit_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'Visit the claim item belongs to (mirrors ServiceBill.visit_id)'
+    },
     item_type: {
         type: DataTypes.ENUM('LabTest', 'Medication', 'Consultation', 'Procedure', 'Service', 'Diagnosis'),
         allowNull: false
@@ -21,6 +26,11 @@ const ClaimItem = sequelize.define('ClaimItem', {
     item_id: {
         type: DataTypes.UUID,
 
+    },
+    service_bill_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        comment: 'Optional link to the ServiceBill that generated this claim item (polymorphic service_id -> service_bills)'
     },
     gdrg_code: {
         type: DataTypes.STRING
@@ -81,17 +91,23 @@ const ClaimItem = sequelize.define('ClaimItem', {
             if (!item.amount) {
                 item.amount = (item.unit_price || 0) * (item.quantity || 1);
             }
+            // J7: always carry the visit_id from the claim when the caller did
+            // not supply one, so claim items stay linked to the visit/bill.
+            if (!item.visit_id && item.claim_id) {
+                const claim = await models.Claim.findByPk(item.claim_id, { transaction: options.transaction });
+                if (claim) item.visit_id = claim.visit_id;
+            }
             const findOptions = { transaction: options.transaction };
             // Validate item_id based on item_type
             switch (item.item_type) {
                 case 'LabTest':
-                    if (!(await models.LabTestResult.findByPk(item.item_id))) {
+                    if (!(await models.LabTestResult.findByPk(item.item_id, findOptions))) {
                         throw new Error('LabTest not found');
                     }
                     break;
 
                 case 'Medication':
-                    if (!(await models.Prescription.findByPk(item.item_id))) {
+                    if (!(await models.Prescription.findByPk(item.item_id, findOptions))) {
                         throw new Error('Prescription not found');
                     }
                     break;
@@ -138,11 +154,19 @@ const ClaimItem = sequelize.define('ClaimItem', {
 // association
 ClaimItem.associate = (models) => {
     ClaimItem.belongsTo(models.Staff, { foreignKey: 'performed_by', as: 'staff' }),
-        // claim‑item.js  (after every model has been imported)
-        ClaimItem.belongsTo(models.LabResult, {
+        // New billing uses LabTestResult (lab_test_results).
+        ClaimItem.belongsTo(models.LabTestResult, {
             foreignKey: 'item_id',
             constraints: false,      // disable the DB‑level FK ; we’ll validate in a hook
             as: 'labTest',
+        });
+
+        // Backwards compatibility: historical claim items reference the old
+        // lab_results table; they still resolve through legacyLabTest.
+        ClaimItem.belongsTo(models.LabResult, {
+            foreignKey: 'item_id',
+            constraints: false,
+            as: 'legacyLabTest',
         });
 
     ClaimItem.belongsTo(models.Prescription, {

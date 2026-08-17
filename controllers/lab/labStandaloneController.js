@@ -155,21 +155,29 @@ exports.createStandaloneLabRequest = async (req, res) => {
                 const marketPrice = institutionOverride ? parseFloat(institutionOverride.market_price || 0) : parseFloat(tariff.market_price || 0);
                 const tariffGhc = institutionOverride ? parseFloat(institutionOverride.tariff_ghc || 0) : parseFloat(tariff.tariff_ghc || 0);
 
-                await handleBilling({
-                    transaction,
-                    patient_id,
-                    visit_id: visit_id || null,
-                    service_id: result.id,
-                    service_type: 'LabTest',
-                    description: tariff.test_description || template.name || 'Lab Test',
-                    unit_price: marketPrice,
-                    nhia_unit_price: tariffGhc,
-                    quantity: 1,
-                    department_id: labDepartment.id,
-                    institution_id,
-                    claim_id: null,
-                    gdrg_code: tariff.g_drg_code
+                // J4 — duplicate-billing guard: never bill the same LabTestResult twice.
+                const existingBill = await ServiceBill.findOne({
+                    where: { service_id: result.id, service_type: 'LabTest' },
+                    transaction
                 });
+
+                if (!existingBill) {
+                    await handleBilling({
+                        transaction,
+                        patient_id,
+                        visit_id: visit_id || null,
+                        service_id: result.id,
+                        service_type: 'LabTest',
+                        description: tariff.test_description || template.name || 'Lab Test',
+                        unit_price: marketPrice,
+                        nhia_unit_price: tariffGhc,
+                        quantity: 1,
+                        department_id: labDepartment.id,
+                        institution_id,
+                        claim_id: null,
+                        gdrg_code: tariff.g_drg_code
+                    });
+                }
 
                 createdResults.push(result);
             }
