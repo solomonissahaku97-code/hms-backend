@@ -1,4 +1,4 @@
-const { Invoice, ServiceBill, Visit, Patient, Staff, Institution, Service, Prescription, LabTestResult, Procedure } = require('../../models');
+const { Invoice, ServiceBill, Visit, Patient, Staff, Institution, Service, Prescription, LabTestResult, Procedure, Department } = require('../../models');
 const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const { sendSMS } = require('../../service/smsService');
@@ -275,6 +275,109 @@ exports.getInvoiceByVisitId = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching invoice:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching invoice',
+      error: error.message
+    });
+  }
+};
+
+exports.getInvoiceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const invoice = await Invoice.findByPk(id, {
+      include: [
+        {
+          model: Visit,
+          as: 'visit',
+          include: [{ model: Patient, as: 'patient' }]
+        },
+        { model: Patient, as: 'patient' },
+        { model: Institution, as: 'institution' },
+        { model: Staff, as: 'creator' },
+        {
+          model: ServiceBill,
+          as: 'service_bills',
+          include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }]
+        }
+      ]
+    });
+
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
+      });
+    }
+
+    const plainInvoice = invoice.get({ plain: true });
+
+    const visitPatient = plainInvoice.visit?.patient;
+    const directPatient = plainInvoice.patient;
+    const patient = visitPatient || directPatient;
+
+    const serviceBills = (plainInvoice.service_bills || []).map(sb => ({
+      id: sb.id,
+      service_type: sb.service_type,
+      service_type_label: ({
+        Medication: 'Drug',
+        LabTest: 'Lab Test',
+        Procedure: 'Procedure',
+        Consultation: 'Consultation',
+      })[sb.service_type] || sb.service_type || 'Other',
+      description: sb.description,
+      total_amount: parseFloat(sb.total_amount || 0),
+      patient_amount: parseFloat(sb.patient_amount || 0),
+      nhia_amount: parseFloat(sb.nhia_amount || 0),
+      has_paid: sb.has_paid,
+      payment_status: sb.payment_status,
+      department: sb.department?.name || '',
+      created_at: sb.created_at
+    }));
+
+    const totalServicePatient = serviceBills.reduce((s, sb) => s + parseFloat(sb.patient_amount || 0), 0);
+    const totalServiceNhia = serviceBills.reduce((s, sb) => s + parseFloat(sb.nhia_amount || 0), 0);
+
+    const formatted = {
+      id: plainInvoice.id,
+      invoice_number: plainInvoice.invoice_number,
+      invoice_date: plainInvoice.invoice_date,
+      due_date: plainInvoice.due_date,
+      total_amount: parseFloat(plainInvoice.total_amount || 0),
+      amount_paid: parseFloat(plainInvoice.amount_paid || 0),
+      balance_due: parseFloat(plainInvoice.balance_due || 0),
+      status: plainInvoice.status,
+      payment_method: plainInvoice.payment_method,
+      reference: plainInvoice.notes || null,
+      patient: patient ? {
+        id: patient.id,
+        name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim(),
+        first_name: patient.first_name,
+        last_name: patient.last_name,
+        phone: patient.phone,
+        email: patient.email,
+        id_number: patient.id_number,
+        folder_number: patient.folder_number,
+        has_insurance: patient.has_insurance,
+        patient_id: patient.patient_id
+      } : null,
+      institution: plainInvoice.institution?.name || '',
+      service_bills: serviceBills,
+      totals: {
+        patient_amount: totalServicePatient,
+        nhia_amount: totalServiceNhia,
+        service_total: totalServicePatient + totalServiceNhia
+      }
+    };
+
+    res.json({
+      success: true,
+      data: formatted
+    });
+  } catch (error) {
+    console.error('Error fetching invoice by id:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching invoice',

@@ -46,7 +46,7 @@ exports.getAllPatientsWithBillingSummary = async (req, res) => {
       attributes: [
         'patient_id',
         [Sequelize.fn('SUM', Sequelize.col('total_amount')), 'total_billed'],
-        [Sequelize.fn('SUM', Sequelize.col('paid_amount')), 'total_paid'],
+        [Sequelize.literal(`SUM(CASE WHEN "has_paid" = true THEN "total_amount" ELSE 0 END)`), 'total_paid'],
         [Sequelize.fn('COUNT', Sequelize.col('id')), 'bill_count']
       ],
       group: ['patient_id'],
@@ -429,12 +429,12 @@ exports.getBillingStats = async (req, res) => {
     }
     
     // Total revenue from Invoices
-    const totalRevenue = await Invoice.sum('total_amount', { where: whereClause }) || 0;
+    const totalRevenue = await Invoice.sum('total_amount', { where: whereClause }) ?? 0;
     
-    // Paid invoices amount
-    const paidAmount = await Invoice.sum('total_amount', { 
-      where: { ...whereClause, status: 'paid' } 
-    }) || 0;
+    // Paid amount (actual amount paid, including partial payments)
+    const paidAmount = await Invoice.sum('amount_paid', { 
+      where: whereClause 
+    }) ?? 0;
     
     // Pending invoices count and amount
     const pendingInvoices = await Invoice.count({ 
@@ -443,7 +443,7 @@ exports.getBillingStats = async (req, res) => {
     
     const pendingAmount = await Invoice.sum('balance_due', { 
       where: { ...whereClause, status: { [Op.in]: ['unpaid', 'partially_paid'] } } 
-    }) || 0;
+    }) ?? 0;
     
     // Overdue invoices
     const overdueInvoices = await Invoice.count({
@@ -460,23 +460,16 @@ exports.getBillingStats = async (req, res) => {
         status: { [Op.in]: ['unpaid', 'partially_paid'] },
         due_date: { [Op.lt]: new Date() }
       }
-    }) || 0;
+    }) ?? 0;
     
-    // Get ServiceBill revenue (individual services)
+    // Get ServiceBill revenue for standalone bills (not linked to invoices, to avoid double-counting)
     const serviceBillRevenue = await ServiceBill.sum('total_amount', { 
-      where: { institution_id } 
-    }) || 0;
+      where: { institution_id, invoice_id: null } 
+    }) ?? 0;
     
     const serviceBillPaid = await ServiceBill.sum('total_amount', { 
-      where: { institution_id, has_paid: true } 
-    }) || 0;
-    
-    // Get direct Payments (for self-pay patients who pay directly)
-    const directPayments = await Payment.sum('amount', { 
-      where: { 
-        status: 'completed'
-      } 
-    }) || 0;
+      where: { institution_id, invoice_id: null, has_paid: true } 
+    }) ?? 0;
     
     // Payment method distribution from Invoices
     const paymentMethods = await Invoice.findAll({
@@ -495,13 +488,14 @@ exports.getBillingStats = async (req, res) => {
     const { QueryTypes } = require('sequelize');
     const sequelize = require('../../config/database');
     
-    // Get insured revenue from ServiceBill (patients with has_insurance = true)
+    // Get insured revenue from standalone ServiceBills (not linked to invoices, to avoid double-counting)
     const insuredServiceBillResult = await sequelize.query(`
       SELECT COALESCE(SUM(sb.total_amount), 0) as total
       FROM service_bills sb
       JOIN patients p ON sb.patient_id = p.id
       WHERE sb.institution_id = :institutionId
       AND p.has_insurance = true
+      AND sb.invoice_id IS NULL
     `, {
       replacements: { institutionId: institution_id },
       type: QueryTypes.SELECT
@@ -509,13 +503,14 @@ exports.getBillingStats = async (req, res) => {
     
     const insuredServiceBillRevenue = parseFloat(insuredServiceBillResult[0]?.total || 0);
     
-    // Get self-pay revenue (patients with has_insurance = false)
+    // Get self-pay revenue from standalone ServiceBills (not linked to invoices)
     const selfPayServiceBillResult = await sequelize.query(`
       SELECT COALESCE(SUM(sb.total_amount), 0) as total
       FROM service_bills sb
       JOIN patients p ON sb.patient_id = p.id
       WHERE sb.institution_id = :institutionId
       AND p.has_insurance = false
+      AND sb.invoice_id IS NULL
     `, {
       replacements: { institutionId: institution_id },
       type: QueryTypes.SELECT
@@ -557,21 +552,20 @@ exports.getBillingStats = async (req, res) => {
     const totalInsuredRevenue = insuredServiceBillRevenue + insuredInvoiceRevenue;
     const totalSelfPayRevenue = selfPayServiceBillRevenue + selfPayInvoiceRevenue;
     
-    // Calculate total revenue including ServiceBills and direct payments
-    const totalServiceRevenue = serviceBillRevenue + directPayments;
+    // Total revenue = Invoice revenue (includes invoice-linked service bills) + standalone ServiceBill revenue
+    const totalServiceRevenue = serviceBillRevenue;
     
     res.json({
       success: true,
       data: {
         total_revenue: totalRevenue + totalServiceRevenue,
-        paid_amount: paidAmount + serviceBillPaid + directPayments,
+        paid_amount: paidAmount + serviceBillPaid,
         pending_invoices: pendingInvoices,
-        pending_amount: pendingAmount || (serviceBillRevenue - serviceBillPaid),
+        pending_amount: pendingAmount > 0 ? pendingAmount : (serviceBillRevenue - serviceBillPaid),
         overdue_invoices: overdueInvoices,
-        overdue_amount: overdueAmount || 0,
+        overdue_amount: overdueAmount,
         invoice_revenue: totalRevenue,
         service_bill_revenue: serviceBillRevenue,
-        direct_payment_revenue: directPayments,
         payment_methods: paymentMethods,
         // New: Revenue by patient type (based on Patient.has_insurance)
         revenue_by_patient_type: {

@@ -893,6 +893,7 @@ const AccountsController = {
             res.status(500).json({ success: false, error: error.message });
         }
     },
+// 0506053964
 
     /**
      * Pay full invoice - marks all service bills and invoice as paid

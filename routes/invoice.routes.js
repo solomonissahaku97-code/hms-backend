@@ -12,14 +12,15 @@ const authenticateToken = require('../middlewares/authMiddlewares');
 router.post('/invoices', authenticateToken, invoiceController.createInvoice);
 router.get('/invoices', invoiceController.getInvoices);
 router.get('/invoices/visit', invoiceController.getInvoiceByVisitId);
+router.get('/invoices/token/:token', invoiceController.getInvoiceByToken);
+router.get('/invoices/:token/view', invoiceController.viewInvoiceByToken);
+router.get('/invoices/:id', invoiceController.getInvoiceById);
 router.put('/invoices/:id', invoiceController.updateInvoice);
 router.delete('/invoices/:id', invoiceController.deleteInvoice);
 
 // Invoice sharing and SMS routes
 router.post('/invoices/:id/generate-token', invoiceController.generateInvoiceToken);
 router.post('/invoices/:id/send-sms', invoiceController.sendInvoiceSMS);
-router.get('/invoices/token/:token', invoiceController.getInvoiceByToken);
-router.get('/invoices/:token/view', invoiceController.viewInvoiceByToken);
 
 // Service bill routes
 router.post('/service-bills', serviceBillController.createServiceBill);
