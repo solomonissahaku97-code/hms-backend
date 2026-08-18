@@ -8,16 +8,13 @@ const sendSMS = async (phoneNumber, message) => {
 
         const smsApiUrl = 'https://sms.arkesel.com/sms/api';
         
-        const params = new URLSearchParams();
-        params.append('action', 'send-sms');
-        params.append('api_key', process.env.SMS_API_KEY);
-        params.append('to', phoneNumber);
-        params.append('from', 'Tonitel');
-        params.append('sms', message);
-
-        const response = await axios.post(smsApiUrl, params, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+        const response = await axios.get(smsApiUrl, {
+            params: {
+                action: 'send-sms',
+                api_key: process.env.SMS_API_KEY,
+                to: phoneNumber,
+                from: 'Tonitel',
+                sms: message
             }
         });
 
@@ -42,17 +39,14 @@ const scheduleSMS = async (phoneNumber, message, scheduleTime) => {
 
         const smsApiUrl = 'https://sms.arkesel.com/sms/api';
         
-        const params = new URLSearchParams();
-        params.append('action', 'send-sms');
-        params.append('api_key', process.env.SMS_API_KEY);
-        params.append('to', phoneNumber);
-        params.append('from', 'Falcon-hive');
-        params.append('sms', message);
-        params.append('schedule', scheduleTime);
-
-        const response = await axios.post(smsApiUrl, params, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+        const response = await axios.get(smsApiUrl, {
+            params: {
+                action: 'send-sms',
+                api_key: process.env.SMS_API_KEY,
+                to: phoneNumber,
+                from: 'Falcon-hive',
+                sms: message,
+                schedule: scheduleTime
             }
         });
 
