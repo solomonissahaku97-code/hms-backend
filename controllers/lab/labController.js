@@ -21,10 +21,9 @@ const ClaimItem = require('../../models/claims/claimItem');
 const { addClaimItem } = require('../../service/claimService');
 const Notification = require('../../models/notification'); 
 const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
-const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
-
-
-// Helper function to notify lab staff
+const StaffDepartment = require('../../models/controls/StaffDepartment');
+const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');// Helper function to notify lab staff
+// Finds staff whose PRIMARY department is Lab via the staff_departments junction table
 async function notifyLabStaff(labResult, template, visit, req) {
     try {
         // Find the Lab department for the current institution
@@ -46,42 +45,58 @@ async function notifyLabStaff(labResult, template, visit, req) {
             `✅ Lab Department Found: ${labDepartment.name} (${labDepartment.id})`
         );
 
-        // Find all staff assigned to this department
-        const labStaff = await Staff.findAll({
+        // Find staff whose primary department is Lab via staff_departments junction table
+        const labStaffDepartmentRecords = await StaffDepartment.findAll({
             where: {
-                institution_id: visit.institution_id,
                 department_id: labDepartment.id,
+                primary_department: true,
             },
+            attributes: ['staff_id'],
+            raw: true,
         });
 
+        const labStaffIds = labStaffDepartmentRecords.map(record => record.staff_id);
+
         console.log(
-            `👨‍⚕️ Found ${labStaff.length} lab staff member(s).`
+            `👨‍⚕️ Found ${labStaffIds.length} staff member(s) with Lab as primary department.`
         );
 
-        if (labStaff.length === 0) {
+        if (labStaffIds.length === 0) {
             console.log(
-                `❌ No lab staff assigned to department ${labDepartment.name}`
+                `❌ No staff found with Lab as primary department for institution ${visit.institution_id}`
             );
 
-            // Debugging: Show staff in this institution
-            const institutionStaff = await Staff.findAll({
-                where: {
-                    institution_id: visit.institution_id,
-                },
-                attributes: [
-                    'id',
-                    'firstName',
-                    'lastName',
-                    'department_id',
-                    'institution_id',
-                ],
+            // Debugging: Show all staff department assignments for this institution
+            const allStaffDepts = await StaffDepartment.findAll({
+                include: [{
+                    model: Staff,
+                    as: 'staff',
+                    where: { institution_id: visit.institution_id },
+                    attributes: ['id', 'firstName', 'lastName', 'institution_id'],
+                }],
+                attributes: ['staff_id', 'department_id', 'primary_department'],
                 raw: true,
+                nest: true,
             });
 
-            console.table(institutionStaff);
+            console.log('All staff department assignments for this institution:');
+            console.table(allStaffDepts.map(sd => ({
+                staff_id: sd.staff_id,
+                name: `${sd.staff?.firstName || ''} ${sd.staff?.lastName || ''}`.trim(),
+                department_id: sd.department_id,
+                primary_department: sd.primary_department,
+                institution_id: sd.staff?.institution_id,
+            })));
 
             return;
         }
+
+        // Fetch full Staff records for the identified staff IDs
+        const labStaff = await Staff.findAll({
+            where: {
+                id: { [Op.in]: labStaffIds },
+            },
+        });
 
         // Get patient details
         const patient = await Patient.findByPk(visit.patient_id);

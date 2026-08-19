@@ -569,7 +569,7 @@ const AccountsController = {
                             {
                                 model: Patient,
                                 as: 'patient',
-                                attributes: ['id', 'first_name', 'last_name', ]
+                                attributes: ['id', 'first_name', 'middle_name', 'last_name', 'phone', 'folder_number', 'has_insurance']
                             }
                         ]
                     },
@@ -625,7 +625,11 @@ const AccountsController = {
                     patient: inv.visit?.patient ? {
                         id: inv.visit.patient.id,
                         name: `${inv.visit.patient.first_name || ''} ${inv.visit.patient.last_name || ''}`.trim(),
-                        patient_id: inv.visit.patient.patient_id
+                        first_name: inv.visit.patient.first_name,
+                        last_name: inv.visit.patient.last_name,
+                        phone: inv.visit.patient.phone,
+                        folder_number: inv.visit.patient.folder_number,
+                        has_insurance: inv.visit.patient.has_insurance
                     } : null,
                     institution: inv.institution?.name || '',
                     service_bills: bills.map(sb => ({
@@ -785,7 +789,7 @@ const AccountsController = {
                             {
                                 model: Patient,
                                 as: 'patient',
-                                attributes: ['id', 'first_name', 'last_name', 'patient_id']
+                                attributes: ['id', 'first_name', 'middle_name', 'last_name', 'phone', 'folder_number', 'has_insurance']
                             }
                         ]
                     },
@@ -810,7 +814,11 @@ const AccountsController = {
                 patient: inv.visit?.patient ? {
                     id: inv.visit.patient.id,
                     name: `${inv.visit.patient.first_name || ''} ${inv.visit.patient.last_name || ''}`.trim(),
-                    patient_id: inv.visit.patient.patient_id
+                    first_name: inv.visit.patient.first_name,
+                    last_name: inv.visit.patient.last_name,
+                    phone: inv.visit.patient.phone,
+                    folder_number: inv.visit.patient.folder_number,
+                    has_insurance: inv.visit.patient.has_insurance
                 } : null,
                 institution: inv.institution?.name || ''
             }));
