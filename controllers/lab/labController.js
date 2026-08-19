@@ -49,7 +49,7 @@ async function notifyLabStaff(labResult, template, visit, req) {
         );
 
         // Find staff whose primary department is Lab via staff_departments junction table
-        const labStaffDepartmentRecords = await StaffDepartment.findAll({
+        let labStaffDepartmentRecords = await StaffDepartment.findAll({
             where: {
                 department_id: labDepartment.id,
                 primary_department: true,
@@ -58,39 +58,77 @@ async function notifyLabStaff(labResult, template, visit, req) {
             raw: true,
         });
 
-        const labStaffIds = labStaffDepartmentRecords.map(record => record.staff_id);
+        let labStaffIds = labStaffDepartmentRecords.map(record => record.staff_id);
 
         console.log(
             `👨‍⚕️ Found ${labStaffIds.length} staff member(s) with Lab as primary department.`
         );
 
+        // FALLBACK: If no staff have Lab as primary department, find ANY staff assigned to the Lab department
         if (labStaffIds.length === 0) {
             console.log(
-                `❌ No staff found with Lab as primary department for institution ${visit.institution_id}`
+                `⚠️  No staff with primary_department=true for Lab. Falling back to all staff in Lab department.`
             );
 
-            // Debugging: Show all staff department assignments for this institution
-            const allStaffDepts = await StaffDepartment.findAll({
-                include: [{
-                    model: Staff,
-                    as: 'staff',
-                    where: { institution_id: visit.institution_id },
-                    attributes: ['id', 'firstName', 'lastName', 'institution_id'],
-                }],
-                attributes: ['staff_id', 'department_id', 'primary_department'],
+            const fallbackRecords = await StaffDepartment.findAll({
+                where: {
+                    department_id: labDepartment.id,
+                },
+                attributes: ['staff_id'],
                 raw: true,
-                nest: true,
             });
 
-            console.log('All staff department assignments for this institution:');
-            console.table(allStaffDepts.map(sd => ({
-                staff_id: sd.staff_id,
-                name: `${sd.staff?.firstName || ''} ${sd.staff?.lastName || ''}`.trim(),
-                department_id: sd.department_id,
-                primary_department: sd.primary_department,
-                institution_id: sd.staff?.institution_id,
-            })));
+            labStaffIds = fallbackRecords.map(record => record.staff_id);
+            console.log(
+                `👨‍⚕️ Fallback: Found ${labStaffIds.length} staff member(s) in Lab department.`
+            );
+        }
 
+        // FALLBACK 2: If still no staff, find staff whose department_id on the staffs table matches Lab
+        if (labStaffIds.length === 0) {
+            console.log(
+                `⚠️  No staff in staff_departments for Lab. Falling back to staff.department_id = Lab.`
+            );
+
+            const deptFallbackStaff = await Staff.findAll({
+                where: {
+                    institution_id: visit.institution_id,
+                    department_id: labDepartment.id,
+                },
+                attributes: ['id'],
+                raw: true,
+            });
+
+            labStaffIds = deptFallbackStaff.map(record => record.id);
+            console.log(
+                `👨‍⚕️ Dept fallback: Found ${labStaffIds.length} staff member(s) with department_id = Lab.`
+            );
+        }
+
+        // FALLBACK 3: If STILL no staff, notify ALL staff in the institution (last resort)
+        if (labStaffIds.length === 0) {
+            console.log(
+                `⚠️  No staff found via any fallback. Notifying ALL staff in institution ${visit.institution_id}.`
+            );
+
+            const allInstitutionStaff = await Staff.findAll({
+                where: {
+                    institution_id: visit.institution_id,
+                },
+                attributes: ['id'],
+                raw: true,
+            });
+
+            labStaffIds = allInstitutionStaff.map(record => record.id);
+            console.log(
+                `👨‍⚕️ Final fallback: Found ${labStaffIds.length} total staff in institution.`
+            );
+        }
+
+        if (labStaffIds.length === 0) {
+            console.log(
+                `❌ No staff found at all for institution ${visit.institution_id}. Cannot send notifications.`
+            );
             return;
         }
 
