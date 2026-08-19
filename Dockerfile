@@ -38,5 +38,6 @@ EXPOSE 5008
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD node -e "require('http').get('http://localhost:5008/api/v1/system/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
-# Start the application
-CMD ["npm", "start"]
+# Run migrations before starting the server
+# This ensures the database schema is always up-to-date when the container starts
+CMD ["sh", "-c", "npx sequelize-cli db:migrate && npm start"]

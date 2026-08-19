@@ -22,7 +22,10 @@ const { addClaimItem } = require('../../service/claimService');
 const Notification = require('../../models/notification'); 
 const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
 const StaffDepartment = require('../../models/controls/StaffDepartment');
-const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');// Helper function to notify lab staff
+const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
+const labResultShareService = require('../../service/labResultShareService');
+
+// Helper function to notify lab staff
 // Finds staff whose PRIMARY department is Lab via the staff_departments junction table
 async function notifyLabStaff(labResult, template, visit, req) {
     try {
@@ -101,6 +104,15 @@ async function notifyLabStaff(labResult, template, visit, req) {
         // Get patient details
         const patient = await Patient.findByPk(visit.patient_id);
 
+        // Validate from_staff_id: only set if the user is actually a staff member
+        let fromStaffId = null;
+        if (req.body.user) {
+            const fromStaff = await Staff.findByPk(req.body.user, { attributes: ['id'], transaction: null });
+            if (fromStaff) {
+                fromStaffId = req.body.user;
+            }
+        }
+
         // Send notification to every lab staff
         for (const staff of labStaff) {
             const notification = await Notification.create({
@@ -108,7 +120,7 @@ async function notifyLabStaff(labResult, template, visit, req) {
                 description: `New lab test requested: ${
                     template?.lab_tarrif?.test_description || 'Lab Test'
                 }. Patient: ${patient?.firstName || ''} ${patient?.lastName || ''}`,
-                from_staff_id: req.body.user,
+                from_staff_id: fromStaffId,
                 to_staff_id: staff.id,
                 institution_id: visit.institution_id,
                 to_department_id: labDepartment.id,
@@ -260,6 +272,15 @@ async function createSingleLabResult({ transaction, templateId, visit_id, user, 
         transaction
     });
 
+    // Validate createdBy: only set if user exists in staffs table (admins are not staff)
+    let createdByUserId = null;
+    if (user) {
+        const staffUser = await Staff.findByPk(user, { attributes: ['id'], transaction });
+        if (staffUser) {
+            createdByUserId = user;
+        }
+    }
+
     const resultData = {
         templateId,
         visit_id,
@@ -268,7 +289,7 @@ async function createSingleLabResult({ transaction, templateId, visit_id, user, 
         department_id: labDepartment ? labDepartment.id : (department_id || visit.department_id || null),
         notes: request_notes || null,
         request_notes: request_notes || null,
-        createdBy: user,
+        createdBy: createdByUserId,
         status: 'pending'
     };
 
@@ -1348,5 +1369,165 @@ exports.getRecentLabTestsByVisitId = async (req, res, next) => {
   }
 }
 
+// ─── Lab Result Sharing: SMS, Link, PDF ───────────────────────
+
+/**
+ * POST /lab/results/:id/send-sms
+ * Generate a secure share token and send the lab result link via SMS.
+ */
+exports.sendLabResultSMS = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const institutionId = req.admin?.institution_id || req.user?.institution_id;
+    const staffUserId = req.user?.id || req.admin?.id;
+    const phoneNumber = req.body.phone_number;
+
+    const result = await labResultShareService.sendLabResultSMS(id, institutionId, staffUserId, phoneNumber);
+
+    res.status(200).json({
+      success: true,
+      message: 'Lab result SMS sent successfully',
+      data: {
+        phone: result.phone,
+        shareUrl: result.shareUrl,
+        expiresAt: result.expiresAt,
+      },
+    });
+  } catch (error) {
+    console.error('Error sending lab result SMS:', error.message);
+    const statusCode = error.message.includes('not found') ? 404
+      : error.message.includes('Unauthorized') ? 403
+      : error.message.includes('phone number') ? 400
+      : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Failed to send SMS',
+    });
+  }
+};
+
+/**
+ * POST /lab/results/:id/share-link
+ * Generate a secure share link for the lab result.
+ */
+exports.generateShareLink = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const institutionId = req.admin?.institution_id || req.user?.institution_id;
+    const staffUserId = req.user?.id || req.admin?.id;
+
+    const result = await labResultShareService.generateShareToken(id, institutionId, staffUserId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Share link generated successfully',
+      data: {
+        shareUrl: result.shareUrl,
+        expiresAt: result.expiresAt,
+      },
+    });
+  } catch (error) {
+    console.error('Error generating share link:', error.message);
+    const statusCode = error.message.includes('not found') ? 404
+      : error.message.includes('Unauthorized') ? 403
+      : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Failed to generate share link',
+    });
+  }
+};
+
+/**
+ * GET /lab/results/:id/pdf
+ * Generate and stream a PDF of the lab result.
+ */
+exports.generateLabResultPDF = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const institutionId = req.admin?.institution_id || req.user?.institution_id;
+
+    const pdfStream = await labResultShareService.generateLabResultPDF(id, institutionId);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    pdfStream.pipe(res);
+  } catch (error) {
+    console.error('Error generating lab result PDF:', error.message);
+    const statusCode = error.message.includes('not found') ? 404
+      : error.message.includes('Unauthorized') ? 403
+      : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Failed to generate PDF',
+    });
+  }
+};
+
+/**
+ * GET /public/lab-results/:token
+ * Public endpoint: view lab result by secure token. No auth required.
+ */
+exports.viewLabResultByToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const result = await labResultShareService.accessShareToken(token);
+
+    const labResult = result.labResult;
+    const patient = labResult.visit?.patient;
+    const institution = result.institution;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        patient: patient ? {
+          name: `${patient.first_name || ''} ${patient.middle_name || ''} ${patient.last_name || ''}`.trim(),
+          gender: patient.gender,
+          date_of_birth: patient.date_of_birth,
+        } : null,
+        institution: institution ? {
+          name: institution.name,
+          address: institution.address,
+          contact: institution.contact,
+          email: institution.email,
+          logo_url: institution.logo_url,
+        } : null,
+        labResult: {
+          id: labResult.id,
+          status: labResult.status,
+          values: labResult.values,
+          abnormal_flags: labResult.abnormal_flags,
+          notes: labResult.notes,
+          technician_notes: labResult.technician_notes,
+          request_notes: labResult.request_notes,
+          specimen_type: labResult.specimen_type,
+          createdAt: labResult.createdAt,
+          template: labResult.template ? {
+            name: labResult.template.name,
+            fields: labResult.template.fields,
+            lab_tarrif: labResult.template.lab_tarrif ? {
+              test_description: labResult.template.lab_tarrif.test_description,
+            } : null,
+          } : null,
+          creator: labResult.creator ? {
+            name: `${labResult.creator.firstName || ''} ${labResult.creator.lastName || ''}`.trim(),
+          } : null,
+          verifier: labResult.verifier ? {
+            name: `${labResult.verifier.firstName || ''} ${labResult.verifier.lastName || ''}`.trim(),
+          } : null,
+        },
+        tokenExpiresAt: result.tokenExpiresAt,
+      },
+    });
+  } catch (error) {
+    console.error('Error viewing lab result by token:', error.message);
+    const statusCode = error.message.includes('Invalid') || error.message.includes('expired') || error.message.includes('revoked') ? 404 : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Unable to access lab result',
+    });
+  }
+};
 
 

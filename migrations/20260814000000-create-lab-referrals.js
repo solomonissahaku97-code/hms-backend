@@ -1,7 +1,29 @@
 'use strict';
 
+/**
+ * Create lab_referrals and lab_referral_items tables.
+ *
+ * NOTE: This migration is made idempotent. If the tables already exist
+ * (e.g. from a previous partial run), it skips creation.
+ *
+ * For production databases that have an old "referrals" table, use the
+ * fix migration 20260819110000-fix-referral-table-naming.js instead.
+ */
 module.exports = {
     up: async (queryInterface, Sequelize) => {
+        // Check if lab_referrals already exists
+        const [labReferralsExists] = await queryInterface.sequelize.query(
+            `SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = 'lab_referrals'
+            ) as exists`
+        );
+
+        if (labReferralsExists[0].exists) {
+            console.log('ℹ️  lab_referrals table already exists — skipping creation');
+            return;
+        }
+
         await queryInterface.createTable('lab_referrals', {
             id: {
                 type: Sequelize.UUID,
@@ -56,54 +78,21 @@ module.exports = {
             },
             status: {
                 type: Sequelize.ENUM(
-                    'pending',
-                    'sent',
-                    'accepted',
-                    'sample_collected',
-                    'processing',
-                    'result_ready',
-                    'result_received',
-                    'completed',
-                    'rejected',
-                    'cancelled'
+                    'pending', 'sent', 'accepted', 'sample_collected',
+                    'processing', 'result_ready', 'result_received',
+                    'completed', 'rejected', 'cancelled'
                 ),
                 allowNull: false,
                 defaultValue: 'pending'
             },
-            clinical_reason: {
-                type: Sequelize.TEXT,
-                allowNull: true
-            },
-            clinical_notes: {
-                type: Sequelize.TEXT,
-                allowNull: true
-            },
-            expected_result_date: {
-                type: Sequelize.DATE,
-                allowNull: true
-            },
-            result_received_at: {
-                type: Sequelize.DATE,
-                allowNull: true
-            },
-            completed_at: {
-                type: Sequelize.DATE,
-                allowNull: true
-            },
-            notes: {
-                type: Sequelize.TEXT,
-                allowNull: true
-            },
-            created_at: {
-                type: Sequelize.DATE,
-                allowNull: false,
-                defaultValue: Sequelize.NOW
-            },
-            updated_at: {
-                type: Sequelize.DATE,
-                allowNull: false,
-                defaultValue: Sequelize.NOW
-            }
+            clinical_reason: { type: Sequelize.TEXT, allowNull: true },
+            clinical_notes: { type: Sequelize.TEXT, allowNull: true },
+            expected_result_date: { type: Sequelize.DATE, allowNull: true },
+            result_received_at: { type: Sequelize.DATE, allowNull: true },
+            completed_at: { type: Sequelize.DATE, allowNull: true },
+            notes: { type: Sequelize.TEXT, allowNull: true },
+            created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+            updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW }
         });
 
         await queryInterface.createTable('lab_referral_items', {
@@ -124,38 +113,43 @@ module.exports = {
                 references: { model: 'lab_test_templates', key: 'id' },
                 onDelete: 'CASCADE'
             },
-            request_notes: {
-                type: Sequelize.TEXT,
-                allowNull: true
-            },
+            request_notes: { type: Sequelize.TEXT, allowNull: true },
             result_id: {
                 type: Sequelize.UUID,
                 allowNull: true,
                 references: { model: 'lab_test_results', key: 'id' },
                 onDelete: 'SET NULL'
             },
-            created_at: {
-                type: Sequelize.DATE,
-                allowNull: false,
-                defaultValue: Sequelize.NOW
-            },
-            updated_at: {
-                type: Sequelize.DATE,
-                allowNull: false,
-                defaultValue: Sequelize.NOW
-            }
+            created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
+            updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW }
         });
 
-        await queryInterface.addColumn('lab_test_results', 'referral_id', {
-            type: Sequelize.UUID,
-            allowNull: true,
-            references: { model: 'lab_referrals', key: 'id' },
-            onDelete: 'SET NULL'
-        });
+        // Check if referral_id column already exists before adding
+        const [columns] = await queryInterface.sequelize.query(
+            `SELECT column_name FROM information_schema.columns 
+             WHERE table_name = 'lab_test_results' AND column_name = 'referral_id'`
+        );
+
+        if (columns.length === 0) {
+            await queryInterface.addColumn('lab_test_results', 'referral_id', {
+                type: Sequelize.UUID,
+                allowNull: true,
+                references: { model: 'lab_referrals', key: 'id' },
+                onDelete: 'SET NULL'
+            });
+        }
     },
 
     down: async (queryInterface, Sequelize) => {
-        await queryInterface.removeColumn('lab_test_results', 'referral_id');
+        // Check if columns exist before removing
+        const [columns] = await queryInterface.sequelize.query(
+            `SELECT column_name FROM information_schema.columns 
+             WHERE table_name = 'lab_test_results' AND column_name = 'referral_id'`
+        );
+        if (columns.length > 0) {
+            await queryInterface.removeColumn('lab_test_results', 'referral_id');
+        }
+
         await queryInterface.dropTable('lab_referral_items');
         await queryInterface.dropTable('lab_referrals');
     }

@@ -19,7 +19,11 @@ const {
   getRecentLabTests,
   getPendingLabTests,
   updateResultAttachments,
-  getResultsByVisitId
+  getResultsByVisitId,
+  sendLabResultSMS,
+  generateShareLink,
+  generateLabResultPDF,
+  viewLabResultByToken,
 } = require('../controllers/lab/labController');
 const authenticateToken = require('../middlewares/authMiddlewares');
 const { upload, labAttachmentsUpload, sftpUpload } = require('../middlewares/profile_multer');
@@ -62,6 +66,14 @@ router.get('/test-stats', authenticateToken, getLabTestStats); // stats by depar
 router.get('/recent-tests/visit/:visit_id', authenticateToken, getRecentLabTestsByVisitId); // recent tests by visit ID
 router.get('/results/pending', authenticateToken, getPendingLabTests); // pending tests for Lab department work queue
 router.get('/results/visit/:visit_id', authenticateToken, getResultsByVisitId);
+
+// Lab result sharing routes (authenticated)
+router.post('/results/:id/send-sms', authenticateToken, sendLabResultSMS);
+router.post('/results/:id/share-link', authenticateToken, generateShareLink);
+router.get('/results/:id/pdf', authenticateToken, generateLabResultPDF);
+
+// Public route: view lab result by secure token (no auth)
+router.get('/public/results/:token', viewLabResultByToken);
 
 // Standalone lab routes for lab-only institutions
 router.get('/standalone/patients/search', authenticateToken, labStandaloneController.searchPatients);
