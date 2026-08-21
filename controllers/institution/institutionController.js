@@ -558,7 +558,8 @@ exports.uploadGalleryImage = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Institution not found' });
         }
 
-        const imageUrl = req.body.gallery_image || `/uploads/gallery/${req.file.filename}`;
+        // storage path from Supabase middleware (sftpUpload)
+        const imageUrl = req.body.gallery_image;
         const gallery = Array.isArray(institution.gallery_images) ? [...institution.gallery_images] : [];
 
         if (gallery.length >= 8) {

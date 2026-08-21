@@ -16,6 +16,7 @@ router.get("/dashboard", AccountsController.getDashboard);
 
 router.get("/daily-cash-flow", AccountsController.getDailyCashFlow);
 router.get("/report", AccountsController.getAccountsReport);
+router.get("/cashflow-dashboard", AccountsController.getCashflowDashboard);
 
 router.get("/patient-collections/:visit_id", AccountsController.getPatientCollections);
 router.patch("/bills/mark-payment/:bill_id", AccountsController.markBillAsPaid);

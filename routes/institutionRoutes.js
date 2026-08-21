@@ -6,8 +6,8 @@ const adminMiddleware = require('../middlewares/adminMiddleware');
 const institutionAccountSetup = require('../controllers/institution/institutionAccountsController')
 const institutionPricingController = require('../controllers/institution/institutionPricingController');
 
-const { upload, sftpUpload } = require('../middlewares/profile_multer')
-const { galleryUpload, sftpUpload: sftpUploadGallery } = require('../middlewares/profile_multer')
+const { upload, sftpUpload } = require('../middlewares/storage')
+const { galleryUpload, sftpUpload: sftpUploadGallery } = require('../middlewares/storage')
 
 const eitherAuthOrAdmin = require('../middlewares/eitherAuthOrAdminMiddleware')
 const authenticateToken = require('../middlewares/authMiddlewares');

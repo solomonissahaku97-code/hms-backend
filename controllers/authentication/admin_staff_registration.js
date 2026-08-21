@@ -110,7 +110,8 @@ exports.registerStaffs = async (req, res) => {
         if (req.body.profile_pic) {
             profile_pic = req.body.profile_pic;
         } else if (req.file) {
-            profile_pic = `/uploads/profile_pic/${req.file.filename}`;
+            // storage path from Supabase middleware (sftpUpload)
+            profile_pic = req.body.profile_pic;
         }
 
         // Hash password

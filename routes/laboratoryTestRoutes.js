@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middlewares/authMiddlewares');
-const { upload, sftpUpload } = require('../middlewares/profile_multer');
+const { upload, sftpUpload } = require('../middlewares/storage');
 const {
    
     uploadLabResult,

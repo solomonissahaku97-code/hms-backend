@@ -349,6 +349,7 @@ exports.makePatientPayment = async (req, res) => {
     bill.paid_amount = newPaid;
     if (newPaid >= billTotal) {
       bill.payment_status = 'Paid';
+      bill.has_paid = true;
       bill.payment_method = payment_method;
       bill.paid_at = new Date();
     } else if (newPaid > 0) {
@@ -360,16 +361,22 @@ exports.makePatientPayment = async (req, res) => {
     if (bill.invoice_id) {
       const invoice = await Invoice.findByPk(bill.invoice_id, { transaction });
       if (invoice) {
-        invoice.amount_paid = parseFloat(invoice.amount_paid) + paymentAmount;
-        invoice.balance_due = parseFloat(invoice.total_amount) - invoice.amount_paid;
-        
-        if (invoice.balance_due <= 0) {
-          invoice.balance_due = 0;
-          invoice.status = 'paid';
-        } else {
-          invoice.status = 'partially_paid';
-        }
-        await invoice.save({ transaction });
+        const newAmountPaid = parseFloat(invoice.amount_paid) + paymentAmount;
+        const newBalanceDue = Math.max(0, parseFloat(invoice.total_amount) - newAmountPaid);
+        const newStatus = newBalanceDue <= 0 && newAmountPaid > 0 ? 'paid' : 'partially_paid';
+
+        await Invoice.update(
+          {
+            amount_paid: newAmountPaid,
+            balance_due: newBalanceDue,
+            status: newStatus,
+            paid_at: newBalanceDue <= 0 ? new Date() : invoice.paid_at,
+          },
+          {
+            where: { id: bill.invoice_id },
+            transaction,
+          }
+        );
       }
     }
 

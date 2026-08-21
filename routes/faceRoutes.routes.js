@@ -1,7 +1,7 @@
 // routes/staffFaceRoutes.js
 const express = require("express");
 const router = express.Router();
-const upload = require("../utils/multer"); // your multer util
+const { upload } = require("../middlewares/storage");
 const staffFaceController = require("../controllers/faceController/faceController.controller");
 
 

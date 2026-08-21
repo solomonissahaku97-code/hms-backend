@@ -318,6 +318,34 @@ const getInstitutionSubscription = async (req, res) => {
 
 
 
+const getSubscriptionHistory = async (req, res) => {
+    const { institutionId } = req.query;
+
+    if (!institutionId) {
+        return res.status(400).json({ error: 'institutionId is required' });
+    }
+
+    try {
+        const history = await InstitutionSubscription.findAll({
+            where: { institutionId },
+            include: [{
+                model: Subscription,
+                as: 'subscription',
+                attributes: ['id', 'name', 'price', 'duration', 'features'],
+            }],
+            order: [['createdAt', 'DESC']],
+        });
+
+        res.status(200).json({
+            message: 'Subscription history retrieved successfully!',
+            data: history,
+        });
+    } catch (error) {
+        console.error('Error fetching subscription history:', error);
+        res.status(500).json({ error: 'Failed to fetch subscription history' });
+    }
+};
+
 module.exports = {
     createSubscription,
     initiateSubscription,
@@ -326,5 +354,6 @@ module.exports = {
     getInstitutionSubscription,
     updateSubscription,
     deleteSubscription,
+    getSubscriptionHistory,
 };
  

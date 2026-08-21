@@ -27,7 +27,6 @@ if (process.env.NODE_ENV === 'production' && process.env.APP_URL) {
 
 // Initialize express app
 const app = express();
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.json());
 app.use(bodyParser.json());
 app.set('view engine', 'ejs');
@@ -40,7 +39,10 @@ app.use(cors({
   credentials: false,
 }));
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// LEGACY: Keep static /uploads for backward compatibility with pre-Supabase files.
+// New uploads go to Supabase Storage. This mount only serves legacy files
+// that haven't been migrated yet. Remove after full migration is confirmed.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Swagger setup with basic auth
 app.use('/api-docs', basicAuth({

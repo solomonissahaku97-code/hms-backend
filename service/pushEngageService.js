@@ -7,8 +7,12 @@ const PUSH_ENGAGE_API_URL = process.env.PUSH_ENGAGE_API_URL || 'https://api.push
 
 async function sendPushEngageNotification({ title, message, url, targetType = 'all', tag }) {
   if (!PUSH_ENGAGE_API_KEY || !PUSH_ENGAGE_API_SECRET) {
-    console.warn('PushEngage API credentials not configured. Skipping push notification.');
+    console.warn('PushEngage: API credentials not configured. Set PUSH_ENGAGE_API_KEY and PUSH_ENGAGE_API_SECRET env vars. Skipping.');
     return;
+  }
+
+  if (!PUSH_ENGAGE_APP_ID) {
+    console.warn('PushEngage: PUSH_ENGAGE_APP_ID not set. Using fallback may cause 404 in production.');
   }
 
   try {
@@ -36,10 +40,10 @@ async function sendPushEngageNotification({ title, message, url, targetType = 'a
     const status = error.response?.status;
     const data = error.response?.data;
     const isHtml = typeof data === 'string' && data.trim().startsWith('<!DOCTYPE');
-    const message = isHtml
-      ? `PushEngage returned ${status || 'error'} (HTML response)`
+    const errMsg = isHtml
+      ? `PushEngage returned ${status || 'error'} (HTML response). URL: ${PUSH_ENGAGE_API_URL}. APP_ID: ${PUSH_ENGAGE_APP_ID}. Verify PUSH_ENGAGE_API_KEY, PUSH_ENGAGE_API_SECRET, PUSH_ENGAGE_APP_ID env vars match your PushEngage dashboard.`
       : (data?.message || data?.error || error.message);
-    console.error('Failed to send PushEngage notification:', message);
+    console.error('Failed to send PushEngage notification:', errMsg);
   }
 }
 

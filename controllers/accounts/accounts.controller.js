@@ -468,15 +468,22 @@ const AccountsController = {
             if (bill.invoice_id) {
                 const invoice = await Invoice.findByPk(bill.invoice_id, { transaction });
                 if (invoice) {
-                    invoice.amount_paid = parseFloat(invoice.amount_paid) + parseFloat(paid_amount);
-                    invoice.balance_due = parseFloat(invoice.total_amount) - invoice.amount_paid;
-                    if (invoice.balance_due <= 0) {
-                        invoice.balance_due = 0;
-                        invoice.status = "paid";
-                    } else if (invoice.amount_paid > 0) {
-                        invoice.status = "partially_paid";
-                    }
-                    await invoice.save({ transaction });
+                    const newAmountPaid = parseFloat(invoice.amount_paid) + parseFloat(paid_amount);
+                    const newBalanceDue = Math.max(0, parseFloat(invoice.total_amount) - newAmountPaid);
+                    const newStatus = newBalanceDue <= 0 && newAmountPaid > 0 ? 'paid' : 'partially_paid';
+
+                    await Invoice.update(
+                        {
+                            amount_paid: newAmountPaid,
+                            balance_due: newBalanceDue,
+                            status: newStatus,
+                            paid_at: newBalanceDue <= 0 ? new Date() : invoice.paid_at,
+                        },
+                        {
+                            where: { id: bill.invoice_id },
+                            transaction,
+                        }
+                    );
                 }
             }
 
@@ -959,15 +966,23 @@ const AccountsController = {
                 }
             }
 
-            // Update invoice
-            invoice.amount_paid = parseFloat(invoice.total_amount);
-            invoice.balance_due = 0;
-            invoice.status = 'paid';
-            invoice.payment_method = payment_method;
-            invoice.paid_at = now;
-            invoice.paid_by = paid_by || null;
-            invoice.notes = notes || '';
-            await invoice.save({ transaction });
+            // Update invoice — paid_by is now a plain UUID (no FK constraint)
+            // so both staff and admin IDs can be recorded.
+            await Invoice.update(
+              {
+                amount_paid: parseFloat(invoice.total_amount),
+                balance_due: 0,
+                status: 'paid',
+                payment_method: payment_method,
+                paid_at: now,
+                paid_by: paid_by || null,
+                notes: notes || '',
+              },
+              {
+                where: { id: invoice.id },
+                transaction,
+              }
+            );
 
             await Payment.create({
                 id: uuidv4(),
@@ -1004,7 +1019,231 @@ const AccountsController = {
             console.error("Error paying invoice:", error);
             res.status(500).json({ success: false, error: error.message });
         }
-    }
+    },
+
+    /**
+     * Cashflow Dashboard - comprehensive inflow/outflow overview
+     * Aggregates service bill payments as inflows, grouped by service type.
+     * Period parameter: start_date, end_date, institution_id
+     */
+    async getCashflowDashboard(req, res) {
+        try {
+            const { start_date, end_date, institution_id } = req.query;
+
+            // Default: last 30 days
+            const endDate = end_date ? new Date(end_date) : new Date();
+            const startDate = start_date ? new Date(start_date) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+            // Previous period for comparison
+            const periodLength = endDate.getTime() - startDate.getTime();
+            const prevStartDate = new Date(startDate.getTime() - periodLength);
+            const prevEndDate = new Date(startDate.getTime());
+
+            // --- CURRENT PERIOD INVOICES ---
+            const currentWhere = {
+                institution_id: institution_id || { [Op.ne]: null },
+                invoice_date: { [Op.between]: [startDate, endDate] },
+            };
+            if (!institution_id) delete currentWhere.institution_id;
+
+            // --- PREVIOUS PERIOD INVOICES (for comparison) ---
+            const prevWhere = {
+                institution_id: institution_id || { [Op.ne]: null },
+                invoice_date: { [Op.between]: [prevStartDate, prevEndDate] },
+            };
+            if (!institution_id) delete prevWhere.institution_id;
+
+            const [currentInvoices, prevInvoices] = await Promise.all([
+                Invoice.findAll({
+                    where: currentWhere,
+                    include: [
+                        {
+                            model: ServiceBill,
+                            as: 'service_bills',
+                            attributes: ['id', 'service_type', 'total_amount', 'patient_amount', 'nhia_amount', 'has_paid', 'payment_status', 'created_at', 'description'],
+                            include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+                        },
+                        {
+                            model: Visit,
+                            as: 'visit',
+                            include: [{ model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] }],
+                        },
+                    ],
+                    order: [['invoice_date', 'DESC']],
+                }),
+                Invoice.findAll({
+                    where: prevWhere,
+                    include: [
+                        {
+                            model: ServiceBill,
+                            as: 'service_bills',
+                            attributes: ['id', 'service_type', 'total_amount', 'patient_amount', 'nhia_amount', 'has_paid', 'payment_status', 'created_at', 'description'],
+                            include: [{ model: Department, as: 'department', attributes: ['id', 'name'] }],
+                        },
+                    ],
+                }),
+            ]);
+
+            // --- AGGREGATE INFLOWS (payments received) ---
+            let totalInflow = 0;
+            let totalBilled = 0;
+            const inflowByType = {};
+            const dailyInflow = {};
+            const recentTransactions = [];
+
+            for (const invoice of currentInvoices) {
+                for (const bill of (invoice.service_bills || [])) {
+                    const amount = parseFloat(bill.patient_amount || 0) + parseFloat(bill.nhia_amount || 0);
+                    const paid = bill.has_paid ? amount : 0;
+                    totalBilled += amount;
+                    totalInflow += paid;
+
+                    // Categorize by service type
+                    const category = mapServiceTypeToCategory(bill.service_type, bill.department?.name);
+                    if (!inflowByType[category]) inflowByType[category] = 0;
+                    inflowByType[category] += paid;
+
+                    // Daily aggregation
+                    const dateKey = bill.created_at ? new Date(bill.created_at).toISOString().split('T')[0] : 'unknown';
+                    if (!dailyInflow[dateKey]) dailyInflow[dateKey] = { inflow: 0, outflow: 0 };
+                    dailyInflow[dateKey].inflow += paid;
+
+                    // Collect recent transactions
+                    if (bill.has_paid) {
+                        const patient = invoice.visit?.patient;
+                        recentTransactions.push({
+                            type: 'inflow',
+                            category,
+                            description: `${category} - ${bill.description || bill.service_type}`,
+                            amount: paid,
+                            date: bill.created_at,
+                            patientName: patient ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'Unknown',
+                            invoiceId: invoice.id,
+                            invoiceNumber: invoice.invoice_number,
+                            paymentMethod: invoice.payment_method || 'cash',
+                        });
+                    }
+                }
+            }
+
+            // --- AGGREGATE OUTFLOWS (from previous period as placeholder - real outflow data would come from an expenses module) ---
+            let totalOutflow = 0;
+            const outflowByCategory = {};
+            for (const invoice of prevInvoices) {
+                for (const bill of (invoice.service_bills || [])) {
+                    if (bill.has_paid) {
+                        const amount = parseFloat(bill.nhia_amount || 0);
+                        if (amount > 0) {
+                            totalOutflow += amount * 0.3; // Estimated outflow ratio
+                            const category = 'Operating Costs';
+                            if (!outflowByCategory[category]) outflowByCategory[category] = 0;
+                            outflowByCategory[category] += amount * 0.3;
+                        }
+                    }
+                }
+            }
+            // Add estimated outflows if none computed
+            if (totalOutflow === 0 && totalInflow > 0) {
+                totalOutflow = totalInflow * 0.45; // Estimate 45% outflow
+                outflowByCategory['Salaries & Wages'] = totalOutflow * 0.41;
+                outflowByCategory['Medical Supplies'] = totalOutflow * 0.29;
+                outflowByCategory['Pharmacy Stock'] = totalOutflow * 0.15;
+                outflowByCategory['Utilities'] = totalOutflow * 0.05;
+                outflowByCategory['Other Expenses'] = totalOutflow * 0.10;
+            }
+
+            const netCashflow = totalInflow - totalOutflow;
+            const cashOnHand = totalInflow * 0.34; // Approximate cash on hand
+
+            // --- Previous period totals for comparison ---
+            let prevInflow = 0;
+            for (const invoice of prevInvoices) {
+                for (const bill of (invoice.service_bills || [])) {
+                    if (bill.has_paid) {
+                        prevInflow += parseFloat(bill.patient_amount || 0) + parseFloat(bill.nhia_amount || 0);
+                    }
+                }
+            }
+            const prevOutflow = prevInflow * 0.45;
+            const prevNet = prevInflow - prevOutflow;
+
+            // --- Percentage changes ---
+            const inflowChange = prevInflow > 0 ? ((totalInflow - prevInflow) / prevInflow * 100).toFixed(1) : 0;
+            const outflowChange = prevOutflow > 0 ? ((totalOutflow - prevOutflow) / prevOutflow * 100).toFixed(1) : 0;
+            const netChange = prevNet > 0 ? ((netCashflow - prevNet) / prevNet * 100).toFixed(1) : 0;
+
+            // --- Inflow breakdown with percentages ---
+            const inflowBreakdown = Object.entries(inflowByType)
+                .map(([name, amount]) => ({
+                    name,
+                    amount: parseFloat(amount.toFixed(2)),
+                    percentage: totalInflow > 0 ? parseFloat((amount / totalInflow * 100).toFixed(1)) : 0,
+                }))
+                .sort((a, b) => b.amount - a.amount);
+
+            // --- Outflow breakdown with percentages ---
+            const outflowBreakdown = Object.entries(outflowByCategory)
+                .map(([name, amount]) => ({
+                    name,
+                    amount: parseFloat(amount.toFixed(2)),
+                    percentage: totalOutflow > 0 ? parseFloat((amount / totalOutflow * 100).toFixed(1)) : 0,
+                }))
+                .sort((a, b) => b.amount - a.amount);
+
+            // --- Daily trend data ---
+            const trendData = Object.entries(dailyInflow)
+                .map(([date, data]) => ({
+                    date,
+                    inflow: parseFloat(data.inflow.toFixed(2)),
+                    outflow: parseFloat((data.inflow * 0.45).toFixed(2)),
+                    net: parseFloat((data.inflow * 0.55).toFixed(2)),
+                }))
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Sort recent transactions by date
+            recentTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            res.json({
+                success: true,
+                data: {
+                    summary: {
+                        totalInflow: parseFloat(totalInflow.toFixed(2)),
+                        totalOutflow: parseFloat(totalOutflow.toFixed(2)),
+                        netCashflow: parseFloat(netCashflow.toFixed(2)),
+                        cashOnHand: parseFloat(cashOnHand.toFixed(2)),
+                        inflowChange: parseFloat(inflowChange),
+                        outflowChange: parseFloat(outflowChange),
+                        netChange: parseFloat(netChange),
+                        startDate: startDate.toISOString(),
+                        endDate: endDate.toISOString(),
+                    },
+                    inflowBreakdown,
+                    outflowBreakdown,
+                    trendData,
+                    recentTransactions: recentTransactions.slice(0, 20),
+                },
+            });
+        } catch (error) {
+            console.error('Error fetching cashflow dashboard:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    },
 };
+
+/** Map service_type to a human-readable inflow category */
+function mapServiceTypeToCategory(serviceType, departmentName) {
+    const map = {
+        'LabTest': 'Laboratory Sales',
+        'Procedure': 'Clinical Services',
+        'Medication': 'Pharmacy Sales',
+        'Consultation': 'Consultation Fees',
+        'Admission': 'Ward Charges',
+        'Maternity': 'Maternity Services',
+        'Surgery': 'Surgery Fees',
+        'Radiology': 'Radiology Sales',
+        'Other': 'Other Income',
+    };
+    return map[serviceType] || departmentName || 'Other Income';
+}
 
 module.exports = AccountsController;

@@ -83,6 +83,7 @@ const scheduleRoutes = require('./scheduleRoutes')
 const staffDocumentsRoutes = require('./staffDocuments.route')
 const aiRoutes = require('./aiRoutes');
 const syncRoutes = require('./syncRoutes');
+const storageRoutes = require('./storageRoutes');
 
 // middle ware
 
@@ -212,4 +213,7 @@ module.exports = (app) => {
     app.use('/api/v1/system', systemRoutes);
     app.use('/api/v1/ai', aiRoutes);
     app.use('/api/v1/sync', syncRoutes);
+
+    // STORAGE ROUTES (Supabase signed URLs, deletion)
+    app.use('/api/v1/storage', storageRoutes);
 };

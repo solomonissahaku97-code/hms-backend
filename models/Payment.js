@@ -67,7 +67,8 @@ Payment.associate = (models) => {
     Payment.belongsTo(models.Invoice, { foreignKey: 'invoice_id', as: 'invoice' });
     Payment.belongsTo(models.ServiceBill, { foreignKey: 'service_bill_id', as: 'serviceBill' });
     Payment.belongsTo(models.Patient, { foreignKey: 'patient_id', as: 'patient' });
-    Payment.belongsTo(models.Staff, { foreignKey: 'created_by', as: 'creator' });
+    // created_by is a plain UUID — no FK constraint so both staff and admin IDs are accepted
+    // Payment.belongsTo(models.Staff, { foreignKey: 'created_by', as: 'creator' });
 };
 
 module.exports = Payment;

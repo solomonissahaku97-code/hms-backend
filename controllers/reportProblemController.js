@@ -4,7 +4,8 @@ const Staff = require('../models/staff');
 
 const createReportProblem = async (req, res) => {
     const { description, institution_id, staff_id } = req.body;
-    const screenshot = req.file ? req.file.path : null; // Assuming multer is handling file uploads
+    // Storage path from Supabase middleware (sftpUpload), or null if no file uploaded
+    const screenshot = req.body.screenshot || (req.file ? req.file.path : null);
 
     try {
         // Validate that the institution and staff exist

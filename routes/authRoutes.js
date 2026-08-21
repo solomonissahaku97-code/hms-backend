@@ -3,7 +3,7 @@ const {  login,  getAllDoctors,  resetPassword,verifyLogicAnswer,updateUserFCMTo
 const { registerAdmin,registerStaffs,deleteStaff,getAllStaffByInstitution,getStaffByInstitutionAndId,assignedPrimaryDepartment } = require('../controllers/authentication/admin_staff_registration')
 const { registerSuperAdmin,loginSuperAdmin } = require('../controllers/authentication/super_admin.controller')
 const authenticateToken = require('../middlewares/authMiddlewares');
-const { upload, sftpUpload } = require('../middlewares/profile_multer');
+const { upload, sftpUpload } = require('../middlewares/storage');
 const router = express.Router();
 const { updateStaffInfo } = require('../controllers/updateUserController')
 const staffDeptCtrl = require('../controllers/departments/staffDepartmentController');

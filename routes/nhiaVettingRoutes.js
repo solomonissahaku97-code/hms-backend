@@ -2,43 +2,27 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const nhiaVettingController = require('../controllers/claims/nhiaVettingController');
+const { sftpUpload } = require('../middlewares/storage');
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../../uploads/nhia');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure multer for file upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
+// XML-only multer upload for NHIA vetting (uses centralized temp storage)
+const tempDir = path.join(__dirname, '../uploads/temp');
+const nhiaUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, tempDir),
+    filename: (req, file, cb) => {
+      cb(null, `nhia-${Date.now()}${path.extname(file.originalname)}`);
+    },
+  }),
+  fileFilter: (req, file, cb) => {
+    const isXML = file.mimetype === 'text/xml' || file.mimetype === 'application/xml' || file.originalname.toLowerCase().endsWith('.xml');
+    if (isXML) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only XML files are allowed'), false);
+    }
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `nhia-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['text/xml', 'application/xml'];
-  const isXML = allowedTypes.includes(file.mimetype) || file.originalname.toLowerCase().endsWith('.xml');
-  
-  if (isXML) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only XML files are allowed'), false);
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  }
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
 // Middleware to track processing time
@@ -68,9 +52,10 @@ const handleMulterError = (error, req, res, next) => {
   next(error);
 };
 
-// Routes
+// Routes — upload to Supabase via sftpUpload middleware (renamed but now uses Supabase)
 router.post('/upload', 
-  upload.single('xmlFile'),
+  nhiaUpload.single('xmlFile'),
+  sftpUpload('xmlFile', 'claims', 'nhia'),
   handleMulterError,
   nhiaVettingController.processNHIAXML
 );
@@ -79,12 +64,11 @@ router.get('/validation-rules',
   nhiaVettingController.getValidationRules
 );
 
-router.get('/mappings',
+router.get('/mappings', 
   nhiaVettingController.getNHIAMappings
 );
 
-router.post('/mappings',
-  // Add authentication middleware here if needed
+router.post('/mappings', 
   nhiaVettingController.createNHIAMapping
 );
 

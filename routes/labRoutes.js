@@ -26,9 +26,10 @@ const {
   viewLabResultByToken,
 } = require('../controllers/lab/labController');
 const authenticateToken = require('../middlewares/authMiddlewares');
-const { upload, labAttachmentsUpload, sftpUpload } = require('../middlewares/profile_multer');
+const { upload, labAttachmentsUpload, sftpUpload } = require('../middlewares/storage');
 const labAnalysisController = require('../controllers/lab/labAnalysisController');
 const labStandaloneController = require('../controllers/lab/labStandaloneController');
+const instRangeCtrl = require('../controllers/lab/institutionReferenceRangeController');
 
 // Template routes
 router.post('/templates',authenticateToken, createTemplate);
@@ -43,10 +44,18 @@ router.get('/results',authenticateToken, getResults);
 router.get('/statistics', authenticateToken, getLabStatistics);
 
 
-// Lab range routes
+// Lab range routes (system defaults)
 router.post('/ranges', authenticateToken, createLabRange);
 router.get('/ranges', authenticateToken, getLabRanges);
 router.get('/recent-tests', authenticateToken, getRecentLabTests); // recent tests across all visits
+
+// Institution-specific reference range routes
+router.get('/institution-ranges', authenticateToken, instRangeCtrl.getInstitutionRanges);
+router.get('/institution-ranges/lookup/:testName', authenticateToken, instRangeCtrl.lookupInstitutionRange);
+router.get('/institution-ranges/:id', authenticateToken, instRangeCtrl.getInstitutionRange);
+router.post('/institution-ranges', authenticateToken, instRangeCtrl.createInstitutionRange);
+router.patch('/institution-ranges/:id', authenticateToken, instRangeCtrl.updateInstitutionRange);
+router.delete('/institution-ranges/:id', authenticateToken, instRangeCtrl.deleteInstitutionRange);
 
 
 router.patch('/templates/:id', authenticateToken, updateTemplate);

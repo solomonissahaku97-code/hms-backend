@@ -71,14 +71,19 @@ services:
       PUSH_ENGAGE_API_KEY: ${PUSH_ENGAGE_API_KEY}
       PUSH_ENGAGE_API_SECRET: ${PUSH_ENGAGE_API_SECRET}
       REDIS_URL: redis://redis:6379
+      # Supabase Storage (primary file storage)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-hms-storage}
+      # Legacy SFTP (backward compat — can be removed after full migration)
       BACKUP_STORAGE_HOST: ${BACKUP_STORAGE_HOST}
       BACKUP_STORAGE_PORT: ${BACKUP_STORAGE_PORT:-22}
       BACKUP_STORAGE_USER: ${BACKUP_STORAGE_USER}
       BACKUP_STORAGE_PASS: ${BACKUP_STORAGE_PASS}
-      PUBLIC_STORAGE_URL: ${PUBLIC_STORAGE_URL:-http://104.218.48.138/public_html}
+      PUBLIC_STORAGE_URL: ${PUBLIC_STORAGE_URL}
     volumes:
+      # Only mount uploads for legacy file access during migration
       - ./uploads:/app/uploads
-      - ./gallery:/app/gallery
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:5008/api/v1/system/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s

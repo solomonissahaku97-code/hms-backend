@@ -37,12 +37,14 @@ exports.updateStaffInfo = async (req, res) => {
         }
 
         // Check if a new profile picture was uploaded
+        // The sftpUpload middleware (now Supabase-backed) sets req.body.profile_pic
         let profile_pic = staff.profile_pic; // Retain the current profile picture
-        if (req.file) {
-            console.log('File uploaded:', req.file); // Debugging log
-            if (req.file.firebaseUrl) {
-                profile_pic = req.file.firebaseUrl; // Update profile picture
-            }
+        if (req.file && req.body.profile_pic) {
+            // Storage path from Supabase middleware
+            profile_pic = req.body.profile_pic;
+        } else if (req.file && !req.body.profile_pic) {
+            // Fallback: middleware didn't process (no institution_id?), use legacy path
+            profile_pic = req.file.path || null;
         }
         
 

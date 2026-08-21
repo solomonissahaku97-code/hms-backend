@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const LabTestResult = require('../../models/lab/LabTestResult');
 const LabTestTemplate = require('../../models/lab/LabTestTemplate');
 const LabRanges = require('../../models/lab/LabRanges');
+const InstitutionLabReferenceRange = require('../../models/InstitutionLabReferenceRange');
 const Department = require('../../models/department');
 const Staff = require('../../models/staff');
 
@@ -71,7 +72,9 @@ exports.getLabAnalytics = async (req, res) => {
       ]
     });
 
-    const ranges = await LabRanges.findAll();
+    const systemRanges = await LabRanges.findAll();
+    // Also fetch all institution ranges for anomaly detection
+    const institutionRanges = await InstitutionLabReferenceRange.findAll();
     const abnormalSummaries = [];
 
     for (const result of labResults) {
@@ -79,7 +82,9 @@ exports.getLabAnalytics = async (req, res) => {
 
       const testValues = result.values; // JSON of test_name:value
       Object.entries(testValues).forEach(([testName, value]) => {
-        const matchingRange = ranges.find(r => r.test_name.toLowerCase() === testName.toLowerCase());
+        // Institution range takes priority over system default
+        const instRange = institutionRanges.find(r => r.test_name.toLowerCase() === testName.toLowerCase());
+        const matchingRange = instRange || systemRanges.find(r => r.test_name.toLowerCase() === testName.toLowerCase());
         if (!matchingRange) return;
 
         const rangeStr = matchingRange.reference_range; // e.g. "3.5 - 5.5"

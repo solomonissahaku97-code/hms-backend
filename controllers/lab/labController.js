@@ -24,6 +24,7 @@ const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
 const StaffDepartment = require('../../models/controls/StaffDepartment');
 const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
 const labResultShareService = require('../../service/labResultShareService');
+const InstitutionLabReferenceRange = require('../../models/InstitutionLabReferenceRange');
 
 // Helper function to notify lab staff
 // Finds staff whose PRIMARY department is Lab via the staff_departments junction table
@@ -821,28 +822,59 @@ exports.updateResult = async (req, res, next) => {
     // does not overwrite the doctor's request comment.
     result.technician_notes = notes ?? result.technician_notes;
     result.notes = notes ?? result.notes;
-    result.verifiedBy = verifiedBy ?? result.verifiedBy;
+
+    // Validate verifiedBy: only accept if the ID exists in the staffs table.
+    // Admin users have IDs that are NOT in staffs, which would violate the FK constraint.
+    if (verifiedBy) {
+      const staffRecord = await Staff.findByPk(verifiedBy, { attributes: ['id'], transaction });
+      if (staffRecord) {
+        result.verifiedBy = verifiedBy;
+      } else {
+        console.warn(`⚠️  verifiedBy id "${verifiedBy}" not found in staffs table — setting to null`);
+        result.verifiedBy = null;
+      }
+    }
     if (Array.isArray(attachments)) {
       result.attachments = attachments;
     }
 
-    // 4. Compute abnormal flags against LabRanges (by test/parameter name)
+    // 4. Compute abnormal flags — Institution ranges take priority over system defaults
     if (resultValues && typeof resultValues === 'object') {
       const abnormalFlags = [];
-      const rangeRows = await LabRanges.findAll({ transaction });
+      const systemRangeRows = await LabRanges.findAll({ transaction });
+
+      // Fetch institution-specific ranges for this result's institution
+      let institutionRangeRows = [];
+      const institutionId = result.institution_id || null;
+      if (institutionId) {
+        institutionRangeRows = await InstitutionLabReferenceRange.findAll({
+          where: { institution_id: institutionId },
+          transaction,
+        });
+      }
+
       for (const [param, rawValue] of Object.entries(resultValues)) {
         const numeric = parseFloat(rawValue);
         if (isNaN(numeric)) continue;
-        const range = rangeRows.find(
+
+        // 1) Try institution range first
+        const instRange = institutionRangeRows.find(
           (r) => r.test_name && r.test_name.toLowerCase() === String(param).toLowerCase()
         );
-        if (range && range.min_value !== null && range.max_value !== null) {
+        // 2) Fall back to system default range
+        const sysRange = systemRangeRows.find(
+          (r) => r.test_name && r.test_name.toLowerCase() === String(param).toLowerCase()
+        );
+
+        const range = instRange || sysRange;
+        if (range && range.min_value != null && range.max_value != null) {
           if (numeric < range.min_value || numeric > range.max_value) {
             abnormalFlags.push({
               parameter: param,
               value: numeric,
               flag: numeric < range.min_value ? 'low' : 'high',
               reference_range: range.reference_range,
+              source: instRange ? 'institution' : 'system',
             });
           }
         }
@@ -981,17 +1013,18 @@ exports.updateResultAttachments = async (req, res, next) => {
       return next(new AppError('No attachment files were uploaded', 400));
     }
 
+    // Storage paths are set by the sftpUpload middleware (now using Supabase)
     let uploaded;
     if (Array.isArray(req.body.attachments) && req.body.attachments.length === req.files.length) {
       uploaded = req.files.map((file, index) => ({
         name: file.originalname,
-        url: req.body.attachments[index],
+        url: req.body.attachments[index], // Supabase storage path
         type: file.mimetype,
       }));
     } else {
       uploaded = req.files.map((file) => ({
         name: file.originalname,
-        url: `/uploads/${file.filename}`,
+        url: req.body.attachments || file.filename, // storage path from middleware
         type: file.mimetype,
       }));
     }

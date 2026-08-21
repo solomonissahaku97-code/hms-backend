@@ -1,7 +1,6 @@
 const { clients } = require('./authenticateHandler');
 const Message = require('../models/messaging');
-const { uploadToFirebase } = require('../middlewares/profile_multer')
-
+const { uploadFile } = require('../service/storageService');
 
 const messageHandler = async (ws, messageData) => {
   const { text, senderId, groupId, file, patientTag, messageId, reaction, action } = messageData;
@@ -11,29 +10,40 @@ const messageHandler = async (ws, messageData) => {
   if (action === 'send') {
     if (file) {
       try {
-        // Use the uploadToFirebase logic to handle the file
-        const req = { file }; // Mocking the request object
-        const res = {};
-         uploadToFirebase('file')(req, res, async () => {
-          mediaUrl = req.file.firebaseUrl;
+        // Upload file to Supabase Storage via StorageService
+        // file should be a Buffer or have { buffer, originalname, mimetype } from the client
+        const fileBuffer = Buffer.isBuffer(file.data)
+          ? file.data
+          : Buffer.from(file.data, 'base64');
 
-          // Save the message to the database with the file URL
-          const message = await Message.create({
-            text,
-            senderId,
-            groupId,
-            mediaUrl,
-            patientTag
-          });
+        const uploadResult = await uploadFile({
+          fileBuffer,
+          fileName: file.name || 'message-attachment',
+          mimeType: file.mimetype || 'application/octet-stream',
+          institutionId: file.institution_id || null,
+          module: 'media',
+          subpath: `messages/${groupId || 'dm'}`,
+          category: 'image',
+        });
 
-          // Broadcast the message to all connected clients in the group
-          clients.forEach((client) => {
-            if (client.socket.readyState === ws.OPEN) {
-              client.socket.send(
-                JSON.stringify({ event: 'receiveMessage', message })
-              );
-            }
-          });
+        mediaUrl = uploadResult.storagePath;
+
+        // Save the message to the database with the storage path
+        const message = await Message.create({
+          text,
+          senderId,
+          groupId,
+          mediaUrl,
+          patientTag
+        });
+
+        // Broadcast the message to all connected clients in the group
+        clients.forEach((client) => {
+          if (client.socket.readyState === ws.OPEN) {
+            client.socket.send(
+              JSON.stringify({ event: 'receiveMessage', message })
+            );
+          }
         });
       } catch (error) {
         console.error('Error uploading file:', error);
@@ -59,15 +69,13 @@ const messageHandler = async (ws, messageData) => {
 
   // Handling add reaction to a message
   if (action === 'addReaction') {
-    if (!messageId || !reaction || !groupId) return; // Ensure messageId and reaction are provided
+    if (!messageId || !reaction || !groupId) return;
 
     const message = await Message.findOne({where:{id:messageId,groupId:groupId}});
     if (message) {
-      // Update the message's reaction field
       message.reaction = reaction;
       await message.save();
 
-      // Notify clients in the group about the updated message reaction
       clients.forEach(client => {
         if (client.groupId === groupId && client.socket.readyState === ws.OPEN) {
           client.socket.send(JSON.stringify({ event: 'updateReaction', message:`${senderId} has reacted to your message` }));
@@ -80,15 +88,13 @@ const messageHandler = async (ws, messageData) => {
 
   // Handling remove reaction from a message
   if (action === 'removeReaction') {
-    if (!messageId) return; // Ensure messageId is provided
+    if (!messageId) return;
 
     const message = await Message.findByPk(messageId);
     if (message) {
-      // Reset the reaction field to null or empty string
       message.reaction = null;
       await message.save();
 
-      // Notify clients in the group that the reaction was removed
       clients.forEach(client => {
         if (client.groupId === groupId && client.socket.readyState === ws.OPEN) {
           client.socket.send(JSON.stringify({ event: 'removeReaction', messageId }));
@@ -99,14 +105,12 @@ const messageHandler = async (ws, messageData) => {
 
   // Handling delete message
   if (action === 'delete') {
-    if (!messageId) return; // Ensure messageId is provided
+    if (!messageId) return;
 
     const message = await Message.findByPk(messageId);
     if (message) {
-      // Delete the message from the database
       await message.destroy();
 
-      // Notify clients in the group about the deleted message
       clients.forEach(client => {
         if (client.groupId === groupId && client.socket.readyState === ws.OPEN) {
           client.socket.send(JSON.stringify({ event: 'deleteMessage', messageId }));

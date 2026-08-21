@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const eitherAuthOrAdmin = require('../middlewares/eitherAuthOrAdminMiddleware');
 const institutionCommunicationController = require('../controllers/institution/institutionCommunicationController');
-const { labAttachmentsUpload, sftpUpload } = require('../middlewares/profile_multer');
+const { labAttachmentsUpload, sftpUpload } = require('../middlewares/storage');
 
 router.post('/send', eitherAuthOrAdmin, institutionCommunicationController.sendInstitutionMessage);
 router.get('/:institution_id/conversations', eitherAuthOrAdmin, institutionCommunicationController.getInstitutionConversations);

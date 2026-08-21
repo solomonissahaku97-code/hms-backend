@@ -129,7 +129,22 @@ const Invoice = sequelize.define('Invoice', {
     ],
     hooks: {
         beforeSave: (invoice) => {
+            // Always recalculate balance from source-of-truth amounts
             invoice.balance_due = Math.round((invoice.total_amount - invoice.amount_paid) * 100) / 100;
+
+            // Auto-derive status so it can never drift out of sync with amounts.
+            // Skip if already cancelled/refunded — those are manual state transitions
+            // that should not be overridden by amount arithmetic.
+            const skipStatus = ['cancelled', 'refunded'];
+            if (!skipStatus.includes(invoice.status)) {
+                if (invoice.balance_due <= 0 && parseFloat(invoice.amount_paid) > 0) {
+                    invoice.status = 'paid';
+                } else if (parseFloat(invoice.amount_paid) > 0 && invoice.balance_due > 0) {
+                    invoice.status = 'partially_paid';
+                } else {
+                    invoice.status = 'unpaid';
+                }
+            }
         }
     }
 });
@@ -139,7 +154,8 @@ Invoice.associate = (models) => {
     Invoice.belongsTo(models.Visit, { foreignKey: 'visit_id', as: 'visit' });
     Invoice.belongsTo(models.Institution, { foreignKey: 'institution_id', as: 'institution' });
     Invoice.belongsTo(models.Staff, { foreignKey: 'created_by', as: 'creator' });
-    Invoice.belongsTo(models.Staff, { foreignKey: 'paid_by', as: 'paidBy' });
+    // paid_by is a plain UUID — no FK constraint so both staff and admin IDs are accepted
+    // Invoice.belongsTo(models.Staff, { foreignKey: 'paid_by', as: 'paidBy' });
     Invoice.belongsTo(models.Patient, { foreignKey: 'patient_id', as: 'patient' });
     Invoice.hasMany(models.ServiceBill, {
         foreignKey: 'invoice_id',

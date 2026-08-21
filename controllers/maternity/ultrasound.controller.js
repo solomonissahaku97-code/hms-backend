@@ -8,8 +8,8 @@ exports.createUltrasound = async (req, res) => {
     try {
         const { visit_id, department_id, gestational_age, scan_type, indication, findings, conclusion, performed_by } = req.body;
 
-        // Handle uploaded images
-        const imagePaths = req.files ? req.files.map(file => file.path) : [];
+        // Handle uploaded images — storage paths from Supabase middleware
+        const imagePaths = req.body.images || (req.files ? req.files.map(file => file.path) : []);
 
         console.log(req.body)
 

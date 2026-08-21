@@ -24,6 +24,7 @@
     "@google-apps/meet": "^0.3.0",
     "@google-cloud/local-auth": "^2.1.0",
     "@pusher/push-notifications-server": "^1.2.7",
+    "@supabase/supabase-js": "^2.112.3",
     "@vladmandic/face-api": "^1.7.15",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
