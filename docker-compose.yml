@@ -74,6 +74,7 @@ services:
       # Supabase Storage (primary file storage)
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
       SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-hms-storage}
       # Legacy SFTP (backward compat — can be removed after full migration)
       BACKUP_STORAGE_HOST: ${BACKUP_STORAGE_HOST}

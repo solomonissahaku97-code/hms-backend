@@ -125,4 +125,29 @@ router.delete('/file', eitherAuthOrAdmin, async (req, res) => {
   }
 });
 
+/**
+ * GET /storage/proxy?path=institutions/123/...
+ *
+ * Redirects to a signed Supabase URL. This allows <img src> tags
+ * to use storage paths directly without client-side resolution.
+ * Example: <img src="/api/v1/storage/proxy?path=institutions/123/profile/pic.png" />
+ */
+router.get('/proxy', async (req, res) => {
+  try {
+    const storagePath = req.query.path;
+    if (!storagePath) {
+      return res.status(400).json({ success: false, message: 'path query parameter is required' });
+    }
+
+    const expiresIn = parseInt(req.query.expiresIn) || 3600;
+    const signedUrl = await getSignedUrl({ storagePath, expiresIn });
+
+    // Redirect to the signed URL — browser follows it and loads the file
+    res.redirect(302, signedUrl);
+  } catch (error) {
+    console.error('Proxy redirect error:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
