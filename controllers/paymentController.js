@@ -194,6 +194,79 @@ exports.applyNhisClaimPayment = async (req, res) => {
     }
 };
 
+// Refund all payments for an invoice
+exports.refundInvoicePayments = async (req, res) => {
+    const transaction = await Payment.sequelize.transaction();
+    
+    try {
+        const { invoice_id } = req.params;
+        const { reason, notes, processed_by } = req.body;
+
+        // Find all payments for this invoice
+        const payments = await Payment.findAll({
+            where: { invoice_id, status: 'completed' },
+            transaction
+        });
+
+        if (!payments || payments.length === 0) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'No completed payments found for this invoice'
+            });
+        }
+
+        // Refund each payment
+        for (const payment of payments) {
+            payment.status = 'refunded';
+            payment.notes = (payment.notes || '') + `\nRefund reason: ${reason}${notes ? ` - ${notes}` : ''}`;
+            await payment.save({ transaction });
+
+            // Reverse on service bill if applicable
+            if (payment.service_bill_id) {
+                const serviceBill = await ServiceBill.findByPk(payment.service_bill_id, { transaction });
+                if (serviceBill) {
+                    const currentPaid = parseFloat(serviceBill.amount_paid) || 0;
+                    await serviceBill.update({
+                        amount_paid: Math.max(0, currentPaid - parseFloat(payment.amount))
+                    }, { transaction });
+                }
+            }
+        }
+
+        // Update the invoice — reset amount_paid to 0
+        const invoice = await Invoice.findByPk(invoice_id, { transaction });
+        if (invoice) {
+            await invoice.update({
+                amount_paid: 0,
+                balance_due: parseFloat(invoice.total_amount),
+                status: 'unpaid'
+            }, { transaction });
+        }
+
+        await transaction.commit();
+
+        return res.status(200).json({
+            success: true,
+            message: `${payments.length} payment(s) refunded successfully`,
+            data: {
+                invoice_id,
+                payments_refunded: payments.length,
+                total_refunded: payments.reduce((sum, p) => sum + parseFloat(p.amount), 0)
+            }
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error refunding invoice payments:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to refund invoice payments',
+            error: error.message
+        });
+    }
+};
+
 // Refund a payment
 exports.refundPayment = async (req, res) => {
     const transaction = await Payment.sequelize.transaction();

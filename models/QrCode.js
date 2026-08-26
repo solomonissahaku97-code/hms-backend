@@ -27,6 +27,10 @@ const QrCode = sequelize.define("QrCode", {
   institution_id:{
     type:DataTypes.UUID,
     allowNull:true
+  },
+  expiresAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
   }
 });
 

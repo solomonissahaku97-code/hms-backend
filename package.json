@@ -69,7 +69,7 @@
     "xmlbuilder2": "^4.0.0"
   },
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "devDependencies": {
     "nodemon": "^2.0.7"

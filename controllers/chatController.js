@@ -5,8 +5,7 @@ const Staff = require('../models/staff');
 const Department = require('../models/department');
 const Admin = require('../models/admin');
 const ChatReadReceipt = require('../models/ChatReadReceipt');
-const { sendNotificationToDepartment,sendNotificationToAdmin,sendNotificationToUser } = require("../helpers/sendPushNotification");
-const { createNotification } = require("../helpers/notificationService");
+
 
 
 async function getRecentChats(userId, departmentId, isAdmin = false) {

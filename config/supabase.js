@@ -33,4 +33,38 @@ function getSupabaseClient() {
   return supabase;
 }
 
-module.exports = { supabase, getSupabaseClient };
+/**
+ * Ensure the storage bucket exists. Creates it if missing.
+ * Called once at startup.
+ */
+async function ensureBucket() {
+  if (!supabase) return;
+  const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'hms-storage';
+  try {
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const exists = buckets?.some(b => b.name === BUCKET_NAME);
+    if (!exists) {
+      const { error } = await supabase.storage.createBucket(BUCKET_NAME, {
+        public: false,
+        fileSizeLimit: 20 * 1024 * 1024,
+        allowedMimeTypes: [
+          'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+          'application/pdf', 'text/xml', 'application/xml',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+      });
+      if (error) {
+        console.error(`❌ Failed to create Supabase bucket "${BUCKET_NAME}":`, error.message);
+      } else {
+        console.log(`✅ Created Supabase bucket "${BUCKET_NAME}"`);
+      }
+    } else {
+      console.log(`✅ Supabase bucket "${BUCKET_NAME}" exists`);
+    }
+  } catch (err) {
+    console.error('⚠️  Could not verify Supabase bucket:', err.message);
+  }
+}
+
+module.exports = { supabase, getSupabaseClient, ensureBucket };

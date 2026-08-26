@@ -50,9 +50,31 @@ exports.createInstitution = async (req, res) => {
             startDate: new Date(),
         }, { transaction });
 
+        // Auto-create default departments
+        const defaultDepartments = [
+            {
+                name: 'Records Department',
+                institution_id: institution.id,
+                description: 'Manages patient records, medical history, and document filing',
+                departmentType: 'Records',
+            },
+            {
+                name: 'Accounts Department',
+                institution_id: institution.id,
+                description: 'Handles billing, payments, invoicing, and financial operations',
+                departmentType: 'Accounts',
+            },
+        ];
+
+        const createdDepartments = await Department.bulkCreate(defaultDepartments, { transaction, individualHooks: true });
+
         await transaction.commit();
 
-        res.status(201).json({ message: 'Institution and default subscription created successfully', institution });
+        res.status(201).json({
+            message: 'Institution, default subscription, and departments created successfully',
+            institution,
+            departments: createdDepartments,
+        });
     } catch (error) {
         console.error('Error creating institution:', error);
         res.status(500).json({ error: 'An error occurred while creating the institution', details: error.message });
@@ -67,10 +89,27 @@ exports.updateInstitution = async (req, res) => {
     const { name, address, contact, description, google_map_link, fax, workflow_mode } = req.body;
 
     try {
-        const institution = await Institution.findByPk(id);
+        const institution = await Institution.findByPk(id, { paranoid: false });
 
         if (!institution) {
             return res.status(404).json({ error: 'Institution not found' });
+        }
+
+        // Handle status toggle via deletedAt (soft delete / restore)
+        if ('deletedAt' in req.body) {
+            if (req.body.deletedAt === null) {
+                // Restore the institution
+                await institution.restore();
+                // Re-fetch after restore to get fresh data
+                const restored = await Institution.findByPk(id);
+                return res.status(200).json({ message: 'Institution activated successfully', institution: restored });
+            } else if (req.body.deletedAt !== undefined) {
+                // Soft-delete the institution
+                await institution.destroy();
+                // Re-fetch to include deletedAt in response
+                const deleted = await Institution.findByPk(id, { paranoid: false });
+                return res.status(200).json({ message: 'Institution deactivated successfully', institution: deleted });
+            }
         }
 
         // Check if a file was uploaded and update the logo URL

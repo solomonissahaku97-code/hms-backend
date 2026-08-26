@@ -15,6 +15,7 @@ const db = require('./models');
 const sequelize = require('./config/database');
 const { port } = require('./config/conf');
 const NotificationService = require('./service/notificationService');
+const { ensureBucket } = require('./config/supabase');
 
 // Dynamically override swagger host and schemes so production doesn't show http
 if (process.env.NODE_ENV === 'production' && process.env.APP_URL) {
@@ -118,9 +119,9 @@ async function runAllSeeders() {
 cron.schedule("0 0 * * *", async () => {
   try {
     const { QrCode } = require('./models');
-    const token = uuidv4();
+    const qr_code = uuidv4();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await QrCode.create({ token, expiresAt });
+    await QrCode.create({ qr_code, expiresAt });
     console.log("✅ New QR Code generated and stored in DB");
   } catch (error) {
     console.error("❌ Scheduled QR Code Generation Error:", error);
@@ -210,6 +211,7 @@ const chatService = new ChatService(io);
 server.listen(port, '0.0.0.0', async () => {
   console.log(`🚀 Server is running on http://localhost:${port}`);
   try {
+    await ensureBucket();
     await runAllSeeders();
     console.log('✅ All startup processes completed successfully');
   } catch (error) {

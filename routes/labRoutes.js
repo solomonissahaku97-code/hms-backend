@@ -56,6 +56,7 @@ router.get('/institution-ranges/:id', authenticateToken, instRangeCtrl.getInstit
 router.post('/institution-ranges', authenticateToken, instRangeCtrl.createInstitutionRange);
 router.patch('/institution-ranges/:id', authenticateToken, instRangeCtrl.updateInstitutionRange);
 router.delete('/institution-ranges/:id', authenticateToken, instRangeCtrl.deleteInstitutionRange);
+router.post('/ranges/batch-lookup', authenticateToken, instRangeCtrl.batchLookupRanges);
 
 
 router.patch('/templates/:id', authenticateToken, updateTemplate);

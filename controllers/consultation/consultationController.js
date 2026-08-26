@@ -2,8 +2,6 @@ const { where } = require("sequelize");
 const Consultation = require("../../models/Consultation");
 const Institution = require("../../models/institution");
 const Record = require("../../models/record");
-const { sendNotificationToDepartment } = require('../../helpers/sendPushNotification');
-const { createNotification } = require('../../helpers/notificationService');
 const Department = require("../../models/department");
 const Patient = require("../../models/patient");
 
@@ -27,20 +25,19 @@ exports.requestConsultation = async (req, res) => {
             }
         });
 
-        // Send notification to all consultation departments
+        // Send real-time notification to all consultation departments via WebSocket
+        const notificationService = req.app.get('notificationService');
         for (const department of consultationDepartments) {
-            await sendNotificationToDepartment({
-                department_id: department.id,
-                institution_id,
-                title: "Patient Ready for Consultation",
-                body: `A new consultation request has been made. Please attend to the patient.`,
-            });
-            await createNotification({
-                toDepartmentId: department.id,
-                institutionId: institution_id,
-                title: "Patient Ready for Consultation",
-                description: `A new consultation request has been made. Please attend to the patient`,
-            });
+            if (notificationService) {
+                await notificationService.createNotification({
+                    to_department_id: department.id,
+                    institution_id,
+                    title: "Patient Ready for Consultation",
+                    description: `A new consultation request has been made. Please attend to the patient`,
+                    type: 'Department',
+                    priority: 'Medium',
+                });
+            }
         }
 
         res.status(201).json({ message: 'Consultation requested successfully', consultation });

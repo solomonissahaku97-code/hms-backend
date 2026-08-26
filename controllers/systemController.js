@@ -1030,7 +1030,8 @@ exports.testEmailConnection = async (req, res) => {
   try {
     const nodemailer = require('nodemailer');
     
-    const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, smtp_secure } = req.body;
+    const { smtp_host, smtp_port, smtp_user, smtp_pass, smtp_password, smtp_from, smtp_secure } = req.body;
+    const resolvedPass = smtp_pass || smtp_password;
 
     // Create transporter with provided or default settings
     const transporter = nodemailer.createTransport({
@@ -1039,7 +1040,7 @@ exports.testEmailConnection = async (req, res) => {
       secure: smtp_secure !== undefined ? smtp_secure : true,
       auth: {
         user: smtp_user || process.env.SMTP_USER || 'support@brandeviahms.com',
-        pass: smtp_pass || process.env.SMTP_PASS || 'mU,(kXQ([.UW'
+        pass: resolvedPass || process.env.SMTP_PASS || 'mU,(kXQ([.UW'
       },
       tls: {
         rejectUnauthorized: false
@@ -1082,6 +1083,39 @@ exports.testEmailConnection = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to test email connection',
+      details: error.message
+    });
+  }
+};
+
+// Send email to arbitrary recipients using the saved SMTP config
+exports.sendEmail = async (req, res) => {
+  try {
+    const { sendRawEmail } = require('../service/sendEmail');
+    const { to, subject, body } = req.body;
+
+    if (!to || !subject || !body) {
+      return res.status(400).json({
+        success: false,
+        error: 'Recipient, subject, and body are required'
+      });
+    }
+
+    // Support comma-separated recipients
+    const recipients = to.split(',').map((e) => e.trim()).filter(Boolean);
+
+    await sendRawEmail(recipients.join(','), subject, body);
+
+    return res.status(200).json({
+      success: true,
+      message: `Email sent to ${recipients.length} recipient(s)`,
+      data: { recipients, sentAt: new Date().toISOString() }
+    });
+  } catch (error) {
+    console.error('[sendEmail] Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to send email',
       details: error.message
     });
   }

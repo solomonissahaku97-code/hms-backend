@@ -295,3 +295,94 @@ exports.lookupInstitutionRange = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * POST /lab/ranges/batch-lookup
+ * Batch lookup reference ranges for a set of test field labels under a template.
+ * Returns institution-specific ranges (if any) with system defaults as fallback.
+ * Body: { template_id: UUID, fieldLabels: string[] }
+ * Returns: { ranges: { [fieldLabel]: { institutionRange, systemRange, effective } } }
+ */
+exports.batchLookupRanges = async (req, res, next) => {
+  try {
+    const institutionId = getInstitutionId(req);
+    const { template_id, fieldLabels } = req.body;
+
+    if (!template_id || !Array.isArray(fieldLabels)) {
+      return next(new AppError('template_id and fieldLabels array are required', 400));
+    }
+
+    const LabRanges = require('../../models/lab/LabRanges');
+
+    // Fetch institution-specific ranges for this template
+    const institutionRanges = await InstitutionLabReferenceRange.findAll({
+      where: {
+        ...(institutionId ? { institution_id: institutionId } : {}),
+        template_id,
+      },
+    });
+
+    // Fetch system default ranges for this template
+    const systemRanges = await LabRanges.findAll({
+      where: { template_id },
+    });
+
+    // Build lookup maps keyed by lowercased test_name
+    const instMap = {};
+    institutionRanges.forEach(r => {
+      instMap[r.test_name.toLowerCase()] = r;
+    });
+
+    const sysMap = {};
+    systemRanges.forEach(r => {
+      sysMap[r.test_name.toLowerCase()] = r;
+    });
+
+    // Build result for each requested field label
+    const result = {};
+    fieldLabels.forEach(label => {
+      const key = label.toLowerCase();
+      const institutionRange = instMap[key] || null;
+      const systemRange = sysMap[key] || null;
+      const effective = institutionRange || systemRange;
+
+      result[label] = {
+        institutionRange: institutionRange ? {
+          id: institutionRange.id,
+          test_name: institutionRange.test_name,
+          reference_range: institutionRange.reference_range,
+          min_value: institutionRange.min_value,
+          max_value: institutionRange.max_value,
+          unit: institutionRange.unit,
+          gender: institutionRange.gender,
+          age_min: institutionRange.age_min,
+          age_max: institutionRange.age_max,
+          notes: institutionRange.notes,
+        } : null,
+        systemRange: systemRange ? {
+          id: systemRange.id,
+          test_name: systemRange.test_name,
+          reference_range: systemRange.reference_range,
+          min_value: systemRange.min_value,
+          max_value: systemRange.max_value,
+          unit: systemRange.unit,
+          category: systemRange.category,
+          notes: systemRange.notes,
+        } : null,
+        effective: effective ? {
+          reference_range: effective.reference_range,
+          min_value: effective.min_value,
+          max_value: effective.max_value,
+          unit: effective.unit,
+        } : null,
+      };
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: { ranges: result },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

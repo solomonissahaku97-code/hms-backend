@@ -2,6 +2,7 @@ const express = require('express');
 const {  login,  getAllDoctors,  resetPassword,verifyLogicAnswer,updateUserFCMToken,adminLogin,getUserDetails } = require('../controllers/authentication/authControllers');
 const { registerAdmin,registerStaffs,deleteStaff,getAllStaffByInstitution,getStaffByInstitutionAndId,assignedPrimaryDepartment } = require('../controllers/authentication/admin_staff_registration')
 const { registerSuperAdmin,loginSuperAdmin } = require('../controllers/authentication/super_admin.controller')
+const unifiedAuth = require('../controllers/authentication/unifiedAuthController')
 const authenticateToken = require('../middlewares/authMiddlewares');
 const { upload, sftpUpload } = require('../middlewares/storage');
 const router = express.Router();
@@ -72,5 +73,9 @@ router.put('/admin/staff/update-profile', eitherAuthOrAdmin, upload.single('prof
 
 
 
+
+// ═══ UNIFIED AUTH ROUTES ═══
+router.post('/unified/login', unifiedAuth.login);
+router.post('/unified/verify-logic', unifiedAuth.verifyLogicAnswer);
 
 module.exports = router;

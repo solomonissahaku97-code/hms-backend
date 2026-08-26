@@ -1,5 +1,5 @@
 # Use Debian-based image for better native module compatibility (canvas, etc.)
-FROM node:20-slim AS base
+FROM node:22-slim AS base
 
 # Install system dependencies required by native modules
 RUN apt-get update && apt-get install -y --no-install-recommends \

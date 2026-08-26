@@ -6,9 +6,10 @@ const generateToken = (user, permissions = []) => {
         id: user.id,
         role_id: user.role_id || null,
         role_name: user.role_name || null,
-        permissions: permissions || []
+        user_type: user.user_type || user.role_manager || null,
+        permissions: permissions || [] 
     };
-    return jwt.sign(payload, jwtSecret,);
+    return jwt.sign(payload, jwtSecret);
 };
 
 const generateRefreshToken = (user) => {

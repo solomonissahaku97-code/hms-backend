@@ -5,18 +5,17 @@ const InstitutionSubscription = require('../models/InstitutionSubscription');
 const checkTrialStatus = async (req, res, next) => {
     try {
         // Identify the user (Admin or Staff)
-        const user = req.user || req.admin; // Assuming the logged-in user is stored in `req.user`
+        const user = req.user || req.admin;
 
         if (!user || !user.institution_id) {
-            console.log(req);
-            return res.status(403).json({ message: 'Unauthorized access.' });
+            return res.status(403).json({ message: 'Unauthorized access. Please log in again.' });
         }
 
         // Fetch institution details
         const institution = await Institution.findByPk(user.institution_id);
 
         if (!institution) {
-            return res.status(403).json({ message: 'Institution not found.' });
+            return res.status(403).json({ message: 'Institution not found. Please log in again.' });
         }
 
         // Fetch subscription details for the institution

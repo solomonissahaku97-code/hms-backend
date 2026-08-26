@@ -19,6 +19,7 @@ router.get('/config', systemController.getSystemConfig);
 router.put('/config', systemController.updateSystemConfig);
 router.get('/config/database', systemController.getDatabaseInfo);
 router.post('/config/test-email', systemController.testEmailConnection);
+router.post('/config/send-email', systemController.sendEmail);
 
 // System health
 router.get('/health', systemController.getSystemHealth);

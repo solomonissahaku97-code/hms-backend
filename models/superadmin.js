@@ -26,7 +26,7 @@ const SuperAdmin = sequelize.define('superadmin', {
     allowNull: true,
   },
   token: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: true,
   },
   role_manager: {

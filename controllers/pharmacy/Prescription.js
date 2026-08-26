@@ -13,7 +13,7 @@ const { handleBilling } = require('../../utils/billingUtil');
 const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
 const Notification = require('../../models/notification');
-const { sendPushEngageNotification } = require('../../service/pushEngageService');
+const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
 const InstitutionPharmacyPrice = require('../../models/InstitutionPharmacyPrice');
 
 // Helper function to find Pharmacy department
@@ -197,7 +197,6 @@ async function createMultiplePrescriptions(prescriptionsData, res, req) {
                     const marketPrice = parseFloat(medication.market_price || 0);
                     const nhiaPrice = parseFloat(medication.nhia_price || 0);
                     await handleBilling({
-                        transaction,
                         patient_id: patient?.id || prescription.visit?.patient_id,
                         visit_id,
                         service_id: prescription.id,
@@ -326,7 +325,6 @@ async function createSinglePrescription(prescriptionData, res, req) {
                 const nhiaPrice = institutionOverride ? parseFloat(institutionOverride.nhia_price || 0) : parseFloat(medication.nhia_price || 0);
 
                 await handleBilling({
-                    transaction,
                     patient_id: patient?.id || (await Visit.findByPk(visit_id))?.patient_id,
                     visit_id,
                     service_id: prescription.id,

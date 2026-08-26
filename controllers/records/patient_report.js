@@ -84,7 +84,7 @@ const getPatientReport = async (req, res) => {
       const ageGroup = reportData.find((g) => age >= g.minValue && age < g.maxValue);
       if (!ageGroup) return;
 
-      const genderKey = record['patient.gender']?.toLowerCase() === 'male' ? 'male' : 'female';
+      const genderKey = record['patient.gender'] === 'M' ? 'male' : 'female';
       const isInsured = Boolean(record.is_insured);
       const isNewPatient = new Date(record.createdAt).getFullYear() === now.getFullYear();
 

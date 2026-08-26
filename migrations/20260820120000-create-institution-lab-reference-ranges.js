@@ -2,6 +2,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // Check if table already exists (idempotent)
+    const [exists] = await queryInterface.sequelize.query(
+      `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'institution_lab_reference_ranges') as exists`
+    );
+    if (exists[0].exists) {
+      console.log('ℹ️  institution_lab_reference_ranges table already exists — skipping');
+      return;
+    }
+
     await queryInterface.createTable('institution_lab_reference_ranges', {
       id: {
         type: Sequelize.UUID,

@@ -17,7 +17,10 @@ router.get('/:payment_id', paymentController.getPayment);
 // Apply NHIS claim payment
 router.post('/claim/:claim_id/nhis', paymentController.applyNhisClaimPayment);
 
-// Refund a payment
+// Refund all payments for an invoice
+router.post('/refund-by-invoice/:invoice_id', paymentController.refundInvoicePayments);
+
+// Refund a single payment
 router.post('/:payment_id/refund', paymentController.refundPayment);
 
 // Get payment statistics

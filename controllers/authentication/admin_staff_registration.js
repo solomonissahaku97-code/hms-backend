@@ -30,8 +30,8 @@ exports.registerStaffs = async (req, res) => {
         lastName,
         email,
         password,
-        institution_id,
-        admin_id,
+        institution_id: bodyInstitutionId,
+        admin_id: bodyAdminId,
         department_id,
         role_id,
         phoneNumber,
@@ -39,6 +39,19 @@ exports.registerStaffs = async (req, res) => {
         department_ids = [],
         primary_department_id
     } = req.body;
+
+    // Use server-side authenticated admin as source of truth for institution_id and admin_id
+    // This prevents the frontend from sending mismatched or missing institution data
+    const authenticatedAdmin = req.admin;
+    const institution_id = authenticatedAdmin?.institution_id || bodyInstitutionId;
+    const admin_id = authenticatedAdmin?.id || bodyAdminId;
+
+    if (!institution_id) {
+        return res.status(400).json({ error: 'Institution not found. Please log in again.' });
+    }
+    if (!admin_id) {
+        return res.status(400).json({ error: 'Admin not found. Please log in again.' });
+    }
 
     const trimmedEmail = String(email).toLowerCase().trim();
 
@@ -50,14 +63,17 @@ exports.registerStaffs = async (req, res) => {
         const institution = await Institution.findByPk(institution_id, { transaction });
         if (!institution) {
             await transaction.rollback();
-            return res.status(400).json({ error: 'Invalid institution_id' });
+            return res.status(400).json({ error: 'Institution not found. Please log in again.' });
         }
 
         // Validate admin
         const admin = await Admin.findByPk(admin_id, { transaction });
         if (!admin) {
-            await transaction.rollback();
-            return res.status(400).json({ error: 'Invalid admin_id' });
+            // For unified login admins, skip legacy admin validation
+            if (!authenticatedAdmin || !authenticatedAdmin.institution_id) {
+                await transaction.rollback();
+                return res.status(400).json({ error: 'Invalid admin_id' });
+            }
         }
 
         // Validate role if provided
