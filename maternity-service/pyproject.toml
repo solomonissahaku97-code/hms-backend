@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hms-maternity-service"
+version = "1.0.0"
+description = "HMS Maternity Microservice - ANC, partograph, delivery, PNC, fluid monitoring"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "sqlalchemy==2.0.35",
+    "asyncpg==0.30.0",
+    "alembic==1.14.0",
+    "pydantic==2.10.0",
+    "pydantic-settings==2.6.0",
+    "python-dotenv==1.0.1",
+    "python-multipart==0.0.12",
+    "httpx==0.28.0",
+    "PyJWT==2.13.0",
+    "structlog==24.4.0",
+]
