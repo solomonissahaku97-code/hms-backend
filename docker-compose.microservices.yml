@@ -266,9 +266,7 @@ services:
   # ── Store Service (Python/FastAPI — port 3004) ─────────────────────────
 
   store-service:
-    build:
-      context: ./store-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-store-service:latest
     container_name: hms-store-service
     restart: unless-stopped
     depends_on:

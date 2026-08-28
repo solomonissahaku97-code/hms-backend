@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base
-from app.routes import anc, partograph, delivery, ultrasound, fluid, dashboard
+from app.routes import anc, partograph, delivery, ultrasound, fluid, dashboard, labour
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,6 +19,7 @@ app.include_router(delivery.router)
 app.include_router(ultrasound.router)
 app.include_router(fluid.router)
 app.include_router(dashboard.router)
+app.include_router(labour.router)
 
 @app.get("/health")
 async def health():
