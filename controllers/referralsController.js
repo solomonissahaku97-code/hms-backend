@@ -67,7 +67,7 @@ exports.createReferral = async (req, res, next) => {
     const transaction = await sequelize.transaction();
     try {
         const { institution_id: referringInstitutionId } = req.user;
-        const requestedBy = req.user.id;
+        const requestedBy = req.user.id || null;
         const {
             receiving_institution_id,
             patient_id,
@@ -192,11 +192,15 @@ exports.createReferral = async (req, res, next) => {
 
         await transaction.commit();
 
-        if (notificationService && receivingLabDepartment) {
+        if (notificationService && receivingLabDepartments.length > 0) {
+            const testTemplates2 = await Promise.all(
+                tests.map(t => LabTestTemplate.findByPk(t.templateId))
+            );
+            const testNames2 = testTemplates2.filter(Boolean).map(t => t.name || 'Lab Test').join(', ') || `${tests.length} lab test(s)`;
             await sendPushEngageDepartmentNotification({
-                departmentId: receivingLabDepartment.id,
+                departmentId: receivingLabDepartments[0].id,
                 title: 'New Incoming Lab Referral',
-                message: `You have received a new lab referral from ${referringInstitution.name}. Patient: ${patient?.first_name || ''} ${patient?.lastName || ''}.`,
+                message: `You have received a new lab referral from ${referringInstitution.name}. Patient: ${patient?.first_name || ''} ${patient?.last_name || ''}.`,
                 url: '/shared/lab/referrals/incoming'
             }).catch(err => console.error('PushEngage notification error:', err));
         }

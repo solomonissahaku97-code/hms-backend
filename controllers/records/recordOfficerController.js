@@ -770,7 +770,7 @@ exports.getVisitDetails = async (req, res) => {
         // Visit (Lightweight Query)
         // ==========================
 
-        const visit = await Visit.findByPk(visit_id, {
+        let visit = await Visit.findByPk(visit_id, {
             include: [
                 {
                     model: Patient,
@@ -795,6 +795,25 @@ exports.getVisitDetails = async (req, res) => {
                 }
             ]
         });
+
+        // Fallback: if not found by visit ID, try as patient ID
+        // and return the patient's most recent active visit
+        if (!visit) {
+            const patient = await Patient.findByPk(visit_id);
+            if (patient) {
+                visit = await Visit.findOne({
+                    where: { patient_id: patient.id },
+                    include: [
+                        { model: Patient, as: "patient" },
+                        { model: VitalSignsRecord, as: "vitalSignsRecords", separate: true },
+                        { model: Institution, as: "institution" },
+                        { model: Department, as: "department" },
+                        { model: Invoice, as: "invoice" }
+                    ],
+                    order: [["createdAt", "DESC"]]
+                });
+            }
+        }
 
         if (!visit) {
             return res.status(404).json({

@@ -3,7 +3,6 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const nhiaVettingController = require('../controllers/claims/nhiaVettingController');
-const { sftpUpload } = require('../middlewares/storage');
 
 // XML-only multer upload for NHIA vetting (uses centralized temp storage)
 const tempDir = path.join(__dirname, '../uploads/temp');
@@ -52,10 +51,9 @@ const handleMulterError = (error, req, res, next) => {
   next(error);
 };
 
-// Routes — upload to Supabase via sftpUpload middleware (renamed but now uses Supabase)
+// Routes — parse and vet XML locally (no Supabase persistence needed for vetting)
 router.post('/upload', 
   nhiaUpload.single('xmlFile'),
-  sftpUpload('xmlFile', 'claims', 'nhia'),
   handleMulterError,
   nhiaVettingController.processNHIAXML
 );

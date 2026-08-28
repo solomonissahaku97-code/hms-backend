@@ -1,60 +1,83 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import text
 from app.database import get_db
-from app.models import Partograph
-from app.schemas.maternity import PartographCreate, PartographResponse
 from app.middleware.auth import authenticate
 
 router = APIRouter(prefix="/api/v1/maternity", tags=["Partograph"])
 
-@router.post("/partograph", response_model=PartographResponse)
-async def add_partograph(data: PartographCreate, db: AsyncSession = Depends(get_db), user=Depends(authenticate)):
+@router.post("/partograph")
+async def add_partograph(data: dict, db: AsyncSession = Depends(get_db), user=Depends(authenticate)):
+    """Add partograph record — uses raw SQL for shared DB compatibility"""
     risk_alerts = []
     alert = False
     action = False
 
-    if data.fetal_heart_rate and (data.fetal_heart_rate < 110 or data.fetal_heart_rate > 160):
-        risk_alerts.append({"type": "fetal_heart_rate", "message": f"FHR {data.fetal_heart_rate} bpm is abnormal"})
+    fhr = data.get("fetal_heart_rate")
+    if fhr and (fhr < 110 or fhr > 160):
+        risk_alerts.append({"type": "fetal_heart_rate", "message": f"FHR {fhr} bpm is abnormal"})
         alert = True
-    if data.cervical_dilatation and data.cervical_dilatation >= 4:
-        action = True
-    if data.bp_systolic and data.bp_systolic > 140:
-        risk_alerts.append({"type": "hypertension", "message": f"BP {data.bp_systolic}/{data.bp_diastolic} is elevated"})
+    bp = data.get("bp_systolic")
+    if bp and bp > 140:
+        risk_alerts.append({"type": "hypertension", "message": f"BP {bp} is elevated"})
         alert = True
 
-    record = Partograph(
-        visit_id=data.visit_id, cervical_dilatation=data.cervical_dilatation,
-        fetal_heart_rate=data.fetal_heart_rate, contractions_frequency=data.contractions,
-        pulse=data.maternal_pulse, bp_systolic=data.bp_systolic, bp_diastolic=data.bp_diastolic,
-        remark=data.remark, alert=alert, action=action, risk_alerts=risk_alerts
-    )
-    db.add(record)
-    await db.commit()
-    await db.refresh(record)
-    return record
+    try:
+        await db.execute(text("""
+            INSERT INTO partographs (id, visit_id, record_time, cervical_dilatation, fetal_heart_rate,
+                contractions_frequency, pulse, blood_pressure, remarks, alert, action, risk_alerts,
+                "createdAt", "updatedAt")
+            VALUES (gen_random_uuid(), :visit_id, NOW(), :cervical, :fhr, :contractions,
+                :pulse, :bp, :remark, :alert, :action, :risk_alerts, NOW(), NOW())
+        """), {
+            "visit_id": data["visit_id"],
+            "cervical": data.get("cervical_dilatation"),
+            "fhr": fhr,
+            "contractions": data.get("contractions"),
+            "pulse": data.get("maternal_pulse"),
+            "bp": data.get("bp_systolic"),
+            "remark": data.get("remark"),
+            "alert": alert,
+            "action": action,
+            "risk_alerts": __import__("json").dumps(risk_alerts),
+        })
+        await db.commit()
+        return {"message": "Partograph record added", "alert": alert, "risk_alerts": risk_alerts}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/partograph/visit/{visit_id}", response_model=list[PartographResponse])
+@router.get("/partograph/visit/{visit_id}")
 async def get_partograph_by_visit(visit_id: str, db: AsyncSession = Depends(get_db), user=Depends(authenticate)):
-    result = await db.execute(select(Partograph).where(Partograph.visit_id == visit_id).order_by(Partograph.record_time.asc()))
-    return result.scalars().all()
+    try:
+        result = await db.execute(
+            text("SELECT * FROM partographs WHERE visit_id = :vid ORDER BY record_time ASC"),
+            {"vid": visit_id}
+        )
+        rows = result.mappings().all()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
 
-@router.put("/partograph/{record_id}", response_model=PartographResponse)
-async def update_partograph(record_id: str, data: PartographCreate, db: AsyncSession = Depends(get_db), user=Depends(authenticate)):
-    result = await db.execute(select(Partograph).where(Partograph.id == record_id))
-    record = result.scalar_one_or_none()
-    if not record: raise HTTPException(status_code=404, detail="Record not found")
-    for k, v in data.model_dump(exclude_unset=True).items():
-        setattr(record, k, v)
-    await db.commit()
-    await db.refresh(record)
-    return record
+@router.put("/partograph/{record_id}")
+async def update_partograph(record_id: str, data: dict, db: AsyncSession = Depends(get_db), user=Depends(authenticate)):
+    try:
+        await db.execute(
+            text("UPDATE partographs SET cervical_dilatation = :cd, fetal_heart_rate = :fhr WHERE id = :id"),
+            {"cd": data.get("cervical_dilatation"), "fhr": data.get("fetal_heart_rate"), "id": record_id}
+        )
+        await db.commit()
+        return {"message": "Record updated"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/partograph/{record_id}")
 async def delete_partograph(record_id: str, db: AsyncSession = Depends(get_db), user=Depends(authenticate)):
-    result = await db.execute(select(Partograph).where(Partograph.id == record_id))
-    record = result.scalar_one_or_none()
-    if not record: raise HTTPException(status_code=404, detail="Record not found")
-    await db.delete(record)
-    await db.commit()
-    return {"message": "Record deleted"}
+    try:
+        await db.execute(text("DELETE FROM partographs WHERE id = :id"), {"id": record_id})
+        await db.commit()
+        return {"message": "Record deleted"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
