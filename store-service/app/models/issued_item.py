@@ -27,5 +27,5 @@ class IssuedItem(Base):
     return_date = Column(DateTime(timezone=True), nullable=True)
     notes = Column(Text, nullable=True)
 
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column("createdAt", DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column("updatedAt", DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

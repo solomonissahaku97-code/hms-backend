@@ -67,6 +67,100 @@ const patientSchema = Joi.object({
     insurance_expiry_date: Joi.date().optional(),
 });
 
+/**
+ * Search for potential duplicate patients within an institution.
+ * Checks name + DOB, phone, NHIS number, Ghana Card number.
+ * Returns matches ranked by confidence.
+ */
+exports.searchDuplicatePatients = async (req, res) => {
+    const { institution_id, first_name, last_name, date_of_birth, phone_number, nhis_number, ghana_card_number } = req.query;
+
+    if (!institution_id) {
+        return res.status(400).json({ success: false, message: 'institution_id is required' });
+    }
+
+    try {
+        const conditions = [];
+
+        // Strong match: same name + DOB (within same institution)
+        if (first_name && last_name && date_of_birth) {
+            conditions.push({
+                [Op.and]: [
+                    { institution_id },
+                    { first_name: { [Op.iLike]: first_name.trim() } },
+                    { last_name: { [Op.iLike]: last_name.trim() } },
+                    { date_of_birth: date_of_birth },
+                ]
+            });
+        }
+
+        // Phone number match (within same institution)
+        if (phone_number && phone_number.trim()) {
+            conditions.push({
+                [Op.and]: [
+                    { institution_id },
+                    { phone: { [Op.iLike]: phone_number.trim() } },
+                ]
+            });
+        }
+
+        // Note: nhis_number and ghana_card_number are NOT columns on the patients table.
+        // They exist on the records (visits) table. For now, duplicate detection
+        // uses name + DOB and phone number, which are the strongest signals.
+
+        if (conditions.length === 0) {
+            return res.status(200).json({ success: true, duplicates: [], message: 'No search criteria provided' });
+        }
+
+        const duplicates = await Patient.findAll({
+            where: { [Op.or]: conditions },
+            attributes: ['id', 'first_name', 'middle_name', 'last_name', 'folder_number', 'phone', 'date_of_birth', 'gender', 'institution_id', 'has_insurance', 'created_at'],
+            limit: 10,
+            order: [['created_at', 'DESC']],
+        });
+
+        // Score each match by confidence
+        const scored = duplicates.map(p => {
+            let confidence = 0;
+            let reasons = [];
+
+            if (first_name && last_name && date_of_birth) {
+                const nameMatch = p.first_name?.toLowerCase() === first_name.trim().toLowerCase() &&
+                                  p.last_name?.toLowerCase() === last_name.trim().toLowerCase();
+                const dobMatch = p.date_of_birth === date_of_birth;
+                if (nameMatch && dobMatch) { confidence += 50; reasons.push('Same name and date of birth'); }
+                else if (nameMatch) { confidence += 25; reasons.push('Same name'); }
+            }
+
+            if (phone_number && p.phone) {
+                const normalize = (s) => s?.replace(/[^0-9]/g, '');
+                if (normalize(p.phone) === normalize(phone_number)) {
+                    confidence += 30;
+                    reasons.push('Same phone number');
+                }
+            }
+
+            return {
+                ...p.toJSON(),
+                match_confidence: confidence,
+                match_reasons: reasons,
+            };
+        });
+
+        // Sort by confidence descending
+        scored.sort((a, b) => b.match_confidence - a.match_confidence);
+
+        return res.status(200).json({
+            success: true,
+            duplicates: scored,
+            has_strong_match: scored.some(d => d.match_confidence >= 50),
+        });
+    } catch (error) {
+        console.error('Error searching duplicate patients:', error);
+        return res.status(500).json({ success: false, message: 'Failed to search for duplicates' });
+    }
+};
+
 exports.createNewPatient = async (req, res) => {
     const {
         first_name, middle_name, last_name, city, religion, address, country,
@@ -74,14 +168,13 @@ exports.createNewPatient = async (req, res) => {
         department_id, nhis_number, ghana_card_number,
         next_of_kin_name, next_of_kin_phone, next_of_kin_relationship,
         emergency_contact_name, emergency_contact_phone, emergency_contact_relationship,
-        has_insurance, insurance_provider, insurance_expiry_date
+        has_insurance, insurance_provider, insurance_expiry_date,
+        force_register // Frontend can set this to true after showing duplicate warning
     } = req.body;
-    console.log(req.body)
 
     // Validate the request body
     const { error } = patientSchema.validate(req.body);
     if (error) {
-        console.log(error);
         return res.status(400).json({
             success: false,
             error: error.details[0].message,
@@ -96,10 +189,64 @@ exports.createNewPatient = async (req, res) => {
         if (!institution) {
             await transaction.rollback();
             return res.status(404).json({
-            success: false,
-            error: 'Institution not found',
-            message: 'Institution not found'
-        });
+                success: false,
+                error: 'Institution not found',
+                message: 'Institution not found'
+            });
+        }
+
+        // ── Duplicate Detection ──
+        // Check for strong matches unless force_register is set
+        if (!force_register) {
+            const duplicateConditions = [];
+
+            // Name + DOB match (strongest signal — within same institution)
+            if (first_name && last_name && date_of_birth) {
+                duplicateConditions.push({
+                    [Op.and]: [
+                        { institution_id },
+                        { first_name: { [Op.iLike]: first_name.trim() } },
+                        { last_name: { [Op.iLike]: last_name.trim() } },
+                        { date_of_birth: date_of_birth },
+                    ]
+                });
+            }
+
+            // Phone number match (within same institution)
+            if (phone_number && phone_number.trim()) {
+                duplicateConditions.push({
+                    [Op.and]: [
+                        { institution_id },
+                        { phone: { [Op.iLike]: phone_number.trim() } },
+                    ]
+                });
+            }
+
+            if (duplicateConditions.length > 0) {
+                const existingPatients = await Patient.findAll({
+                    where: { [Op.or]: duplicateConditions },
+                    attributes: ['id', 'first_name', 'middle_name', 'last_name', 'folder_number', 'phone', 'date_of_birth', 'gender', 'has_insurance', 'created_at'],
+                    limit: 5,
+                    transaction,
+                });
+
+                if (existingPatients.length > 0) {
+                    await transaction.rollback();
+                    return res.status(409).json({
+                        success: false,
+                        message: 'Potential duplicate patient detected',
+                        error: 'A patient with similar identifying information already exists',
+                        duplicates: existingPatients.map(p => ({
+                            id: p.id,
+                            name: `${p.first_name} ${p.last_name}`,
+                            folder_number: p.folder_number,
+                            phone: p.phone,
+                            date_of_birth: p.date_of_birth,
+                        })),
+                        hint: 'Set force_register=true to override and create a new patient anyway',
+                    });
+                }
+            }
         }
 
         // Prepare metadata with relatives information

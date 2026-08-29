@@ -29,5 +29,5 @@ class StockAlert(Base):
     resolution_notes = Column(Text, nullable=True)
     notified = Column(Boolean, default=False)
 
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column("createdAt", DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column("updatedAt", DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

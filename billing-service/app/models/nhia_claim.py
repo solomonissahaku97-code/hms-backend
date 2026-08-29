@@ -4,13 +4,12 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, DateTime, Enum, ForeignKey, Numeric, String, Text, Integer, Boolean,
+    Column, DateTime, ForeignKey, Numeric, String, Text, Integer, Boolean,
 )
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.utils.types import ClaimStatus
 
 
 class NHIAClaim(Base):
@@ -25,8 +24,8 @@ class NHIAClaim(Base):
     visit_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     institution_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
-    # Claim details
-    status = Column(Enum(ClaimStatus), default=ClaimStatus.DRAFT, index=True)
+    # Claim details — use String instead of Enum to avoid mismatch
+    status = Column(String(50), default="draft", index=True)
     total_amount = Column(Numeric(15, 2), default=0)
     nhia_amount = Column(Numeric(15, 2), default=0, comment="Amount NHIA approved/covered")
     patient_amount = Column(Numeric(15, 2), default=0, comment="Patient responsibility")

@@ -42,29 +42,24 @@ class InvoiceUpdate(BaseModel):
 class InvoiceResponse(BaseModel):
     id: UUID
     invoice_number: str
-    patient_id: UUID
+    patient_id: Optional[UUID] = None
     visit_id: UUID
     institution_id: UUID
-    department_id: Optional[UUID] = None
 
-    subtotal: float
-    tax_amount: float
-    discount_amount: float
-    total_amount: float
-    amount_paid: float
-    balance_due: float
-    currency: str
+    subtotal: float = 0
+    tax_amount: float = 0
+    discount_amount: float = 0
+    total_amount: float = 0
+    amount_paid: float = 0
+    balance_due: float = 0
 
-    nhia_covered_amount: float
-    patient_responsibility: float
-
-    status: str
-    has_insurance: bool
+    status: str = "draft"
+    payment_method: Optional[str] = None
     notes: Optional[str] = None
     due_date: Optional[datetime] = None
 
     created_by: Optional[UUID] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     paid_at: Optional[datetime] = None
 

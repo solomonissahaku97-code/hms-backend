@@ -19,5 +19,5 @@ class StockRequestItem(Base):
     quantity_issued = Column(Integer, default=0)
     status = Column(String(20), default="pending")
 
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column("createdAt", DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column("updatedAt", DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

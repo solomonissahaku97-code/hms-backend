@@ -176,6 +176,50 @@ const dispensingController = {
 
       await transaction.commit();
 
+      // Send dispensing notification (fire-and-forget)
+      try {
+        const { getPatient } = require('../services/hmsClient');
+        const patient = await getPatient(prescription.patient_id, prescription.institution_id);
+        const patientName = patient ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'Patient';
+        const medName = prescItem.medication?.generic_name || 'medication';
+
+        // Notify the prescribing department that medication has been dispensed
+        if (prescription.department_id) {
+          const { notifyDepartment } = require('../services/hmsClient');
+          await notifyDepartment(prescription.department_id, {
+            title: 'Prescription Dispensed',
+            description: `${medName} dispensed to ${patientName} (${quantity_dispensed} units). Batch: ${batch.batch_number}.`,
+            priority: 'Medium',
+            type: 'Info',
+            institution_id: prescription.institution_id,
+            from_department_id: prescription.department_id,
+          }).catch(err => logger.warn('Failed to notify department:', err.message));
+        }
+
+        // Check if stock is now low or depleted — notify pharmacy department
+        if (newBatchQty <= (batch.reorder_level || 10) && newBatchQty > 0) {
+          const { notifyDepartment } = require('../services/hmsClient');
+          await notifyDepartment(prescription.department_id, {
+            title: 'Low Stock Alert',
+            description: `${medName} (Batch: ${batch.batch_number}) is running low. Only ${newBatchQty} units remaining.`,
+            priority: 'High',
+            type: 'Alert',
+            institution_id: prescription.institution_id,
+          }).catch(err => logger.warn('Failed to send low stock alert:', err.message));
+        } else if (newBatchQty === 0) {
+          const { notifyDepartment } = require('../services/hmsClient');
+          await notifyDepartment(prescription.department_id, {
+            title: 'Out of Stock',
+            description: `${medName} (Batch: ${batch.batch_number}) is now OUT OF STOCK.`,
+            priority: 'Critical',
+            type: 'Alert',
+            institution_id: prescription.institution_id,
+          }).catch(err => logger.warn('Failed to send out of stock alert:', err.message));
+        }
+      } catch (notifErr) {
+        logger.warn('Notification error (non-blocking):', notifErr.message);
+      }
+
       // Attempt billing via HMS backend (fire-and-forget)
       try {
         await hmsClient.post('/api/v1/prescriptions/dispense-bill', {

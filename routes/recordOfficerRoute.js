@@ -8,6 +8,9 @@ const patientReport = require('../controllers/records/patient_report')
 
 // RECORD OFFICER
 
+// Search for potential duplicate patients before registration
+router.get('/patient/search-duplicates',adminAuthOrUserAuth,recordOfficer.searchDuplicatePatients);
+
 // Create a new patient record
 router.post('/patient/create',adminAuthOrUserAuth,recordOfficer.createNewPatient);
 

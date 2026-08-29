@@ -1,18 +1,31 @@
 # =============================================================================
-# HMS — Full Microservices Docker Compose
+# HMS — Full Microservices Docker Compose (VPS Deployment)
 # =============================================================================
 #
-# Services:
-#   - PostgreSQL (shared database)
-#   - Redis (cache + queue)
-#   - Nginx (reverse proxy — single entry point on port 80)
-#   - HMS Backend (Node.js monolith — port 5008)
+# Infrastructure:
+#   - PostgreSQL 15 (shared database)
+#   - Redis 7 (cache + queue)
+#
+# Application Services (Docker Hub images):
+#   - Backend (Node.js — port 3000:5008, proxied by host Nginx)
 #   - Pharmacy Service (Node.js — port 3001)
 #   - Billing Service (Python/FastAPI — port 8001)
 #   - Claims Service (Python/FastAPI — port 3002)
+#   - Admission Service (Node.js — port 3003)
+#   - Store Service (Python/FastAPI — port 3004)
+#   - Theatre Service (Node.js — port 3005)
+#   - Consultation Service (Node.js — port 3006)
+#   - Maternity Service (Python/FastAPI — port 3007)
+#   - Lab Service (Node.js — port 5012)
+#   - WebSocket Service (Node.js — port 3010)
+#   - Auth Service (Node.js — port 3008)
+#   - Auth Service (Node.js — port 3008)
+#
+# Note: Nginx runs on the VPS host (not in Docker).
+#       Host Nginx proxies api.tonitel.com → 127.0.0.1:3000
 #
 # Commands:
-#   docker compose -f docker-compose.microservices.yml up -d --build
+#   docker compose -f docker-compose.microservices.yml up -d
 #   docker compose -f docker-compose.microservices.yml ps
 #   docker compose -f docker-compose.microservices.yml logs -f claims-service
 #   docker compose -f docker-compose.microservices.yml down
@@ -59,36 +72,11 @@ services:
     networks:
       - hms-network
 
-  # ── Nginx (Reverse Proxy — single entry point on port 80) ─────────────
-
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: hms-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - backend
-      - pharmacy-service
-      - billing-service
-      - claims-service
-      - lab-service
-      - admission-service
-      - store-service
-      - theatre-service
-      - consultation-service
-      - maternity-service
-    networks:
-      - hms-network
-
-  # ── HMS Backend (Main Monolith — port 5008) ────────────────────────────
+  # ── HMS Backend (Main Monolith — port 3000:5008) ──────────────────────
+  # Host Nginx proxies api.tonitel.com → 127.0.0.1:3000 → container:5008
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-backend:latest
     container_name: hms-backend
     restart: unless-stopped
     depends_on:
@@ -97,7 +85,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "5008:5008"
+      - "3000:5008"
     environment:
       NODE_ENV: production
       PORT: 5008
@@ -124,6 +112,13 @@ services:
       BILLING_SERVICE_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
       CLAIMS_SERVICE_URL: http://claims-service:3002
       CLAIMS_SERVICE_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+      STORE_SERVICE_URL: http://store-service:3004
+      THEATRE_SERVICE_URL: http://theatre-service:3005
+      CONSULTATION_SERVICE_URL: http://consultation-service:3006
+      MATERNITY_SERVICE_URL: http://maternity-service:3007
+      ADMISSION_SERVICE_URL: http://admission-service:3003
+      LAB_SERVICE_URL: http://lab-service:5012
+      AUTH_SERVICE_URL: http://auth-service:3008
     volumes:
       - ./uploads:/app/uploads
     healthcheck:
@@ -138,9 +133,7 @@ services:
   # ── Pharmacy Service (Node.js — port 3001) ─────────────────────────────
 
   pharmacy-service:
-    build:
-      context: ./pharmacy-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-pharmacy-service:latest
     container_name: hms-pharmacy-service
     restart: unless-stopped
     depends_on:
@@ -160,6 +153,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me}
       HMS_BACKEND_URL: http://backend:5008
       HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+      HMS_BACKEND_API_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
@@ -172,9 +166,7 @@ services:
   # ── Billing Service (Python/FastAPI — port 8001) ───────────────────────
 
   billing-service:
-    build:
-      context: ./billing-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-billing-service:latest
     container_name: hms-billing-service
     restart: unless-stopped
     depends_on:
@@ -201,9 +193,7 @@ services:
   # ── Claims Service (Python/FastAPI — port 3002) ────────────────────────
 
   claims-service:
-    build:
-      context: ./claims-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-claims-service:latest
     container_name: hms-claims-service
     restart: unless-stopped
     depends_on:
@@ -232,9 +222,7 @@ services:
   # ── Admission Service (Node.js — port 3003) ──────────────────────────
 
   admission-service:
-    build:
-      context: ./admission-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-admission-service:latest
     container_name: hms-admission-service
     restart: unless-stopped
     depends_on:
@@ -291,9 +279,7 @@ services:
   # ── Theatre Service (Node.js — port 3005) ─────────────────────────────
 
   theatre-service:
-    build:
-      context: ./theatre-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-theatre-service:latest
     container_name: hms-theatre-service
     restart: unless-stopped
     depends_on:
@@ -325,9 +311,7 @@ services:
   # ── Consultation Service (Node.js — port 3006) ───────────────────────
 
   consultation-service:
-    build:
-      context: ./consultation-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-consultation-service:latest
     container_name: hms-consultation-service
     restart: unless-stopped
     depends_on:
@@ -359,9 +343,7 @@ services:
   # ── Maternity Service (Python/FastAPI — port 3007) ─────────────────────
 
   maternity-service:
-    build:
-      context: ./maternity-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-maternity-service:latest
     container_name: hms-maternity-service
     restart: unless-stopped
     depends_on:
@@ -386,9 +368,7 @@ services:
   # ── Lab Service (Node.js — port 5012) ─────────────────────────────────
 
   lab-service:
-    build:
-      context: ./lab-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-lab-service:latest
     container_name: hms-lab-service
     restart: unless-stopped
     depends_on:
@@ -422,9 +402,7 @@ services:
   # ── WebSocket Service (Node.js — port 3010) ─────────────────────────────
 
   websocket-service:
-    build:
-      context: ./websocket-service
-      dockerfile: Dockerfile
+    image: devsolomon381/hms-websocket-service:latest
     container_name: hms-websocket-service
     restart: unless-stopped
     depends_on:
@@ -443,6 +421,39 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - hms-network
+
+  # ── Auth Service (Node.js — port 3008) ──────────────────────────────
+  # Handles: login, token verification, user lookup, password reset.
+  # Registration stays on monolith (file upload, SFTP, institution setup).
+
+  auth-service:
+    image: devsolomon381/hms-auth-service:latest
+    container_name: hms-auth-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3008:3008"
+    environment:
+      NODE_ENV: production
+      PORT: 3008
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-hms}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      DB_DIALECT: postgres
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3008/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - hms-network
 

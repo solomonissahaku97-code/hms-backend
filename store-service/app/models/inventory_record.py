@@ -26,5 +26,5 @@ class InventoryRecord(Base):
     notes = Column(Text, nullable=True)
     date = Column(DateTime(timezone=True), default=datetime.utcnow)
 
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column("createdAt", DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column("updatedAt", DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)

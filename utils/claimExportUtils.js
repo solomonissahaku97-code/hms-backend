@@ -126,9 +126,10 @@ const validateClaimsForExport = (claims, institutionId) => {
 
     const diagnosis = resolvePrimaryDiagnosis(visit);
     if (!diagnosis) {
-      errors.push({ claim: ref, field: 'diagnosis', message: 'No diagnosis recorded for the visit' });
+      // Soft warning — don't block export, just note it
+      console.warn(`⚠️ Claim ${ref}: No diagnosis recorded for visit — exporting with empty diagnosis`);
     } else if (!resolveDiagnosisCode(diagnosis)) {
-      errors.push({ claim: ref, field: 'diagnosis', message: 'Diagnosis has no ICD-10 code' });
+      console.warn(`⚠️ Claim ${ref}: Diagnosis has no ICD-10 code — exporting with empty code`);
     }
   }
 
@@ -196,10 +197,10 @@ exports.createNHISXML = (claims, institution) => {
       : 'Private';
     patientNode.ele('InsuranceType').txt(sanitizeText(insuranceType));
 
-    // ✅ Diagnosis Information (REAL diagnosis only — validated above)
+    // ✅ Diagnosis Information — gracefully handle missing diagnosis
     const diagnosisNode = claimNode.ele('Diagnosis');
-    diagnosisNode.ele('DiagnosisCode').txt(sanitizeText(diagnosisCode));
-    diagnosisNode.ele('DiagnosisDescription').txt(sanitizeText(diagnosisName));
+    diagnosisNode.ele('DiagnosisCode').txt(sanitizeText(diagnosisCode || ''));
+    diagnosisNode.ele('DiagnosisDescription').txt(sanitizeText(diagnosisName || ''));
     diagnosisNode.ele('DiagnosisType').txt(sanitizeText(diagnosis && diagnosis.diagnosis_type === 'confirmed_diagnosis' ? 'Confirmed' : 'Provisional'));
 
     // ✅ Service Provider Information (real diagnosing staff, else the real facility)

@@ -7,6 +7,7 @@ const referralRoutes = require('./referralRoutes');
 const patientLabRoutes = require('./patientLabRoutes');
 
 const prescriptionRoutes = require('./prescriptionRoute');
+const pharmacyProxyRoutes = require('./pharmacyProxyRoute');
 const notificationRoutes = require('./notificationRoutes');
 const messageRoutes = require('./messageRoute');
 const messageTemplate = require('./messageTempRoute')
@@ -85,11 +86,18 @@ const aiRoutes = require('./aiRoutes');
 const syncRoutes = require('./syncRoutes');
 const storageRoutes = require('./storageRoutes');
 
-// middle ware
-
+// ─── Microservice Gateway ───────────────────────────────────────────
+// MUST be mounted BEFORE monolith routes so it can intercept requests
+// and forward them to the appropriate microservice.
+// If a microservice is unavailable or returns 404, requests fall through
+// to the monolith's own routes below (serves as fallback).
+const { mountGateway } = require('./microserviceGateway');
 
 module.exports = (app) => {
-    // Define all your routes here
+    // Mount the microservice gateway FIRST
+    mountGateway(app);
+
+    // ─── Monolith Routes (fallback for routes not handled by microservices) ──
     app.use('/api/v1/interventions',clinicalInterventionRoutes);
     app.use('/api/v1/occupation-history',occupationHistory);
     app.use('/api/v1/theatre/pre-op-checklist',preOpChecklistRoutes);
@@ -136,6 +144,11 @@ module.exports = (app) => {
 
 
     app.use('/api/v1/prescriptions', prescriptionRoutes);
+
+    // Pharmacy Microservice Proxy — forwards /api/v1/pharmacy/* to pharmacy-service:3001
+    // Medications, inventory, dispensing, dashboard are handled by the pharmacy microservice.
+    // Prescriptions stay on the monolith because they need billing + claims integration.
+    app.use('/api/v1/pharmacy', pharmacyProxyRoutes);
     app.use('/api/v1', messageTemplate);
     app.use('/api/v1/notifications', notificationRoutes);
     app.use('/api/v1', accessControlRoutes);

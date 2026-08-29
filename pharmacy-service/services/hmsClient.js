@@ -93,8 +93,9 @@ async function getVisit(visitId) {
  */
 async function notifyDepartment(departmentId, notification) {
   try {
-    return await hmsClient.post('/api/v1/notifications', {
+    return await hmsClient.post('/api/v1/notifications/notification/create', {
       to_department_id: departmentId,
+      broadcast: false,
       ...notification,
     });
   } catch (error) {
