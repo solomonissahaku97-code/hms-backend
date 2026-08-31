@@ -7,6 +7,7 @@ const generateToken = (user, permissions = []) => {
         role_id: user.role_id || null,
         role_name: user.role_name || null,
         user_type: user.user_type || user.role_manager || null,
+        institution_id: user.institution_id || user.institution?.id || null,
         permissions: permissions || [] 
     };
     return jwt.sign(payload, jwtSecret);

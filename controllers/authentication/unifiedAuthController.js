@@ -68,11 +68,47 @@ exports.login = async (req, res) => {
                     });
                 }
             } else if (email) {
-                const legacyAdmin = await Admin.findOne({ where: { email: email.toLowerCase().trim() } });
+                const legacyAdmin = await Admin.findOne({
+                    where: { email: email.toLowerCase().trim() },
+                    include: [{ model: Institution, as: 'institution' }],
+                });
                 if (legacyAdmin) {
-                    return res.status(409).json({
-                        error: 'This account needs migration. Please contact support.',
-                        code: 'NEEDS_MIGRATION',
+                    // Authenticate admin directly from the admins table
+                    const validPassword = await bcrypt.compare(password, legacyAdmin.password_hash);
+                    if (!validPassword) {
+                        return res.status(400).json({ error: 'Invalid credentials' });
+                    }
+
+                    // Check account lockout
+                    if (legacyAdmin.account_locked_until && legacyAdmin.account_locked_until > new Date()) {
+                        const remainingTime = Math.ceil((legacyAdmin.account_locked_until - new Date()) / 60000);
+                        return res.status(403).json({
+                            error: `Account temporarily locked. Try again in ${remainingTime} minutes.`,
+                        });
+                    }
+
+                    // Reset lockout on success
+                    await legacyAdmin.update({
+                        login_attempts: 0,
+                        account_locked_until: null,
+                        last_failed_attempt: null,
+                    });
+
+                    const token = generateToken({
+                        id: legacyAdmin.id,
+                        email: legacyAdmin.email,
+                        institution_id: legacyAdmin.institution_id,
+                        user_type: 'ADMIN',
+                    });
+
+                    return res.status(200).json({
+                        id: legacyAdmin.id,
+                        username: legacyAdmin.username,
+                        email: legacyAdmin.email,
+                        user_type: 'ADMIN',
+                        institution: legacyAdmin.institution || legacyAdmin.institution_id,
+                        institution_id: legacyAdmin.institution_id,
+                        token,
                     });
                 }
             }

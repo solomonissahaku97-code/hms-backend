@@ -2,6 +2,7 @@ const { DrugBatch, Medication, InventoryLog, PharmacyAudit } = require('../model
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const logger = require('../utils/logger');
+const { pharmacyNotifications } = require('../services/notificationService');
 
 const inventoryController = {
   /**
@@ -45,9 +46,10 @@ const inventoryController = {
       // Enrich with low-stock flags
       const enriched = batches.rows.map((batch) => {
         const json = batch.toJSON();
-        const med = json.medication;
-        json.is_low_stock = med && json.current_quantity <= (med.reorder_level || 10);
-        json.is_critical = med && json.current_quantity <= (med.critical_level || 3);
+        const reorderLvl = json.reorder_level || 10;
+        const criticalLvl = json.critical_level || 3;
+        json.is_low_stock = json.current_quantity <= reorderLvl;
+        json.is_critical = json.current_quantity <= criticalLvl;
         json.is_expired = new Date(batch.expiry_date) < new Date();
         json.days_until_expiry = Math.ceil((new Date(batch.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
         return json;
@@ -127,8 +129,8 @@ const inventoryController = {
         expiry_date,
         manufacture_date,
         location,
-        reorder_level: reorder_level || medication.reorder_level || 10,
-        critical_level: critical_level || medication.critical_level || 3,
+        reorder_level: reorder_level || 10,
+        critical_level: critical_level || 3,
         status: 'active',
       }, { transaction });
 
@@ -141,19 +143,33 @@ const inventoryController = {
         quantity_change: quantity,
         previous_quantity: 0,
         new_quantity: quantity,
-        reference_type: 'stock_receipt',
+        reference_type: 'stock_receive',
         reference_id: batch.id,
         performed_by: req.user?.id,
-        notes: `Received ${quantity} units of ${medication.generic_name} (Batch: ${batch_number})`,
+        notes: `Received ${quantity} units of ${medication.generic_name || 'medication'}`,
+      }, { transaction });
+
+      // Audit log
+      await PharmacyAudit.create({
+        institution_id,
+        action: 'inventory.stock_received',
+        actor_id: req.user?.id,
+        entity_type: 'drug_batch',
+        entity_id: batch.id,
+        new_values: {
+          medication: medication.generic_name,
+          batch_number,
+          quantity,
+          selling_price,
+        },
       }, { transaction });
 
       await transaction.commit();
 
-      const result = await DrugBatch.findByPk(batch.id, {
-        include: [{ model: Medication, as: 'medication' }],
+      res.status(201).json({
+        message: 'Stock received successfully',
+        batch,
       });
-
-      res.status(201).json(result);
     } catch (error) {
       await transaction.rollback();
       logger.error('Error receiving stock:', error);
@@ -225,12 +241,41 @@ const inventoryController = {
 
       await transaction.commit();
 
+      // ── Notifications: Low/Critical Stock (fire-and-forget) ──
+      if (newQuantity > 0) {
+        const reorderLvl = batch.reorder_level || 10;
+        const criticalLvl = batch.critical_level || 3;
+
+        if (newQuantity <= criticalLvl) {
+          pharmacyNotifications.criticalStockWarning({
+            medicationName: medication?.generic_name || 'Medication',
+            currentQuantity: newQuantity,
+            institutionId: batch.institution_id,
+            departmentId: null,
+            batchNumber: batch.batch_number,
+          }).catch(err => logger.warn('Critical stock notification failed:', err.message));
+        } else if (newQuantity <= reorderLvl) {
+          pharmacyNotifications.lowStockWarning({
+            medicationName: medication?.generic_name || 'Medication',
+            currentQuantity: newQuantity,
+            reorderLevel: reorderLvl,
+            institutionId: batch.institution_id,
+            departmentId: null,
+            batchNumber: batch.batch_number,
+          }).catch(err => logger.warn('Low stock notification failed:', err.message));
+        }
+      }
+
       res.json({
-        message: `Stock ${adjustment_type}d successfully`,
-        batch_id: batch.id,
-        previous_quantity: previousQuantity,
-        new_quantity: newQuantity,
-        adjustment: adjustment_type === 'increase' ? `+${quantity}` : `-${quantity}`,
+        message: 'Stock adjusted successfully',
+        batch: {
+          id: batch.id,
+          batch_number: batch.batch_number,
+          previous_quantity: previousQuantity,
+          new_quantity: newQuantity,
+          adjustment_type,
+          adjustment_amount: parseInt(quantity),
+        },
       });
     } catch (error) {
       await transaction.rollback();
@@ -241,72 +286,77 @@ const inventoryController = {
 
   /**
    * GET /inventory/alerts
-   * Get low-stock and expiring-soon alerts
+   * Get stock alerts (low stock, expired, expiring soon)
    */
   async getAlerts(req, res) {
     try {
-      const { institution_id, days_to_expiry = 30 } = req.query;
-
+      const { institution_id } = req.query;
       if (!institution_id) {
         return res.status(400).json({ error: 'institution_id is required' });
       }
 
+      const today = new Date();
+      const thirtyDaysFromNow = new Date(today);
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
       const batches = await DrugBatch.findAll({
         where: { institution_id, status: 'active' },
         include: [{ model: Medication, as: 'medication' }],
+        order: [['expiry_date', 'ASC']],
       });
 
-      const lowStock = [];
-      const expiringSoon = [];
-      const expired = [];
+      const alerts = {
+        low_stock: [],
+        critical_stock: [],
+        expired: [],
+        expiring_soon: [],
+      };
 
-      const now = new Date();
-      const expiryThreshold = new Date(now.getTime() + parseInt(days_to_expiry) * 24 * 60 * 60 * 1000);
-
-      batches.forEach((batch) => {
+      for (const batch of batches) {
+        const reorderLvl = batch.reorder_level || 10;
+        const criticalLvl = batch.critical_level || 3;
         const med = batch.medication;
-        const reorderLevel = med?.reorder_level || batch.reorder_level || 10;
-        const criticalLevel = med?.critical_level || batch.critical_level || 3;
-        const expiryDate = new Date(batch.expiry_date);
 
-        if (batch.current_quantity <= criticalLevel) {
-          lowStock.push({
-            ...batch.toJSON(),
-            alert_type: 'critical',
-            message: `${med?.generic_name || 'Unknown'}: only ${batch.current_quantity} units remaining (critical level: ${criticalLevel})`,
+        if (batch.current_quantity <= criticalLvl) {
+          alerts.critical_stock.push({
+            batch_id: batch.id,
+            batch_number: batch.batch_number,
+            medication: med?.generic_name || 'Unknown',
+            current_quantity: batch.current_quantity,
+            critical_level: criticalLvl,
           });
-        } else if (batch.current_quantity <= reorderLevel) {
-          lowStock.push({
-            ...batch.toJSON(),
-            alert_type: 'low_stock',
-            message: `${med?.generic_name || 'Unknown'}: ${batch.current_quantity} units remaining (reorder level: ${reorderLevel})`,
+        } else if (batch.current_quantity <= reorderLvl) {
+          alerts.low_stock.push({
+            batch_id: batch.id,
+            batch_number: batch.batch_number,
+            medication: med?.generic_name || 'Unknown',
+            current_quantity: batch.current_quantity,
+            reorder_level: reorderLvl,
           });
         }
 
-        if (expiryDate < now) {
-          expired.push({
-            ...batch.toJSON(),
-            message: `${med?.generic_name || 'Unknown'} (Batch: ${batch.batch_number}) expired on ${batch.expiry_date}`,
+        if (new Date(batch.expiry_date) < today) {
+          alerts.expired.push({
+            batch_id: batch.id,
+            batch_number: batch.batch_number,
+            medication: med?.generic_name || 'Unknown',
+            expiry_date: batch.expiry_date,
+            current_quantity: batch.current_quantity,
           });
-        } else if (expiryDate <= expiryThreshold) {
-          const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
-          expiringSoon.push({
-            ...batch.toJSON(),
-            days_until_expiry: daysLeft,
-            message: `${med?.generic_name || 'Unknown'} (Batch: ${batch.batch_number}) expires in ${daysLeft} days`,
+        } else if (new Date(batch.expiry_date) < thirtyDaysFromNow) {
+          alerts.expiring_soon.push({
+            batch_id: batch.id,
+            batch_number: batch.batch_number,
+            medication: med?.generic_name || 'Unknown',
+            expiry_date: batch.expiry_date,
+            current_quantity: batch.current_quantity,
           });
         }
-      });
+      }
 
       res.json({
-        low_stock: lowStock,
-        expiring_soon: expiringSoon,
-        expired: expired,
-        summary: {
-          low_stock_count: lowStock.length,
-          expiring_soon_count: expiringSoon.length,
-          expired_count: expired.length,
-        },
+        total_alerts: alerts.low_stock.length + alerts.critical_stock.length + alerts.expired.length + alerts.expiring_soon.length,
+        alerts,
       });
     } catch (error) {
       logger.error('Error fetching alerts:', error);
@@ -316,27 +366,24 @@ const inventoryController = {
 
   /**
    * GET /inventory/logs
-   * Get inventory movement history
+   * Get inventory movement logs
    */
   async getLogs(req, res) {
     try {
-      const { institution_id, medication_id, batch_id, movement_type, page = 1, limit = 50 } = req.query;
+      const { institution_id, medication_id, drug_batch_id, movement_type, page = 1, limit = 50 } = req.query;
 
       const where = {};
       if (institution_id) where.institution_id = institution_id;
       if (medication_id) where.medication_id = medication_id;
-      if (batch_id) where.drug_batch_id = batch_id;
+      if (drug_batch_id) where.drug_batch_id = drug_batch_id;
       if (movement_type) where.movement_type = movement_type;
 
       const logs = await InventoryLog.findAndCountAll({
         where,
-        include: [
-          { model: DrugBatch, as: 'drugBatch', attributes: ['batch_number'] },
-          { model: Medication, as: 'medication', attributes: ['generic_name', 'form', 'strength'] },
-        ],
+        include: [{ model: Medication, as: 'medication', attributes: ['generic_name'] }],
         limit: parseInt(limit),
         offset: (parseInt(page) - 1) * parseInt(limit),
-        order: [['created_at', 'DESC']],
+        order: [['createdAt', 'DESC']],
       });
 
       res.json({
@@ -346,51 +393,60 @@ const inventoryController = {
         data: logs.rows,
       });
     } catch (error) {
-      logger.error('Error fetching inventory logs:', error);
+      logger.error('Error fetching logs:', error);
       res.status(500).json({ error: error.message });
     }
   },
 
   /**
    * GET /inventory/valuation
-   * Get stock valuation report for an institution
+   * Get inventory valuation for an institution
    */
   async getValuation(req, res) {
     try {
       const { institution_id } = req.query;
-
       if (!institution_id) {
         return res.status(400).json({ error: 'institution_id is required' });
       }
 
       const batches = await DrugBatch.findAll({
-        where: { institution_id, status: 'active', current_quantity: { [Op.gt]: 0 } },
+        where: { institution_id, status: 'active' },
         include: [{ model: Medication, as: 'medication' }],
       });
 
-      const valuation = batches.map((batch) => ({
-        medication: batch.medication?.generic_name || 'Unknown',
-        form: batch.medication?.form,
-        batch_number: batch.batch_number,
-        quantity: batch.current_quantity,
-        unit_cost: parseFloat(batch.unit_cost),
-        selling_price: parseFloat(batch.selling_price),
-        cost_value: batch.current_quantity * parseFloat(batch.unit_cost),
-        retail_value: batch.current_quantity * parseFloat(batch.selling_price),
-        expiry_date: batch.expiry_date,
-      }));
+      let totalCost = 0;
+      let totalRetail = 0;
+      let totalNhia = 0;
 
-      const totalCostValue = valuation.reduce((sum, v) => sum + v.cost_value, 0);
-      const totalRetailValue = valuation.reduce((sum, v) => sum + v.retail_value, 0);
+      const items = batches.map((batch) => {
+        const cost = parseFloat(batch.unit_cost) * batch.current_quantity;
+        const retail = parseFloat(batch.selling_price) * batch.current_quantity;
+        const nhia = parseFloat(batch.nhia_price) * batch.current_quantity;
+        totalCost += cost;
+        totalRetail += retail;
+        totalNhia += nhia;
+
+        return {
+          medication: batch.medication?.generic_name || 'Unknown',
+          batch_number: batch.batch_number,
+          quantity: batch.current_quantity,
+          unit_cost: batch.unit_cost,
+          selling_price: batch.selling_price,
+          total_cost: cost,
+          total_retail: retail,
+        };
+      });
 
       res.json({
-        items: valuation,
         summary: {
-          total_items: valuation.length,
-          total_cost_value: totalCostValue.toFixed(2),
-          total_retail_value: totalRetailValue.toFixed(2),
-          potential_profit: (totalRetailValue - totalCostValue).toFixed(2),
+          total_batches: batches.length,
+          total_units: batches.reduce((sum, b) => sum + b.current_quantity, 0),
+          total_cost_value: totalCost.toFixed(2),
+          total_retail_value: totalRetail.toFixed(2),
+          total_nhia_value: totalNhia.toFixed(2),
+          potential_profit: (totalRetail - totalCost).toFixed(2),
         },
+        items,
       });
     } catch (error) {
       logger.error('Error fetching valuation:', error);

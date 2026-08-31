@@ -119,6 +119,8 @@ services:
       ADMISSION_SERVICE_URL: http://admission-service:3003
       LAB_SERVICE_URL: http://lab-service:5012
       AUTH_SERVICE_URL: http://auth-service:3008
+      SUBSCRIPTION_SERVICE_URL: http://subscription-service:3009
+      NETWORK_SERVICE_URL: http://network-service:3011
     volumes:
       - ./uploads:/app/uploads
     healthcheck:
@@ -450,6 +452,64 @@ services:
       HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3008/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - hms-network
+
+  subscription-service:
+    image: devsolomon381/hms-subscription-service:latest
+    container_name: hms-subscription-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3009:3009"
+    environment:
+      NODE_ENV: production
+      PORT: 3009
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-hms}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3009/api/v1/subscriptions/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - hms-network
+
+  # ── Network Service (Centralized Patient Network — port 3011) ───────────
+
+  network-service:
+    image: devsolomon381/hms-network-service:latest
+    container_name: hms-network-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3011:3011"
+    environment:
+      NODE_ENV: production
+      PORT: 3011
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-hms}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+      HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3011/api/v1/network/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
       timeout: 10s
       retries: 3

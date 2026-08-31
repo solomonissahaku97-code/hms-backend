@@ -303,6 +303,16 @@ exports.createNewPatient = async (req, res) => {
         }
 
         await transaction.commit();
+
+        // ── Sync to Centralized Patient Network (non-blocking) ──
+        syncToCentralNetwork({
+            first_name, middle_name, last_name, date_of_birth, gender,
+            phone: phone_number, email, address, city, country,
+            has_insurance, insurance_provider: insurance_provider || null,
+            nhis_number: nhis_number || null, institution_id,
+            institution_patient_id: newPatient.id
+        }).catch(err => console.error('[Network] Sync failed (non-blocking):', err.message));
+
         return res.status(201).json({
             patient: newPatient,
             message: 'Patient created successfully'
@@ -317,6 +327,119 @@ exports.createNewPatient = async (req, res) => {
         });
     }
 };
+
+// ── Helper: Sync patient to Centralized Patient Network ──
+const http = require('http');
+const NETWORK_SERVICE_URL = process.env.NETWORK_SERVICE_URL || 'http://localhost:3011';
+const SERVICE_KEY = process.env.SERVICE_AUTH_SECRET || process.env.HMS_SERVICE_KEY || '';
+
+async function syncToCentralNetwork(patientData) {
+    return new Promise((resolve, reject) => {
+        const payload = JSON.stringify({
+            first_name: patientData.first_name,
+            middle_name: patientData.middle_name,
+            last_name: patientData.last_name,
+            date_of_birth: patientData.date_of_birth,
+            gender: patientData.gender === 'M' ? 'M' : patientData.gender === 'F' ? 'F' : patientData.gender,
+            phone: patientData.phone,
+            email: patientData.email,
+            address: patientData.address,
+            city: patientData.city,
+            country: patientData.country,
+            has_insurance: patientData.has_insurance || false,
+            insurance_provider: patientData.insurance_provider,
+            nhis_number: patientData.nhis_number
+        });
+
+        const url = new URL('/api/v1/network/central-patients', NETWORK_SERVICE_URL);
+        const options = {
+            hostname: url.hostname,
+            port: url.port,
+            path: url.pathname,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                'X-Service-Key': SERVICE_KEY,
+                'X-Service-Institution-Id': patientData.institution_id || '',
+            },
+            timeout: 5000,
+        };
+
+        const req = http.request(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+                try {
+                    const result = JSON.parse(body);
+                    if (result.success) {
+                        const centralId = result.patient?.id;
+                        if (centralId) {
+                            // Link the local patient to the central identity
+                            linkToCentralNetwork(centralId, patientData.institution_id, patientData.institution_patient_id);
+                        }
+                        console.log('[Network] Synced patient to central network:', result.patient?.central_patient_number);
+                    } else if (result.existing_patient) {
+                        // Duplicate found — link to existing central patient
+                        linkToCentralNetwork(result.existing_patient.id, patientData.institution_id, patientData.institution_patient_id);
+                        console.log('[Network] Linked to existing central patient:', result.existing_patient.central_patient_number);
+                    }
+                    resolve(result);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        });
+
+        req.on('error', reject);
+        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+        req.write(payload);
+        req.end();
+    });
+}
+
+async function linkToCentralNetwork(centralPatientId, institutionId, institutionPatientId) {
+    return new Promise((resolve) => {
+        const payload = JSON.stringify({
+            central_patient_id: centralPatientId,
+            institution_id: institutionId,
+            institution_patient_id: institutionPatientId,
+            relationship_type: 'registered'
+        });
+
+        const url = new URL('/api/v1/network/relationships', NETWORK_SERVICE_URL);
+        const options = {
+            hostname: url.hostname,
+            port: url.port,
+            path: url.pathname,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload),
+                'X-Service-Key': SERVICE_KEY,
+                'X-Service-Institution-Id': institutionId || '',
+            },
+            timeout: 5000,
+        };
+
+        const req = http.request(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => body += chunk);
+            res.on('end', () => {
+                try {
+                    const result = JSON.parse(body);
+                    console.log('[Network] Relationship:', result.message || result.relationship?.relationship_type || 'created');
+                } catch (e) { /* ignore */ }
+                resolve();
+            });
+        });
+
+        req.on('error', () => resolve());
+        req.on('timeout', () => { req.destroy(); resolve(); });
+        req.write(payload);
+        req.end();
+    });
+}
 
 
 

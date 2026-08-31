@@ -1,3 +1,4 @@
+const path = require('path');
 const Institution = require('../models/institution');
 const InstitutionSubscription = require('../models/InstitutionSubscription');
 const Subscription = require('../models/subscription');
@@ -5,7 +6,7 @@ const { initiatePayment, verifyPayment } = require('../utils/paystack');
 const { sequelize } = require('../models'); // Assuming Sequelize is configured here
 const Payment = require('../models/Payment');
 const SUBSCRIPTION_FEATURES = require('../config/subscriptionFeatures'); 
-const VALID_FEATURE_KEYS = Object.keys(SUBSCRIPTION_FEATURES); 
+const VALID_FEATURES = Object.keys(SUBSCRIPTION_FEATURES); 
 const moment = require('moment'); 
 
 
@@ -108,6 +109,9 @@ const initiateSubscription = async (req, res) => {
 const paystackCallback = async (req, res) => {
     const { reference } = req.query;
     const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const dashboardUrl = `${FRONTEND_URL}/admin/dashboard`;
+    const subscriptionUrl = `${FRONTEND_URL}/admin/subscription`;
+    const viewsDir = path.join(__dirname, '..', 'templates', 'views');
 
     try {
         console.log('Reference received:', reference);
@@ -115,14 +119,24 @@ const paystackCallback = async (req, res) => {
         console.log('Payment Data:', paymentData);
 
         if (paymentData.data.status !== 'success') {
-            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
+            return res.status(200).render(path.join(viewsDir, 'subscription-failed.ejs'), {
+                errorMessage: 'The payment was not completed successfully. Please try again.',
+                reference: reference || null,
+                dashboardUrl,
+                retryUrl: subscriptionUrl,
+            });
         }
 
         console.log('meta data printing ==', paymentData.data.metadata);
 
         const { subscriptionId, email, institutionId, admin_id } = paymentData.data.metadata;
         if (!subscriptionId || !email || !institutionId) {
-            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
+            return res.status(200).render(path.join(viewsDir, 'subscription-failed.ejs'), {
+                errorMessage: 'Payment verification failed due to missing information. Please contact support if you were charged.',
+                reference: reference || null,
+                dashboardUrl,
+                retryUrl: subscriptionUrl,
+            });
         }
 
         const transaction = await sequelize.transaction();
@@ -131,7 +145,12 @@ const paystackCallback = async (req, res) => {
             const subscription = await Subscription.findByPk(subscriptionId);
             if (!subscription) {
                 await transaction.rollback();
-                return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
+                return res.status(200).render(path.join(viewsDir, 'subscription-failed.ejs'), {
+                    errorMessage: 'The selected subscription plan could not be found. Please contact support.',
+                    reference: reference || null,
+                    dashboardUrl,
+                    retryUrl: subscriptionUrl,
+                });
             }
 
             const subscribe_institution = await Institution.findByPk(institutionId);
@@ -139,7 +158,12 @@ const paystackCallback = async (req, res) => {
 
             if (!subscribe_institution) {
                 await transaction.rollback();
-                return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
+                return res.status(200).render(path.join(viewsDir, 'subscription-failed.ejs'), {
+                    errorMessage: 'Your institution account could not be found. Please contact support.',
+                    reference: reference || null,
+                    dashboardUrl,
+                    retryUrl: subscriptionUrl,
+                });
             }
  
             if (!institution_subscription) {
@@ -198,17 +222,40 @@ const paystackCallback = async (req, res) => {
 
             await transaction.commit();
 
-            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=success&reference=${reference}`);
+            // Render the success page with subscription details
+            const amountPaid = (amount / 100).toFixed(2); // Convert from kobo/pesewas
+            const expiryDateFormatted = newExpiryDate
+                ? new Date(newExpiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+                : 'N/A';
+
+            return res.status(200).render(path.join(viewsDir, 'subscription-success.ejs'), {
+                planName: subscription.name,
+                amount: amountPaid,
+                duration: subscription.duration,
+                expiryDate: expiryDateFormatted,
+                reference: reference || id,
+                dashboardUrl,
+            });
         } catch (error) {
             console.log('Error in Paystack callback:', error);
             if (transaction && !transaction.finished) {
                 await transaction.rollback();
             }
-            return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
+            return res.status(200).render(path.join(viewsDir, 'subscription-failed.ejs'), {
+                errorMessage: 'An error occurred while processing your subscription. Please contact support if you were charged.',
+                reference: reference || null,
+                dashboardUrl,
+                retryUrl: subscriptionUrl,
+            });
         }
     } catch (error) {
         console.error('Error in Paystack callback:', error);
-        return res.redirect(`${FRONTEND_URL}/admin/subscription?status=failed&reference=${reference}`);
+        return res.status(200).render(path.join(viewsDir, 'subscription-failed.ejs'), {
+            errorMessage: 'An unexpected error occurred. Please try again or contact support.',
+            reference: reference || null,
+            dashboardUrl,
+            retryUrl: subscriptionUrl,
+        });
     }
 };
 

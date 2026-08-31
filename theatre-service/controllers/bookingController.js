@@ -5,12 +5,13 @@ const { Op } = require('sequelize');
 exports.createBooking = async (req, res) => {
   try {
     const {
-      visit_id, procedure_ids, procedure_names, scheduled_date, scheduled_time,
+      visit_id, patient_id, institution_id, procedure_ids, procedure_names, scheduled_date, scheduled_time,
       estimated_duration, room_id, surgeon_id, anaesthetist_id, scrub_nurse_id,
       circulating_nurse_id, diagnosis_id, diagnosis_names, notes, pre_op_notes,
       is_emergency
     } = req.body;
 
+    const inst_id = institution_id || req.headers['x-service-institution-id'] || req.user?.institution_id;
     if (!visit_id) return res.status(400).json({ error: 'visit_id is required' });
     if (!procedure_ids || !Array.isArray(procedure_ids)) return res.status(400).json({ error: 'procedure_ids must be an array' });
 
@@ -44,7 +45,8 @@ exports.createBooking = async (req, res) => {
     }
 
     const booking = await TheatrePatient.create({
-      visit_id, procedure_ids: procedure_ids || [], procedure_names: procedure_names || [],
+      visit_id, patient_id: patient_id || null, institution_id: inst_id || null,
+      procedure_ids: procedure_ids || [], procedure_names: procedure_names || [],
       scheduled_date, scheduled_time, estimated_duration, room_id, surgeon_id,
       anaesthetist_id, scrub_nurse_id, circulating_nurse_id,
       diagnosis_id: diagnosis_id || [], diagnosis_names: diagnosis_names || [],
@@ -70,8 +72,10 @@ exports.createBooking = async (req, res) => {
 exports.getAllBookings = async (req, res) => {
   try {
     const { status, date, surgeon_id, room_id, start_date, end_date } = req.query;
+    const inst_id = req.headers['x-service-institution-id'] || req.user?.institution_id;
     const where = {};
 
+    if (inst_id) where.institution_id = inst_id;
     if (status) where.status = status;
     if (surgeon_id) where.surgeon_id = surgeon_id;
     if (room_id) where.room_id = room_id;
@@ -255,14 +259,18 @@ exports.getSurgeryStatus = async (req, res) => {
 exports.getUpcomingSurgeries = async (req, res) => {
   try {
     const { days = 7 } = req.query;
+    const inst_id = req.headers['x-service-institution-id'] || req.user?.institution_id;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const end = new Date(); end.setDate(end.getDate() + parseInt(days));
 
+    const where = {
+      scheduled_date: { [Op.between]: [today, end] },
+      status: { [Op.in]: ['scheduled', 'pre-operation'] }
+    };
+    if (inst_id) where.institution_id = inst_id;
+
     const bookings = await TheatrePatient.findAll({
-      where: {
-        scheduled_date: { [Op.between]: [today, end] },
-        status: { [Op.in]: ['scheduled', 'pre-operation'] }
-      },
+      where,
       include: [{ model: OperatingRoom, as: 'operatingRoom', attributes: ['id', 'room_number', 'room_name'] }],
       order: [['scheduled_date', 'ASC'], ['scheduled_time', 'ASC']]
     });
@@ -276,7 +284,9 @@ exports.getUpcomingSurgeries = async (req, res) => {
 exports.getStatistics = async (req, res) => {
   try {
     const { start_date, end_date } = req.query;
+    const inst_id = req.headers['x-service-institution-id'] || req.user?.institution_id;
     const dateFilter = {};
+    if (inst_id) dateFilter.institution_id = inst_id;
 
     if (start_date && end_date) {
       dateFilter.scheduled_date = { [Op.between]: [new Date(start_date), new Date(end_date)] };

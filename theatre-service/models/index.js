@@ -5,6 +5,7 @@ const { DataTypes } = require('sequelize');
 
 const OperatingRoom = sequelize.define('OperatingRoom', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  institution_id: { type: DataTypes.UUID, allowNull: true },
   room_number: { type: DataTypes.STRING, allowNull: false, unique: true },
   room_name: { type: DataTypes.STRING, allowNull: true },
   room_type: {
@@ -29,6 +30,8 @@ const OperatingRoom = sequelize.define('OperatingRoom', {
 const TheatrePatient = sequelize.define('TheatrePatients', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
   visit_id: { type: DataTypes.UUID, allowNull: false },
+  institution_id: { type: DataTypes.UUID, allowNull: true },
+  patient_id: { type: DataTypes.UUID, allowNull: true },
   procedure_ids: { type: DataTypes.ARRAY(DataTypes.UUID), allowNull: false, defaultValue: [] },
   procedure_names: { type: DataTypes.ARRAY(DataTypes.STRING), allowNull: true, defaultValue: [] },
   scheduled_date: { type: DataTypes.DATE, allowNull: true },
@@ -65,6 +68,7 @@ const TheatrePatient = sequelize.define('TheatrePatients', {
 
 const CaseCart = sequelize.define('CaseCart', {
   id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+  institution_id: { type: DataTypes.UUID, allowNull: true },
   cart_number: { type: DataTypes.STRING, allowNull: false, unique: true },
   theatre_booking_id: { type: DataTypes.UUID, allowNull: true },
   visit_id: { type: DataTypes.UUID, allowNull: false },
@@ -122,6 +126,7 @@ const PreOpChecklist = sequelize.define('PreOpChecklist', {
 
 const TheatreEquipment = sequelize.define('TheatreEquipment', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  institution_id: { type: DataTypes.UUID, allowNull: true },
   name: { type: DataTypes.STRING, allowNull: false },
   serial_number: { type: DataTypes.STRING, allowNull: true, unique: true },
   model: { type: DataTypes.STRING, allowNull: true },

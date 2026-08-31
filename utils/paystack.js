@@ -19,9 +19,10 @@ const initiatePayment = async (amount, email, metadata, subAccountCode = null) =
     }
 
     const backendPort = process.env.PORT || 5008;
+    const BACKEND_URL = process.env.APP_URL || process.env.BACKEND_URL;
     const callbackUrl = NODE_ENV === 'development'
         ? `http://localhost:${backendPort}/api/v1/subscriptions/paystack/callback`
-        : 'https://hms-backend-v1.onrender.com/api/v1/subscriptions/paystack/callback';
+        : `${BACKEND_URL}/api/v1/subscriptions/paystack/callback`;
 
     const options = {
         amount: amount * 100, // Convert amount to kobo/pesewas

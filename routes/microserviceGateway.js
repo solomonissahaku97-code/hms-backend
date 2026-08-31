@@ -63,11 +63,20 @@ const SERVICES = {
     prefix: '/api/v1/lab',
     serviceKey: SERVICE_AUTH_SECRET,
   },
+  subscriptions: {
+    url: process.env.SUBSCRIPTION_SERVICE_URL || 'http://localhost:3009',
+    prefix: '/api/v1/subscriptions',
+    serviceKey: SERVICE_AUTH_SECRET,
+  },
+  network: {
+    url: process.env.NETWORK_SERVICE_URL || 'http://localhost:3011',
+    prefix: '/api/v1/network',
+    serviceKey: SERVICE_AUTH_SECRET,
+  },
 };
 
 // Routes that should NOT be proxied (stay on monolith)
 const MONOLITH_ONLY_PREFIXES = [
-  '/api/v1/auth/register',              // Registration stays on monolith (encryption, institution setup)
   '/api/v1/auth/staffs',                // Staff listing stays on monolith
   '/api/v1/auth/all-staffs',            // Staff listing stays on monolith
   '/api/v1/auth/single-staff',          // Staff lookup stays on monolith
@@ -107,13 +116,11 @@ function proxyRequest(serviceUrl, originalUrl, req, res, timeoutMs = 12000) {
       };
 
       const proxyReq = transport.request(options, (proxyRes) => {
-        // Buffer first chunk to check status code before piping
-        let firstChunk = null;
-        let chunks = [];
+        // Track whether we actually wrote a response to the client
+        let responseStarted = false;
 
         proxyRes.on('data', (chunk) => {
-          if (firstChunk === null) {
-            firstChunk = chunk;
+          if (!responseStarted) {
             // If 404 from microservice, don't forward — fall through to monolith
             if (proxyRes.statusCode === 404) {
               resolve(false);
@@ -121,6 +128,7 @@ function proxyRequest(serviceUrl, originalUrl, req, res, timeoutMs = 12000) {
               return;
             }
             // Forward the response
+            responseStarted = true;
             res.writeHead(proxyRes.statusCode, proxyRes.headers);
             res.write(chunk);
           } else {
@@ -129,8 +137,13 @@ function proxyRequest(serviceUrl, originalUrl, req, res, timeoutMs = 12000) {
         });
 
         proxyRes.on('end', () => {
-          if (firstChunk !== null) {
+          if (responseStarted) {
+            // We forwarded data from the microservice — close the response
+            try { res.end(); } catch (e) { /* already closed */ }
             resolve(true);
+          } else {
+            // No data written to client (404, error, etc.) — let monolith handle it
+            resolve(false);
           }
         });
 
@@ -195,8 +208,9 @@ function mountGateway(app) {
         return next();
       }
 
-      // Skip auth register routes — registration stays on monolith
-      if (serviceName === 'auth' && req.originalUrl.includes('/register')) {
+      // Skip old monolith registration routes (they use /auth/register/staff, /auth/register/admin)
+      // New self-registration routes (/auth/register/institution, /auth/register/admin, /auth/register/subscription-plans) go to auth-service
+      if (serviceName === 'auth' && req.originalUrl.includes('/register/staff')) {
         return next();
       }
       // Build the path the microservice expects (it receives the full /api/v1/... path)

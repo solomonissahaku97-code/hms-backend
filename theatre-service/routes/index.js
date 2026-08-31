@@ -21,6 +21,19 @@ router.put('/bookings/:id/complete', authenticate, booking.completeSurgery);
 router.put('/bookings/:id/discharge', authenticate, booking.dischargeFromRecovery);
 router.get('/bookings/:id/status', authenticate, booking.getSurgeryStatus);
 
+// ── Frontend aliases (theatre-bookings → bookings) ──────────────
+router.post('/theatre-bookings', authenticate, booking.createBooking);
+router.get('/theatre-bookings', authenticate, booking.getAllBookings);
+router.get('/theatre-bookings/upcoming', authenticate, booking.getUpcomingSurgeries);
+router.get('/theatre-bookings/stats', authenticate, booking.getStatistics);
+router.get('/theatre-bookings/:id', authenticate, booking.getBookingById);
+router.put('/theatre-bookings/:id', authenticate, booking.updateBooking);
+router.delete('/theatre-bookings/:id', authenticate, booking.cancelBooking);
+router.put('/theatre-bookings/:id/start', authenticate, booking.startSurgery);
+router.put('/theatre-bookings/:id/complete', authenticate, booking.completeSurgery);
+router.put('/theatre-bookings/:id/discharge', authenticate, booking.dischargeFromRecovery);
+router.get('/theatre-bookings/:id/status', authenticate, booking.getSurgeryStatus);
+
 // ── Operating Rooms ─────────────────────────────────────────────
 router.post('/rooms', authenticate, or.createRoom);
 router.get('/rooms', authenticate, or.getAllRooms);
@@ -30,6 +43,16 @@ router.get('/rooms/:id', authenticate, or.getRoomById);
 router.put('/rooms/:id', authenticate, or.updateRoom);
 router.delete('/rooms/:id', authenticate, or.deleteRoom);
 router.put('/rooms/:id/status', authenticate, or.updateRoomStatus);
+
+// ── Frontend aliases (operating-rooms → rooms) ──────────────────
+router.post('/operating-rooms', authenticate, or.createRoom);
+router.get('/operating-rooms', authenticate, or.getAllRooms);
+router.get('/operating-rooms/availability', authenticate, or.getRoomAvailability);
+router.get('/operating-rooms/statistics', authenticate, or.getORStatistics);
+router.get('/operating-rooms/:id', authenticate, or.getRoomById);
+router.put('/operating-rooms/:id', authenticate, or.updateRoom);
+router.delete('/operating-rooms/:id', authenticate, or.deleteRoom);
+router.put('/operating-rooms/:id/status', authenticate, or.updateRoomStatus);
 
 // ── Case Carts ──────────────────────────────────────────────────
 router.post('/case-carts', authenticate, caseCart.createCaseCart);

@@ -10,6 +10,10 @@ const Discharge = sequelize.define('discharge', {
         primaryKey: true,
         defaultValue: DataTypes.UUIDV4
     },
+    patient_id: {
+        type: DataTypes.UUID,
+        allowNull: false
+    },
     visit_id: {
         type: DataTypes.UUID,
         allowNull: false

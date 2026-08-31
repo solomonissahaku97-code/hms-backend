@@ -5,13 +5,14 @@ const { Op } = require('sequelize');
 
 exports.createRoom = async (req, res) => {
   try {
-    const { room_number, room_name, room_type, capacity, department_id, floor, building, is_emergency_available, notes } = req.body;
+    const { room_number, room_name, room_type, capacity, department_id, floor, building, is_emergency_available, notes, institution_id } = req.body;
+    const inst_id = institution_id || req.headers['x-service-institution-id'] || req.user?.institution_id;
     if (!room_number) return res.status(400).json({ error: 'room_number is required' });
 
     const existing = await OperatingRoom.findOne({ where: { room_number } });
     if (existing) return res.status(400).json({ error: 'Room number already exists' });
 
-    const room = await OperatingRoom.create({ room_number, room_name, room_type: room_type || 'general', capacity: capacity || 1, department_id, floor, building, is_emergency_available: is_emergency_available !== false, notes, status: 'available' });
+    const room = await OperatingRoom.create({ room_number, room_name, room_type: room_type || 'general', capacity: capacity || 1, department_id, floor, building, is_emergency_available: is_emergency_available !== false, notes, status: 'available', institution_id: inst_id || null });
     res.status(201).json({ message: 'Room created', data: room });
   } catch (err) {
     res.status(500).json({ error: 'Failed to create room', details: err.message });
@@ -21,7 +22,9 @@ exports.createRoom = async (req, res) => {
 exports.getAllRooms = async (req, res) => {
   try {
     const { status, room_type, floor, available } = req.query;
+    const inst_id = req.headers['x-service-institution-id'] || req.user?.institution_id;
     const where = {};
+    if (inst_id) where.institution_id = inst_id;
     if (status) where.status = status;
     if (room_type) where.room_type = room_type;
     if (floor) where.floor = floor;
@@ -132,15 +135,20 @@ exports.getRoomAvailability = async (req, res) => {
 
 exports.getORStatistics = async (req, res) => {
   try {
-    const totalRooms = await OperatingRoom.count();
+    const inst_id = req.headers['x-service-institution-id'] || req.user?.institution_id;
+    const roomWhere = inst_id ? { institution_id: inst_id } : {};
+    const totalRooms = await OperatingRoom.count({ where: roomWhere });
     const statusCounts = await OperatingRoom.findAll({
+      where: roomWhere,
       attributes: ['status', [OperatingRoom.sequelize.fn('COUNT', OperatingRoom.sequelize.col('status')), 'count']],
       group: ['status'], raw: true
     });
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-    const todaySurgeries = await TheatrePatient.count({ where: { scheduled_date: { [Op.between]: [today, tomorrow] } } });
+    const bookingWhere = { scheduled_date: { [Op.between]: [today, tomorrow] } };
+    if (inst_id) bookingWhere.institution_id = inst_id;
+    const todaySurgeries = await TheatrePatient.count({ where: bookingWhere });
 
     const stats = { total: totalRooms, available: 0, occupied: 0, cleaning: 0, maintenance: 0, out_of_service: 0, today_surgeries: todaySurgeries };
     statusCounts.forEach(item => { stats[item.status] = parseInt(item.count); });

@@ -3,6 +3,7 @@ const inventoryRoutes = require('./inventoryRoutes');
 const prescriptionRoutes = require('./prescriptionRoutes');
 const dispensingRoutes = require('./dispensingRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
+const pricingRoutes = require('./pricingRoutes');
 
 module.exports = (app) => {
   // Drug catalog
@@ -19,4 +20,7 @@ module.exports = (app) => {
 
   // Dashboard
   app.use('/api/v1/pharmacy/dashboard', dashboardRoutes);
+
+  // Institution-level pricing
+  app.use('/api/v1/pharmacy/pricing', pricingRoutes);
 };

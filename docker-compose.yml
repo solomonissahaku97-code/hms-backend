@@ -51,7 +51,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "5008:5008"
+      - "3000:5008"
     environment:
       NODE_ENV: production
       PORT: 5008
@@ -61,7 +61,7 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres123}
       DB_DIALECT: postgres
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-8b3e0b4d6a2d9b5b7f3d7f1a4c6e8b9a0d2f4c6e8a1b3d5f7c9e1a3b5d7f9a1c2e4f6a8b0d2c4e6f8a1b3d5f7c9e1a}
       JWT_SECRET_REFRESH_TOKEN: ${JWT_SECRET_REFRESH_TOKEN}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY}
@@ -71,6 +71,21 @@ services:
       PUSH_ENGAGE_API_KEY: ${PUSH_ENGAGE_API_KEY}
       PUSH_ENGAGE_API_SECRET: ${PUSH_ENGAGE_API_SECRET}
       REDIS_URL: redis://redis:6379
+      # Microservice URLs
+      PHARMACY_SERVICE_URL: http://pharmacy-service:3001
+      PHARMACY_SERVICE_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+      BILLING_SERVICE_URL: http://billing-service:8001
+      CLAIMS_SERVICE_URL: http://claims-service:3002
+      STORE_SERVICE_URL: http://store-service:3004
+      THEATRE_SERVICE_URL: http://theatre-service:3005
+      CONSULTATION_SERVICE_URL: http://consultation-service:3006
+      MATERNITY_SERVICE_URL: http://maternity-service:3007
+      ADMISSION_SERVICE_URL: http://admission-service:3003
+      LAB_SERVICE_URL: http://lab-service:5012
+      AUTH_SERVICE_URL: http://auth-service:3008
+      SUBSCRIPTION_SERVICE_URL: http://subscription-service:3009
+      NETWORK_SERVICE_URL: http://network-service:3011
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
       # Supabase Storage (primary file storage)
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
@@ -118,6 +133,35 @@ services:
       HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3008/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - hms-network
+
+  # Subscription Service (Node.js — port 3009)
+  subscription-service:
+    image: devsolomon381/hms-subscription-service:latest
+    container_name: hms-subscription-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3009:3009"
+    environment:
+      NODE_ENV: development
+      PORT: 3009
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-hms}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3009/api/v1/subscriptions/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
       timeout: 10s
       retries: 3

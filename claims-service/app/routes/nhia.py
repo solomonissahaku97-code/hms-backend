@@ -15,29 +15,42 @@ from app.services import nhia_export_service, claim_vetting_service
 from app.services.claim_service import ClaimService
 from app.services.hms_client import hms_client
 
-router = APIRouter()
-
-
-class VetAndPersistRequest(BaseModel):
+router = APIRouter()class VetAndPersistRequest(BaseModel):
     persist: bool = False
     institution_id: Optional[str] = None
 
 
+class XMLGenerateRequest(BaseModel):
+    institution_id: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    statuses: Optional[str] = None
+    patientCategory: Optional[list] = None
+    claimTypes: Optional[list] = None
+    financialOptions: Optional[list] = None
+    patientTypes: Optional[list] = None
+    dateRange: Optional[list] = None
+    timestamp: Optional[str] = None
+    departmentId: Optional[str] = None
+
+
+
 @router.post("/xml/generate")
 async def generate_xml(
-    institution_id: UUID,
-    start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None),
-    statuses: Optional[str] = Query(None),
+    request_body: XMLGenerateRequest,
     db: AsyncSession = Depends(get_db),
     user: AuthUser = Depends(get_current_user),
 ):
     """Generate NHIA XML export for claims."""
+    institution_id = request_body.institution_id
+    if not institution_id:
+        raise HTTPException(status_code=422, detail="institution_id is required")
+
     claim_service = ClaimService(db)
 
-    status_list = statuses.split(",") if statuses else []
+    status_list = request_body.statuses.split(",") if request_body.statuses else []
     claims, total = await claim_service.list_claims(
-        start_date=start_date, end_date=end_date,
+        start_date=request_body.start_date, end_date=request_body.end_date,
         limit=1000,
     )
 

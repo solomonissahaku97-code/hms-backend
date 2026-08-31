@@ -53,7 +53,15 @@ exports.registerStaffs = async (req, res) => {
         return res.status(400).json({ error: 'Admin not found. Please log in again.' });
     }
 
-    const trimmedEmail = String(email).toLowerCase().trim();
+    // Validate required fields early to avoid bcrypt crash on undefined password
+    if (!password) {
+        return res.status(400).json({ error: 'Password is required' });
+    }
+    if (!firstName || !lastName) {
+        return res.status(400).json({ error: 'First name and last name are required' });
+    }
+
+    const trimmedEmail = String(email || '').toLowerCase().trim();
 
     // Start a transaction
     const transaction = await sequelize.transaction();

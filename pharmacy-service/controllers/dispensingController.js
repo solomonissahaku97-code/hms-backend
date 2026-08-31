@@ -6,17 +6,12 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const logger = require('../utils/logger');
 const { hmsClient } = require('../services/hmsClient');
+const { pharmacyNotifications } = require('../services/notificationService');
 
 const dispensingController = {
   /**
    * POST /dispensing/dispense
    * Dispense one or more items from a prescription.
-   * Body: {
-   *   prescription_item_id,
-   *   drug_batch_id,
-   *   quantity_dispensed,
-   *   pharmacist_notes?,
-   * }
    */
   async dispense(req, res) {
     const transaction = await sequelize.transaction();
@@ -176,48 +171,38 @@ const dispensingController = {
 
       await transaction.commit();
 
-      // Send dispensing notification (fire-and-forget)
-      try {
-        const { getPatient } = require('../services/hmsClient');
-        const patient = await getPatient(prescription.patient_id, prescription.institution_id);
-        const patientName = patient ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'Patient';
-        const medName = prescItem.medication?.generic_name || 'medication';
+      // ── Notification: Medicine Dispensed ──
+      pharmacyNotifications.medicineDispensed({
+        prescriptionId: prescription.id,
+        medicationName: prescItem.medication?.generic_name || 'Medication',
+        quantity: quantity_dispensed,
+        patientName: prescription.patient_name || 'Patient',
+        pharmacistName: req.user?.name || 'Pharmacist',
+        institutionId: prescription.institution_id,
+        departmentId: prescription.department_id,
+        totalCost: totalPrice,
+      }).catch(err => logger.warn('Dispensing notification failed:', err.message));
 
-        // Notify the prescribing department that medication has been dispensed
-        if (prescription.department_id) {
-          const { notifyDepartment } = require('../services/hmsClient');
-          await notifyDepartment(prescription.department_id, {
-            title: 'Prescription Dispensed',
-            description: `${medName} dispensed to ${patientName} (${quantity_dispensed} units). Batch: ${batch.batch_number}.`,
-            priority: 'Medium',
-            type: 'Info',
-            institution_id: prescription.institution_id,
-            from_department_id: prescription.department_id,
-          }).catch(err => logger.warn('Failed to notify department:', err.message));
-        }
+      // ── Notification: Low Stock Check ──
+      if (newBatchQty > 0 && newBatchQty <= (batch.reorder_level || 10)) {
+        pharmacyNotifications.lowStockWarning({
+          medicationName: prescItem.medication?.generic_name || 'Medication',
+          currentQuantity: newBatchQty,
+          reorderLevel: batch.reorder_level || 10,
+          institutionId: prescription.institution_id,
+          departmentId: prescription.department_id,
+          batchNumber: batch.batch_number,
+        }).catch(err => logger.warn('Low stock notification failed:', err.message));
+      }
 
-        // Check if stock is now low or depleted — notify pharmacy department
-        if (newBatchQty <= (batch.reorder_level || 10) && newBatchQty > 0) {
-          const { notifyDepartment } = require('../services/hmsClient');
-          await notifyDepartment(prescription.department_id, {
-            title: 'Low Stock Alert',
-            description: `${medName} (Batch: ${batch.batch_number}) is running low. Only ${newBatchQty} units remaining.`,
-            priority: 'High',
-            type: 'Alert',
-            institution_id: prescription.institution_id,
-          }).catch(err => logger.warn('Failed to send low stock alert:', err.message));
-        } else if (newBatchQty === 0) {
-          const { notifyDepartment } = require('../services/hmsClient');
-          await notifyDepartment(prescription.department_id, {
-            title: 'Out of Stock',
-            description: `${medName} (Batch: ${batch.batch_number}) is now OUT OF STOCK.`,
-            priority: 'Critical',
-            type: 'Alert',
-            institution_id: prescription.institution_id,
-          }).catch(err => logger.warn('Failed to send out of stock alert:', err.message));
-        }
-      } catch (notifErr) {
-        logger.warn('Notification error (non-blocking):', notifErr.message);
+      if (newBatchQty > 0 && newBatchQty <= (batch.critical_level || 3)) {
+        pharmacyNotifications.criticalStockWarning({
+          medicationName: prescItem.medication?.generic_name || 'Medication',
+          currentQuantity: newBatchQty,
+          institutionId: prescription.institution_id,
+          departmentId: prescription.department_id,
+          batchNumber: batch.batch_number,
+        }).catch(err => logger.warn('Critical stock notification failed:', err.message));
       }
 
       // Attempt billing via HMS backend (fire-and-forget)
@@ -276,47 +261,6 @@ const dispensingController = {
 
     for (const item of items) {
       try {
-        // Simulate the single dispense for each item
-        const mockReq = {
-          body: { ...item, prescription_item_id: item.prescription_item_id },
-          user: req.user,
-        };
-        const mockRes = {
-          status: () => ({
-            json: (data) => {
-              if (data.error) throw new Error(data.error);
-              results.push(data);
-            },
-          }),
-        };
-
-        // We'll process sequentially within the same transaction instead
-        const batch = await DrugBatch.findByPk(item.drug_batch_id);
-        if (!batch) {
-          errors.push({ item: item.prescription_item_id, error: 'Batch not found' });
-          continue;
-        }
-
-        if (batch.current_quantity < item.quantity_dispensed) {
-          errors.push({
-            item: item.prescription_item_id,
-            error: `Insufficient stock (available: ${batch.current_quantity})`,
-          });
-          continue;
-        }
-
-        results.push({ prescription_item_id: item.prescription_item_id, status: 'queued' });
-      } catch (err) {
-        errors.push({ item: item.prescription_item_id, error: err.message });
-      }
-    }
-
-    // Process each item through the single dispense endpoint
-    const dispensedResults = [];
-    for (const item of items) {
-      if (errors.find((e) => e.item === item.prescription_item_id)) continue;
-
-      try {
         const innerTransaction = await sequelize.transaction();
         try {
           const prescItem = await PrescriptionItem.findByPk(item.prescription_item_id, {
@@ -374,7 +318,32 @@ const dispensingController = {
           }, { transaction: innerTransaction });
 
           await innerTransaction.commit();
-          dispensedResults.push({ prescription_item_id: item.prescription_item_id, dispense_record: dispenseRecord });
+          results.push({ prescription_item_id: item.prescription_item_id, dispense_record: dispenseRecord });
+
+          // ── Notification: Medicine Dispensed (batch) ──
+          pharmacyNotifications.medicineDispensed({
+            prescriptionId: prescItem.prescription_id,
+            medicationName: prescItem.medication?.generic_name || 'Medication',
+            quantity: item.quantity_dispensed,
+            patientName: prescItem.prescription.patient_name || 'Patient',
+            pharmacistName: req.user?.name || 'Pharmacist',
+            institutionId: prescItem.prescription.institution_id,
+            departmentId: prescItem.prescription.department_id,
+            totalCost: totalPrice,
+          }).catch(err => logger.warn('Batch dispense notification failed:', err.message));
+
+          // ── Notification: Low Stock Check (batch) ──
+          if (newQty > 0 && newQty <= (batch.reorder_level || 10)) {
+            pharmacyNotifications.lowStockWarning({
+              medicationName: prescItem.medication?.generic_name || 'Medication',
+              currentQuantity: newQty,
+              reorderLevel: batch.reorder_level || 10,
+              institutionId: prescItem.prescription.institution_id,
+              departmentId: prescItem.prescription.department_id,
+              batchNumber: batch.batch_number,
+            }).catch(err => logger.warn('Batch low stock notification failed:', err.message));
+          }
+
         } catch (err) {
           await innerTransaction.rollback();
           errors.push({ item: item.prescription_item_id, error: err.message });
@@ -385,7 +354,7 @@ const dispensingController = {
     }
 
     // Update parent prescription status
-    if (dispensedResults.length > 0) {
+    if (results.length > 0) {
       const prescription = await Prescription.findByPk(prescription_id, {
         include: [{ model: PrescriptionItem, as: 'items' }],
       });
@@ -406,9 +375,9 @@ const dispensingController = {
     }
 
     res.json({
-      dispensed: dispensedResults,
+      dispensed: results,
       errors,
-      summary: { success: dispensedResults.length, failed: errors.length },
+      summary: { success: results.length, failed: errors.length },
     });
   },
 
@@ -436,16 +405,8 @@ const dispensingController = {
         where,
         include: [
           { model: Medication, as: 'medication', attributes: ['generic_name', 'brand_name', 'form', 'strength'] },
-          {
-            model: DrugBatch,
-            as: 'drugBatch',
-            attributes: ['batch_number', 'expiry_date'],
-          },
-          {
-            model: Prescription,
-            as: 'prescription',
-            attributes: ['prescription_number', 'status'],
-          },
+          { model: DrugBatch, as: 'drugBatch', attributes: ['batch_number', 'expiry_date'] },
+          { model: Prescription, as: 'prescription', attributes: ['prescription_number', 'status'] },
         ],
         limit: parseInt(limit),
         offset: (parseInt(page) - 1) * parseInt(limit),
