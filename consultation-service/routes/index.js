@@ -11,6 +11,10 @@ const familyHistory = require('../controllers/familyHistoryController');
 const riskAssessment = require('../controllers/riskAssessmentController');
 const drugHistory = require('../controllers/drugHistoryController');
 const patientHistory = require('../controllers/patientHistoryController');
+const booking = require('./bookingRoutes');
+
+// ── Booking (patient-facing appointment flow)
+router.use('/booking', booking);
 
 // ── Consultations ───────────────────────────────────────────────
 router.post('/consultations', authenticate, consultation.requestConsultation);

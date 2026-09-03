@@ -23,6 +23,7 @@ const Notification = require('../../models/notification');
 const InstitutionLabTariff = require('../../models/InstitutionLabTariff');
 const StaffDepartment = require('../../models/controls/StaffDepartment');
 const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
+const { sendNotificationToDepartment, sendNotificationToUser } = require('../../helpers/fcmNotificationHelper');
 const labResultShareService = require('../../service/labResultShareService');
 const InstitutionLabReferenceRange = require('../../models/InstitutionLabReferenceRange');
 
@@ -884,6 +885,58 @@ exports.updateResult = async (req, res, next) => {
 
     result.status = 'completed';
     await result.save({ transaction });
+
+    // ── FCM push notification: lab result ready (fire-and-forget) ──
+    try {
+        const _visitForNotif = await Visit.findByPk(result.visit_id, {
+            include: [{ model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] }],
+        });
+        const _patientName = _visitForNotif?.patient
+            ? `${_visitForNotif.patient.first_name || ''} ${_visitForNotif.patient.last_name || ''}`.trim()
+            : 'a patient';
+        const _doctorId = result.doctor_id || _visitForNotif?.createdBy;
+
+        // Notify the requesting doctor
+        if (_doctorId) {
+            sendNotificationToUser({
+                userId: _doctorId,
+                title: '🔬 Lab Result Ready',
+                body: `Lab result for ${_patientName} is now completed.`,
+                type: 'lab_result',
+                data: { visit_id: result.visit_id, patient_name: _patientName },
+            }).catch(() => {});
+        }
+
+        // Notify the requesting department
+        if (_visitForNotif?.department_id && _visitForNotif?.institution_id) {
+            sendNotificationToDepartment({
+                department_id: _visitForNotif.department_id,
+                institution_id: _visitForNotif.institution_id,
+                title: '🔬 Lab Result Ready',
+                body: `Lab result for ${_patientName} has been completed.`,
+                type: 'lab_result',
+                data: { visit_id: result.visit_id, patient_name: _patientName },
+            }).catch(() => {});
+        }
+
+        // Notify the PATIENT via FCM (mobile app)
+        if (_visitForNotif?.patient?.folder_number) {
+            const { QueryTypes } = require('sequelize');
+            const [patientUser] = await sequelize.query(
+                `SELECT id FROM users WHERE staff_id_code = :folder AND user_type = 'PATIENT'`,
+                { replacements: { folder: _visitForNotif.patient.folder_number }, type: QueryTypes.SELECT }
+            );
+            if (patientUser?.id) {
+                sendNotificationToUser({
+                    userId: patientUser.id,
+                    title: '🔬 Lab Result Ready',
+                    body: `Your lab result is now ready. Please check your patient portal.`,
+                    type: 'lab_result',
+                    data: { visit_id: result.visit_id, url: '/lab-results' },
+                }).catch(() => {});
+            }
+        }
+    } catch (_) {}
 
     const visit = await Visit.findByPk(result.visit_id, { transaction });
     if (!visit) {

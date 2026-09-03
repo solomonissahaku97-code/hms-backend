@@ -166,8 +166,12 @@ const PatientRiskAssessment = sequelize.define('PatientRiskAssessment', {
   notes: { type: DataTypes.TEXT, allowNull: true },
 }, { tableName: 'patient_risk_assessments', timestamps: true });
 
+const DoctorAvailability = require('./DoctorAvailability');
+const PatientAppointment = require('./PatientAppointment');
+
 module.exports = {
   sequelize, Consultation, Diagnosis, Prescription,
   PatientAllergy, DrugHistory, PastMedicalHistory, PatientOccupation,
   FamilyHealthHistory, PatientChronicCondition, PatientRiskAssessment,
+  DoctorAvailability, PatientAppointment,
 };

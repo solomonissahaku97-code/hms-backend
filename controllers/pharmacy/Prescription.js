@@ -14,6 +14,7 @@ const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Diagnosis = require('../../models/diagnosis');
 const Notification = require('../../models/notification');
 const { sendPushEngageNotification, sendPushEngageDepartmentNotification } = require('../../service/pushEngageService');
+const { sendNotificationToDepartment } = require('../../helpers/fcmNotificationHelper');
 const InstitutionPharmacyPrice = require('../../models/InstitutionPharmacyPrice');
 
 // Helper function to find Pharmacy department
@@ -234,6 +235,16 @@ async function createMultiplePrescriptions(prescriptionsData, res, req) {
           : sendPushEngageNotification({ ...pharmacyPayload, tag: 'pharmacy-request' })
         ).catch(err => console.error('Error sending PushEngage pharmacy notification:', err));
 
+        // ── FCM push notification to pharmacy department (fire-and-forget) ──
+        sendNotificationToDepartment({
+            department_id: prescription.department_id,
+            institution_id: prescription.institution_id,
+            title: '💊 New Pharmacy Request',
+            body: `New prescription for ${patient?.first_name || 'Unknown'} ${patient?.last_name || ''} — ${medication?.generic_name || 'N/A'}.`,
+            type: 'prescription',
+            data: { visit_id, medication: medication?.generic_name },
+        }).catch(() => {});
+
         createdPrescriptions.push(prescription);
     }
 
@@ -361,6 +372,16 @@ async function createSinglePrescription(prescriptionData, res, req) {
       ? sendPushEngageDepartmentNotification({ departmentId: pharmacyDepartment.id, ...pharmacyPayload })
       : sendPushEngageNotification({ ...pharmacyPayload, tag: 'pharmacy-request' })
     ).catch(err => console.error('Error sending PushEngage pharmacy notification:', err));
+
+    // ── FCM push notification to pharmacy department (fire-and-forget) ──
+    sendNotificationToDepartment({
+        department_id: prescription.department_id,
+        institution_id: prescription.institution_id,
+        title: '💊 New Pharmacy Request',
+        body: `New prescription for ${patient?.first_name || 'Unknown'} ${patient?.last_name || ''} — ${medication?.generic_name || 'N/A'}.`,
+        type: 'prescription',
+        data: { visit_id, medication: medication?.generic_name },
+    }).catch(() => {});
 
     console.log(prescription);
     res.status(201).json(prescription);

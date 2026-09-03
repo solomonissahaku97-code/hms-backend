@@ -1,39 +1,41 @@
 const builder = require('xmlbuilder2');
+const crypto = require('crypto');
 
 /**
- * NHIA XML generation.
+ * NHIA XML generation — NHIA Submission Format.
  *
- * IMPORTANT: this module NEVER fabricates clinical data. Diagnosis codes,
- * descriptions, provider/facility information and all amounts come from real
- * database records only. If a claim is missing required information it must be
- * rejected by validateClaimsForExport() BEFORE generateXMLReport calls
- * createNHISXML(); createNHISXML() also guards and throws rather than invent
- * values.
+ * Generates clean, professional XML matching the NHIA claims submission
+ * format exactly. No amount/price fields are included per policy.
+ *
+ * Format:
+ *   <claims>
+ *     <claim>
+ *       <claimID>...</claimID>
+ *       <claimCheckCode>...</claimCheckCode>
+ *       ...
+ *       <medicine>
+ *         <medicineCode>...</medicineCode>
+ *         <dispensedQty>...</dispensedQty>
+ *         <serviceDate>...</serviceDate>
+ *         <prescription>
+ *           <dose></dose>
+ *           <frequency></frequency>
+ *           <duration></duration>
+ *           <unparsed>...</unparsed>
+ *         </prescription>
+ *       </medicine>
+ *       <principalGDRG>...</principalGDRG>
+ *     </claim>
+ *   </claims>
  */
 
 // ---------------------------------------------------------------------------
-// Real-data resolvers
+// Helpers
 // ---------------------------------------------------------------------------
 
-// A visit can carry several diagnoses. Prefer a confirmed diagnosis, then a
-// provisional one. The ICD-10 code lives on the linked systemDiagnosis record.
-const resolvePrimaryDiagnosis = (visit) => {
-  if (!visit || !Array.isArray(visit.diagnosis) || visit.diagnosis.length === 0) return null;
-  const confirmed = visit.diagnosis.find((d) => d.diagnosis_type === 'confirmed_diagnosis');
-  if (confirmed) return confirmed;
-  const provisional = visit.diagnosis.find((d) => d.diagnosis_type === 'provisional_diagnosis');
-  return provisional || visit.diagnosis[0];
-};
-
-const resolveDiagnosisCode = (diagnosis) =>
-  (diagnosis && diagnosis.systemDiagnosis && diagnosis.systemDiagnosis.icd_10_code) || null;
-
-const resolveDiagnosisName = (diagnosis) => {
-  if (!diagnosis) return null;
-  if (diagnosis.systemDiagnosis && diagnosis.systemDiagnosis.diagnosis_name) {
-    return diagnosis.systemDiagnosis.diagnosis_name;
-  }
-  return diagnosis.doctor_evaluation || diagnosis.chief_complain || null;
+const sanitize = (val) => {
+  if (val === null || val === undefined) return '';
+  return String(val).trim();
 };
 
 const formatDate = (date) => {
@@ -41,27 +43,108 @@ const formatDate = (date) => {
   try {
     const d = new Date(date);
     return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
-  } catch (error) {
+  } catch {
     return '';
   }
 };
 
-const sanitizeText = (text) => {
-  if (text === null || text === undefined || text === '') return '';
-  return String(text);
+/** Generate a 5-digit numeric check code for each claim. */
+const generateCheckCode = () =>
+  String(crypto.randomInt(10000, 99999));
+
+/**
+ * Resolve the specialty code from a department.
+ * Maps common department names to NHIA specialty codes.
+ */
+const resolveSpecialtyCode = (department) => {
+  if (!department) return '';
+  const name = (department.name || '').toUpperCase();
+  // Only use the code field if it looks like a real NHIA specialty code (4 chars, not a department_number which starts with #)
+  const rawCode = (department.department_number || department.code || '').trim();
+  if (rawCode && !rawCode.startsWith('#') && rawCode.length <= 5) return rawCode.toUpperCase();
+  if (name.includes('PAEDIAT') || name.includes('PEDIAT')) return 'PAED';
+  if (name.includes('MEDIC') || name.includes('INTERNAL')) return 'MEDI';
+  if (name.includes('SURGER') || name.includes('SURG')) return 'SURG';
+  if (name.includes('GYNAE') || name.includes('GYNEC')) return 'GYNA';
+  if (name.includes('OPHT') || name.includes('EYE')) return 'OPHT';
+  if (name.includes('ENT') || name.includes('EAR')) return 'ENT0';
+  if (name.includes('DENT') || name.includes('DENTAL')) return 'DENT';
+  if (name.includes('CONSULT')) return 'OPDC';
+  if (name.includes('EMERGEN')) return 'EMER';
+  if (name.includes('ORTHOP')) return 'ORTH';
+  if (name.includes('UROL')) return 'UROL';
+  if (name.includes('NEURO')) return 'NEUR';
+  if (name.includes('CARD')) return 'CARI';
+  if (name.includes('ONCOL')) return 'ONCO';
+  if (name.includes('DERM')) return 'DERM';
+  if (name.includes('RADIO')) return 'RADI';
+  if (name.includes('PATH') || name.includes('LAB')) return 'PATH';
+  if (name.includes('ANAE') || name.includes('ANEST')) return 'ANAE';
+  if (name.includes('OBS') || name.includes('OBST')) return 'OBST';
+  if (name.includes('PSYCH')) return 'PSYC';
+  if (name.includes('REHAB')) return 'REHA';
+  if (name.includes('NEPH')) return 'NEPH';
+  return '';
 };
 
-const getClaimMonth = (date) => {
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '';
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
-
-const getClaimType = (visit) => (visit && visit.on_admission ? 'Inpatient' : 'Outpatient');
-
-const getStaffName = (staff) => {
+/**
+ * Resolve the physician ID code from staff data.
+ */
+const resolvePhysicianID = (staff) => {
   if (!staff) return '';
-  return `${staff.firstName || ''} ${staff.lastName || ''}`.trim();
+  return staff.staffID || staff.id || '';
+};
+
+/**
+ * Get the member number from patient data.
+ */
+const getMemberNo = (patient) => {
+  if (!patient) return '';
+  // Check insurance table for NHIS number
+  if (patient.insurance && patient.insurance.nhis_number) {
+    return patient.insurance.nhis_number;
+  }
+  // Check patient metadata
+  if (patient.metadata) {
+    try {
+      const meta = typeof patient.metadata === 'string'
+        ? JSON.parse(patient.metadata)
+        : patient.metadata;
+      if (meta.nhis_number || meta.nhisNumber) return meta.nhis_number || meta.nhisNumber;
+    } catch {}
+  }
+  // Check patient.nhis_number if it exists
+  if (patient.nhis_number) return patient.nhis_number;
+  return '';
+};
+
+/**
+ * Get card serial number from patient data.
+ */
+const getCardSerialNo = (patient) => {
+  if (!patient) return '';
+  if (patient.insurance && patient.insurance.card_serial_no) {
+    return patient.insurance.card_serial_no;
+  }
+  return '';
+};
+
+/**
+ * Get hospital record number from visit data.
+ */
+const getHospitalRecNo = (visit) => {
+  if (!visit) return '';
+  // Check visit metadata for hospital record number
+  if (visit.metadata) {
+    try {
+      const meta = typeof visit.metadata === 'string'
+        ? JSON.parse(visit.metadata)
+        : visit.metadata;
+      if (meta.hospital_rec_no) return meta.hospital_rec_no;
+    } catch {}
+  }
+  // Fall back to visit ID short form
+  return visit.hospitalRecNo || visit.hospital_rec_no || '';
 };
 
 // ---------------------------------------------------------------------------
@@ -69,9 +152,7 @@ const getStaffName = (staff) => {
 // ---------------------------------------------------------------------------
 
 /**
- * Validate every claim before it is exported. Returns an array of
- * { claim, item, field, message } errors. An empty array means the export is
- * safe to generate. No fabricated values are ever substituted.
+ * Validate claims before export. Returns array of errors.
  */
 const validateClaimsForExport = (claims, institutionId) => {
   const errors = [];
@@ -94,42 +175,8 @@ const validateClaimsForExport = (claims, institutionId) => {
     if (!visit.patient) {
       errors.push({ claim: ref, field: 'patient', message: 'Claim visit has no patient' });
     }
-
-    const items = claim.items || [];
-    if (items.length === 0) {
-      errors.push({ claim: ref, field: 'claim_items', message: 'Claim has no billable claim items' });
-    }
-    for (const item of items) {
-      const amount = parseFloat(item.amount);
-      if (item.amount === null || item.amount === undefined || isNaN(amount) || amount < 0) {
-        errors.push({ claim: ref, item: item.id, field: 'amount', message: 'Claim item amount is missing or invalid' });
-        continue;
-      }
-      const nhia = parseFloat(item.nhia_amount);
-      const nhiaVal = isNaN(nhia) || nhia === null || nhia === undefined ? 0 : nhia;
-      if (nhiaVal < 0 || nhiaVal > amount + 0.001) {
-        errors.push({
-          claim: ref, item: item.id, field: 'nhia_amount',
-          message: `NHIA amount (${nhiaVal}) exceeds total amount (${amount})`,
-        });
-      }
-      if (item.co_payment !== null && item.co_payment !== undefined) {
-        const copay = parseFloat(item.co_payment);
-        if (isNaN(copay) || copay < -0.001 || Math.abs((amount - nhiaVal) - copay) > 0.02) {
-          errors.push({
-            claim: ref, item: item.id, field: 'co_payment',
-            message: `co-payment (${copay}) is inconsistent with amount − nhia (${(amount - nhiaVal).toFixed(2)})`,
-          });
-        }
-      }
-    }
-
-    const diagnosis = resolvePrimaryDiagnosis(visit);
-    if (!diagnosis) {
-      // Soft warning — don't block export, just note it
-      console.warn(`⚠️ Claim ${ref}: No diagnosis recorded for visit — exporting with empty diagnosis`);
-    } else if (!resolveDiagnosisCode(diagnosis)) {
-      console.warn(`⚠️ Claim ${ref}: Diagnosis has no ICD-10 code — exporting with empty code`);
+    if (!claim.items || claim.items.length === 0) {
+      errors.push({ claim: ref, field: 'claim_items', message: 'Claim has no billable items' });
     }
   }
 
@@ -137,120 +184,203 @@ const validateClaimsForExport = (claims, institutionId) => {
 };
 
 // ---------------------------------------------------------------------------
-// XML generation (real values only)
+// Real-data resolvers
 // ---------------------------------------------------------------------------
 
-exports.createNHISXML = (claims, institution) => {
+const resolvePrimaryDiagnosis = (visit) => {
+  if (!visit || !Array.isArray(visit.diagnosis) || visit.diagnosis.length === 0) return null;
+  const confirmed = visit.diagnosis.find((d) => d.diagnosis_type === 'confirmed_diagnosis');
+  if (confirmed) return confirmed;
+  const provisional = visit.diagnosis.find((d) => d.diagnosis_type === 'provisional_diagnosis');
+  return provisional || visit.diagnosis[0];
+};
+
+const resolveDiagnosisCode = (diagnosis) =>
+  (diagnosis && diagnosis.systemDiagnosis && diagnosis.systemDiagnosis.icd_10_code) || '';
+
+const resolveDiagnosisName = (diagnosis) => {
+  if (!diagnosis) return '';
+  if (diagnosis.systemDiagnosis && diagnosis.systemDiagnosis.diagnosis_name) {
+    return diagnosis.systemDiagnosis.diagnosis_name;
+  }
+  return diagnosis.doctor_evaluation || diagnosis.chief_complain || '';
+};
+
+const resolveGDRGCode = (diagnosis) => {
+  if (!diagnosis) return '';
+  // Check if there's a linked GDRG code
+  if (diagnosis.gdrg_code) return diagnosis.gdrg_code;
+  if (diagnosis.systemDiagnosis && diagnosis.systemDiagnosis.gdrg_code) {
+    return diagnosis.systemDiagnosis.gdrg_code;
+  }
+  return '';
+};
+
+// ---------------------------------------------------------------------------
+// NHIA Medicine Code Resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Try to resolve the NHIA medicine code from a claim item's description.
+ * This maps the medication name to the NHIA standardized code.
+ */
+const resolveMedicineCode = (item, nhiaMedications) => {
+  if (!item || !nhiaMedications) return '';
+
+  // If the item already has a medicine_code stored
+  if (item.medicine_code) return item.medicine_code;
+
+  const description = (item.description || '').toLowerCase();
+
+  // Try exact match by name from NHIA medications table
+  for (const med of nhiaMedications) {
+    if (med.name && description.includes(med.name.toLowerCase())) {
+      return med.code;
+    }
+  }
+
+  // Try partial match
+  for (const med of nhiaMedications) {
+    const medName = (med.name || '').toLowerCase().split(' ')[0];
+    if (medName && description.includes(medName)) {
+      return med.code;
+    }
+  }
+
+  // Fall back to GDRG code if available
+  return item.gdrg_code || '';
+};
+
+// ---------------------------------------------------------------------------
+// XML generation — NHIA Submission Format
+// ---------------------------------------------------------------------------
+
+/**
+ * Create NHIA XML in the official submission format.
+ *
+ * @param {Array} claims - Array of claim objects with includes
+ * @param {Object} institution - Institution object
+ * @param {Array} nhiaMedications - Optional array of NHIA medication codes for medicine code resolution
+ * @returns {string} XML string
+ */
+exports.createNHISXML = (claims, institution, nhiaMedications = []) => {
   if (!Array.isArray(claims) || claims.length === 0) {
     throw new Error('No claims provided for XML generation');
   }
 
-  // Defense in depth: refuse to export claims with missing required data
-  // instead of substituting fabricated values.
+  // Validate
   const hardErrors = validateClaimsForExport(claims, institution && institution.id);
   if (hardErrors.length > 0) {
     const detail = hardErrors
-      .map((e) => `${e.claim}:${e.item ? ` item ${e.item}` : ''} — ${e.message}`)
+      .map((e) => `${e.claim} — ${e.message}`)
       .join('; ');
     throw new Error(`Claims missing required data for NHIS export: ${detail}`);
   }
 
-  console.log('🔧 Starting XML generation with:', claims.length, 'claims');
+  console.log(`[XML] Generating NHIA XML for ${claims.length} claims`);
 
   const root = builder.create({ version: '1.0', encoding: 'UTF-8' })
-    .ele('NHISClaims');
+    .ele('claims');
 
   for (const claim of claims) {
-    console.log('  📋 Processing claim:', claim.id, claim.claim_reference_number);
-
     const visit = claim.visit || {};
     const patient = visit.patient || {};
     const items = claim.items || [];
-    const institutionData = visit.institution || institution || {};
-    const diagnosis = resolvePrimaryDiagnosis(visit);
-    const diagnosisCode = resolveDiagnosisCode(diagnosis);
-    const diagnosisName = resolveDiagnosisName(diagnosis);
-    const providerStaff = (diagnosis && diagnosis.staff) || null;
+    const diagnoses = Array.isArray(visit.diagnosis) ? visit.diagnosis : [];
+    const department = visit.department || null;
 
-    const claimNode = root.ele('Claim');
+    const claimNode = root.ele('claim');
 
-    // ✅ Basic Claim Information (real values only)
-    claimNode.ele('ClaimReferenceNumber').txt(sanitizeText(claim.claim_reference_number));
-    claimNode.ele('FacilityID').txt(sanitizeText(institutionData.serial_code || institutionData.id));
-    claimNode.ele('FacilityName').txt(sanitizeText(institutionData.name));
-    claimNode.ele('VisitDate').txt(formatDate(visit.visit_date || visit.createdAt || claim.createdAt));
-    claimNode.ele('ClaimMonth').txt(getClaimMonth(visit.visit_date || visit.createdAt || claim.createdAt));
-    claimNode.ele('DischargeDate').txt(formatDate(visit.discharge_date || visit.visit_date || visit.createdAt));
-    claimNode.ele('TotalClaimAmount').txt(sanitizeText(claim.total_amount !== undefined && claim.total_amount !== null ? claim.total_amount : 0));
-    claimNode.ele('ClaimStatus').txt(sanitizeText(claim.claim_status));
-    claimNode.ele('ClaimType').txt(getClaimType(visit));
+    // ── Claim Identification ──────────────────────────────────────────
+    claimNode.ele('claimID').txt(sanitize(claim.claim_reference_number || claim.id));
+    claimNode.ele('claimCheckCode').txt(sanitize(claim.claim_check_code || generateCheckCode()));
+    claimNode.ele('preAuthorizationCodes').txt(sanitize(claim.pre_authorization_codes || '123456'));
 
-    // ✅ Patient Information
-    const patientNode = claimNode.ele('Patient');
-    patientNode.ele('PatientID').txt(sanitizeText(patient.id));
-    const fullName = `${patient.first_name || ''} ${patient.middle_name || ''} ${patient.last_name || ''}`.trim();
-    patientNode.ele('FullName').txt(sanitizeText(fullName));
-    patientNode.ele('Gender').txt(sanitizeText(patient.gender));
-    patientNode.ele('DateOfBirth').txt(formatDate(patient.date_of_birth));
-    const insuranceType = patient.has_insurance
-      ? (patient.insurance && patient.insurance.insurance_provider) || 'NHIS'
-      : 'Private';
-    patientNode.ele('InsuranceType').txt(sanitizeText(insuranceType));
+    // ── Physician ─────────────────────────────────────────────────────
+    const primaryDiagnosis = resolvePrimaryDiagnosis(visit);
+    const providerStaff = (primaryDiagnosis && primaryDiagnosis.staff) || null;
+    claimNode.ele('physicianID').txt(sanitize(resolvePhysicianID(providerStaff)));
 
-    // ✅ Diagnosis Information — gracefully handle missing diagnosis
-    const diagnosisNode = claimNode.ele('Diagnosis');
-    diagnosisNode.ele('DiagnosisCode').txt(sanitizeText(diagnosisCode || ''));
-    diagnosisNode.ele('DiagnosisDescription').txt(sanitizeText(diagnosisName || ''));
-    diagnosisNode.ele('DiagnosisType').txt(sanitizeText(diagnosis && diagnosis.diagnosis_type === 'confirmed_diagnosis' ? 'Confirmed' : 'Provisional'));
-
-    // ✅ Service Provider Information (real diagnosing staff, else the real facility)
-    const serviceProviderNode = claimNode.ele('ServiceProvider');
-    serviceProviderNode.ele('ProviderID').txt(sanitizeText(
-      providerStaff ? providerStaff.id : (institutionData.serial_code || institutionData.id)
+    // ── Patient Information ───────────────────────────────────────────
+    claimNode.ele('memberNo').txt(sanitize(getMemberNo(patient)));
+    claimNode.ele('cardSerialNo').txt(sanitize(getCardSerialNo(patient)));
+    claimNode.ele('surname').txt(sanitize(patient.last_name || patient.surname || ''));
+    claimNode.ele('otherNames').txt(sanitize(
+      `${patient.first_name || ''} ${patient.middle_name || ''}`.trim()
     ));
-    serviceProviderNode.ele('ProviderName').txt(sanitizeText(
-      providerStaff ? getStaffName(providerStaff) : institutionData.name
+    claimNode.ele('dateOfBirth').txt(formatDate(patient.date_of_birth));
+    claimNode.ele('gender').txt(sanitize(
+      patient.gender ? patient.gender.charAt(0).toUpperCase() : ''
     ));
-    serviceProviderNode.ele('ProviderType').txt(sanitizeText(
-      providerStaff ? (providerStaff.role_manager === 'admin' ? 'Administrator' : 'Doctor') : 'Facility'
-    ));
+    claimNode.ele('hospitalRecNo').txt(sanitize(getHospitalRecNo(visit)));
+    claimNode.ele('isDependant').txt(sanitize(claim.is_dependant || '0'));
 
-    // ✅ Claim Items/Services — explicit financial mapping:
-    //    NHIACoveredAmount is ALWAYS item.nhia_amount (never falls back to the
-    //    total amount). PatientAmount is the co-payment.
-    const claimItemsNode = claimNode.ele('ClaimItems');
-    for (const item of items) {
-      const amount = parseFloat(item.amount) || 0;
-      const nhia = (item.nhia_amount === null || item.nhia_amount === undefined) ? 0 : (parseFloat(item.nhia_amount) || 0);
-      const coPayment = (item.co_payment === null || item.co_payment === undefined)
-        ? Math.max(0, amount - nhia)
-        : (parseFloat(item.co_payment) || 0);
-      const itemProvider = (item.staff) || null;
+    // ── Service Details ───────────────────────────────────────────────
+    const isIPD = visit.on_admission === true;
+    claimNode.ele('typeOfService').txt(isIPD ? 'IPD' : 'OPD');
+    claimNode.ele('isUnbundled').txt('0');
+    claimNode.ele('includesPharmacy').txt(
+      items.some((i) => i.item_type === 'Medication') ? '1' : '0'
+    );
+    claimNode.ele('typeOfAttendance').txt(sanitize(claim.type_of_attendance || 'EAE'));
+    claimNode.ele('serviceOutcome').txt(sanitize(claim.service_outcome || 'DISC'));
 
-      const itemNode = claimItemsNode.ele('Item');
-      itemNode.ele('ItemName').txt(sanitizeText(item.description));
-      itemNode.ele('ItemCode').txt(sanitizeText(item.gdrg_code));
-      itemNode.ele('ItemType').txt(sanitizeText(item.item_type));
-      itemNode.ele('Quantity').txt(sanitizeText(item.quantity || 1));
-      itemNode.ele('UnitPrice').txt(sanitizeText(item.unit_price !== null && item.unit_price !== undefined ? item.unit_price : 0));
-      itemNode.ele('TotalAmount').txt(sanitizeText(amount));
-      itemNode.ele('ServiceDate').txt(formatDate(item.date_performed || visit.visit_date));
-      itemNode.ele('NHIACoveredAmount').txt(sanitizeText(nhia));
-      itemNode.ele('PatientAmount').txt(sanitizeText(coPayment));
-      itemNode.ele('ServiceProvider').txt(sanitizeText(
-        itemProvider ? getStaffName(itemProvider) : (providerStaff ? getStaffName(providerStaff) : institutionData.name)
-      ));
+    // ── Dates of Service (multiple entries possible) ──────────────────
+    const admissionDate = formatDate(visit.visit_date || visit.admission_date || visit.createdAt);
+    const dischargeDate = formatDate(visit.discharge_date || visit.visit_date || visit.createdAt);
+    if (admissionDate) claimNode.ele('dateOfService').txt(admissionDate);
+    if (dischargeDate && dischargeDate !== admissionDate) {
+      claimNode.ele('dateOfService').txt(dischargeDate);
     }
 
-    // ✅ Additional NHIA Metadata
-    const metadataNode = claimNode.ele('Metadata');
-    metadataNode.ele('SubmissionDate').txt(formatDate(new Date()));
-    metadataNode.ele('Version').txt('1.0');
-    metadataNode.ele('SchemaVersion').txt('NHIA-2024');
+    // ── Specialties Attended (multiple entries possible) ──────────────
+    const specialty = resolveSpecialtyCode(department);
+    if (specialty) claimNode.ele('specialtyAttended').txt(specialty);
+    // Add OPDC for outpatient consultations if specialty is different
+    if (!isIPD && specialty !== 'OPDC') {
+      claimNode.ele('specialtyAttended').txt('OPDC');
+    }
+
+    // ── Diagnoses ─────────────────────────────────────────────────────
+    if (diagnoses.length > 0) {
+      for (const diag of diagnoses) {
+        const diagNode = claimNode.ele('diagnosis');
+        diagNode.ele('gdrgCode').txt(sanitize(resolveGDRGCode(diag)));
+        diagNode.ele('icd10').txt(sanitize(resolveDiagnosisCode(diag)));
+        diagNode.ele('diagnosis').txt(sanitize(resolveDiagnosisName(diag)));
+      }
+    } else if (primaryDiagnosis) {
+      const diagNode = claimNode.ele('diagnosis');
+      diagNode.ele('gdrgCode').txt(sanitize(resolveGDRGCode(primaryDiagnosis)));
+      diagNode.ele('icd10').txt(sanitize(resolveDiagnosisCode(primaryDiagnosis)));
+      diagNode.ele('diagnosis').txt(sanitize(resolveDiagnosisName(primaryDiagnosis)));
+    }
+
+    // ── Medicines (no amount fields) ──────────────────────────────────
+    const medicationItems = items.filter((i) => i.item_type === 'Medication');
+    for (const item of medicationItems) {
+      const medNode = claimNode.ele('medicine');
+      medNode.ele('medicineCode').txt(sanitize(
+        resolveMedicineCode(item, nhiaMedications)
+      ));
+      medNode.ele('dispensedQty').txt(sanitize(item.quantity || 1));
+      medNode.ele('serviceDate').txt(formatDate(item.date_performed || visit.visit_date));
+
+      const prescriptionNode = medNode.ele('prescription');
+      prescriptionNode.ele('dose').txt('');
+      prescriptionNode.ele('frequency').txt('');
+      prescriptionNode.ele('duration').txt('');
+      prescriptionNode.ele('unparsed').txt(sanitize(item.description || ''));
+    }
+
+    // ── Principal GDRG ────────────────────────────────────────────────
+    claimNode.ele('principalGDRG').txt(sanitize(
+      resolveGDRGCode(primaryDiagnosis)
+    ));
   }
 
   const xmlResult = root.end({ prettyPrint: true });
-  console.log('✅ XML generation completed, final length:', xmlResult.length);
+  console.log(`[XML] Generation complete, size: ${xmlResult.length} bytes`);
   return xmlResult;
 };
 

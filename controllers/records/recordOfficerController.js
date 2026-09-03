@@ -31,6 +31,7 @@ const GDRGCode = require("../../models/claims/GDRGCode");
 const ANC = require("../../models/maternity/ANC");
 const LabTestField = require("../../models/lab/LabTestField");
 const { Op } = require("sequelize");
+const { provisionPatientUser, sendPatientCredentials, normalizePhone } = require('../../service/patientAuthService');
 
 
 
@@ -48,7 +49,7 @@ const patientSchema = Joi.object({
     country: Joi.string().min(1).required(),
     institution_id: Joi.string().required(),
     // department_id: Joi.string().required(),
-    phone_number: Joi.string().pattern(/^\+?[0-9]{5,15}$/).min(5).max(15).required(),
+    phone_number: Joi.string().pattern(/^\+?[0-9]{7,15}$/).min(7).max(15).required(),
     gender: Joi.string().valid('M', 'F').required(),
     email: Joi.string().email().allow('', null).optional(),
     date_of_birth: Joi.date().iso().required(),
@@ -268,6 +269,7 @@ exports.createNewPatient = async (req, res) => {
         const folderNumber = await folderGenerator.generateFolderNumber();
 
         // Create the patient with metadata
+        // Note: Patient model field is `phone`, request body uses `phone_number`
         const newPatient = await Patient.create({
             first_name,
             last_name,
@@ -276,7 +278,7 @@ exports.createNewPatient = async (req, res) => {
             religion,
             address,
             country,
-            phone_number,
+            phone: normalizePhone(phone_number),
             gender,
             email,
             date_of_birth,
@@ -302,7 +304,25 @@ exports.createNewPatient = async (req, res) => {
             }, { transaction });
         }
 
+        // ── Provision patient portal account ──
+        let patientPassword = null;
+        try {
+            const { plainPassword } = await provisionPatientUser(newPatient, transaction);
+            patientPassword = plainPassword;
+        } catch (authErr) {
+            // Non-blocking: patient registration should succeed even if auth provisioning fails
+            console.error('[PatientAuth] Failed to provision patient user (non-blocking):', authErr.message);
+        }
+
         await transaction.commit();
+
+        // ── Send credentials via SMS (non-blocking, after commit) ──
+        if (patientPassword) {
+            // Re-fetch the patient with the generated phone field to ensure we have the right data
+            sendPatientCredentials(newPatient, patientPassword).catch(err =>
+                console.error('[PatientAuth] SMS delivery failed (non-blocking):', err.message)
+            );
+        }
 
         // ── Sync to Centralized Patient Network (non-blocking) ──
         syncToCentralNetwork({
@@ -315,7 +335,13 @@ exports.createNewPatient = async (req, res) => {
 
         return res.status(201).json({
             patient: newPatient,
-            message: 'Patient created successfully'
+            message: 'Patient created successfully',
+            portalCredentials: patientPassword ? {
+                folderNumber: newPatient.folder_number,
+                // Only return the plain password in dev; in production, it's sent via SMS only
+                password: process.env.NODE_ENV === 'development' ? patientPassword : undefined,
+                smsSent: !!newPatient.phone,
+            } : null
         });
     } catch (error) {
         await transaction.rollback();
@@ -1179,7 +1205,7 @@ exports.getVisitDetails = async (req, res) => {
         });
 
         // ==========================
-        // Lab Tests
+        // Lab Tests (new system + legacy)
         // ==========================
 
         const labTests = await LabTestResult.findAll({
@@ -1199,6 +1225,39 @@ exports.getVisitDetails = async (req, res) => {
                 }
             ]
         });
+
+        // Also fetch legacy lab_results (no visit_id, only patient_id)
+        const patientId = visit?.patient_id;
+        let legacyLabResults = [];
+        if (patientId) {
+            legacyLabResults = await LabResult.findAll({
+                where: { patient_id: patientId, institution_id: visit?.institution_id },
+                include: [
+                    { model: Staff, as: 'staff' },
+                    { model: Department, as: 'department' }
+                ],
+                order: [['createdAt', 'DESC']]
+            });
+        }
+
+        // Merge both lab systems — normalize legacy results to match the new format
+        // so the frontend HealthReports component can display them uniformly
+        const normalizedLegacy = legacyLabResults.map(lr => ({
+            id: lr.id,
+            visit_id: visit_id,
+            patient_id: lr.patient_id,
+            institution_id: lr.institution_id,
+            department_id: lr.department_id,
+            templateId: lr.test_id,
+            status: lr.status === 'completed' ? 'completed' : lr.status === 'in-progress' ? 'in_progress' : lr.status === 'cancelled' ? 'cancelled' : 'pending',
+            request_notes: lr.comment,
+            technician_notes: lr.results_comment,
+            createdAt: lr.createdAt,
+            updatedAt: lr.updatedAt,
+            template: { description: lr.test || 'Lab Test', name: lr.test || 'Lab Test' },
+            _legacy: true
+        }));
+        const allLabTests = [...labTests, ...normalizedLegacy];
 
         // ==========================
         // Diagnosis
@@ -1269,7 +1328,7 @@ exports.getVisitDetails = async (req, res) => {
         response.patientNote = patientNote;
         response.claims = claims;
         response.prescriptions = prescriptions;
-        response.labTests = labTests;
+        response.labTests = allLabTests;
         response.diagnosis = diagnosis;
         response.appointments = appointments;
         response.procedure = procedures;

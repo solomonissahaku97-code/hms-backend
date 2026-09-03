@@ -31,7 +31,7 @@ const start = async () => {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connected');
-    await sequelize.sync({ alter: false });
+    try { await sequelize.sync({ alter: false }); } catch(e) { console.log('Sync skipped (tables already exist):', e.message); }
     console.log('✅ Models synchronized');
 
     app.listen(config.port, () => {

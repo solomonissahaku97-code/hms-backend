@@ -19,7 +19,8 @@
 #   - Lab Service (Node.js — port 5012)
 #   - WebSocket Service (Node.js — port 3010)
 #   - Auth Service (Node.js — port 3008)
-#   - Auth Service (Node.js — port 3008)
+#   - Notification Service (Node.js — port 3013)
+#   - Patient Portal Service (Node.js — port 3012)
 #
 # Note: Nginx runs on the VPS host (not in Docker).
 #       Host Nginx proxies api.tonitel.com → 127.0.0.1:3000
@@ -121,6 +122,8 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3008
       SUBSCRIPTION_SERVICE_URL: http://subscription-service:3009
       NETWORK_SERVICE_URL: http://network-service:3011
+      NOTIFICATION_SERVICE_URL: http://notification-service:3013
+      PATIENT_PORTAL_SERVICE_URL: http://patient-portal-service:3012
     volumes:
       - ./uploads:/app/uploads
     healthcheck:
@@ -450,6 +453,7 @@ services:
       DB_DIALECT: postgres
       JWT_SECRET: ${JWT_SECRET:-change-me}
       HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-me}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3008/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
@@ -510,6 +514,79 @@ services:
       HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3011/api/v1/network/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - hms-network
+
+  # ── Notification Service (Node.js — port 3013) ────────────────────────
+
+  notification-service:
+    image: devsolomon381/hms-notification-service:latest
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: hms-notification-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3013:3013"
+    environment:
+      NODE_ENV: production
+      PORT: 3013
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-hms}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      DB_DIALECT: postgres
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_SENDER_ID: ${SMS_SENDER_ID:-Tonitel}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3013/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - hms-network
+
+  # ── Patient Portal Service (Node.js — port 3012) ──────────────────────
+
+  patient-portal-service:
+    image: devsolomon381/hms-patient-portal-service:latest
+    build:
+      context: ./patient-portal-service
+      dockerfile: Dockerfile
+    container_name: hms-patient-portal-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3012:3012"
+    environment:
+      NODE_ENV: production
+      PORT: 3012
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-hms}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      DB_DIALECT: postgres
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      HMS_SERVICE_KEY: ${SERVICE_AUTH_SECRET:-change-me-in-production}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3012/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
       timeout: 10s
       retries: 3

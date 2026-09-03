@@ -73,6 +73,16 @@ const SERVICES = {
     prefix: '/api/v1/network',
     serviceKey: SERVICE_AUTH_SECRET,
   },
+  notification: {
+    url: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3013',
+    prefix: '/api/v1/notification',
+    serviceKey: SERVICE_AUTH_SECRET,
+  },
+  patient: {
+    url: process.env.PATIENT_PORTAL_SERVICE_URL || 'http://localhost:3012',
+    prefix: '/api/v1/patient',
+    serviceKey: SERVICE_AUTH_SECRET,
+  },
 };
 
 // Routes that should NOT be proxied (stay on monolith)
@@ -83,7 +93,6 @@ const MONOLITH_ONLY_PREFIXES = [
   '/api/v1/auth/admin/institution',     // Admin staff management stays on monolith
   '/api/v1/auth/departments',           // Department assignment stays on monolith
   '/api/v1/auth/update-user-fcm-token', // FCM token stays on monolith
-  '/api/v1/auth/unified',               // Unified auth stays on monolith
   '/api/v1/auth/login/super-admin',     // Super admin stays on monolith
   '/api/v1/prescriptions',              // Prescriptions need billing integration
 ];
@@ -105,6 +114,10 @@ function proxyRequest(serviceUrl, originalUrl, req, res, timeoutMs = 12000) {
         headers['Authorization'] = req.headers.authorization;
       }
 
+      if (req.headers['x-patient-id']) {
+        headers['X-Patient-Id'] = req.headers['x-patient-id'];
+      }
+
       const transport = urlObj.protocol === 'https:' ? https : http;
       const options = {
         hostname: urlObj.hostname,
@@ -121,7 +134,14 @@ function proxyRequest(serviceUrl, originalUrl, req, res, timeoutMs = 12000) {
 
         proxyRes.on('data', (chunk) => {
           if (!responseStarted) {
-            // If 404 from microservice, don't forward — fall through to monolith
+            // If 5xx from microservice, fall through to monolith (microservice is broken
+            // but the monolith has a working handler for the same route)
+            if (proxyRes.statusCode >= 500) {
+              console.log(`[Gateway] microservice ${proxyRes.statusCode}, falling through to monolith`);
+              resolve(false);
+              proxyRes.destroy();
+              return;
+            }
             if (proxyRes.statusCode === 404) {
               resolve(false);
               proxyRes.destroy();

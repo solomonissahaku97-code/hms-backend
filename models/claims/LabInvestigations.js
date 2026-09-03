@@ -52,6 +52,7 @@ const LabInvestigation = sequelize.define('lab_investigation', {
         defaultValue: DataTypes.NOW
     }
 }, {
+    modelName: 'LabInvestigation',
     tableName: 'lab_investigations',
     timestamps: true
 });

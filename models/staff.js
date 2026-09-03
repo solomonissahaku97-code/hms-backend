@@ -119,7 +119,10 @@ const Staff = sequelize.define('Staff', {
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
-
+    user_id: {
+        type: DataTypes.UUID,
+        allowNull: true,
+    },
     role_manager: {
         type: DataTypes.STRING(10),
         defaultValue: 'staff',

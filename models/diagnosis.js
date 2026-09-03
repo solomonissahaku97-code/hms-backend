@@ -65,6 +65,14 @@ const Diagnosis = sequelize.define('Diagnosis', {
     patient_id: {
         type: DataTypes.UUID,
         allowNull: true
+    },
+    institution_id: {
+        type: DataTypes.UUID,
+        allowNull: true
+    },
+    department_id: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 
 }, {

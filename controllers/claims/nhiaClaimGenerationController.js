@@ -10,6 +10,7 @@ const Staff = require('../../models/staff');
 const Diagnosis = require('../../models/diagnosis');
 const systemDiagnosis = require('../../models/claims/systemDiagnosis');
 const Insurance = require('../../models/insuranceTable');
+const NHIAMedication = require('../../models/claims/NHIA_MedicationCode');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -119,8 +120,13 @@ exports.generateXMLReport = async (req, res) => {
                             model: Patient,
                             as: 'patient',
                             where: patientWhere,
-                            attributes: ['id', 'first_name', 'middle_name', 'last_name', 'gender', 'date_of_birth', 'has_insurance'],
+                            attributes: ['id', 'first_name', 'middle_name', 'last_name', 'gender', 'date_of_birth', 'has_insurance', 'metadata'],
                             include: [{ model: Insurance, as: 'insurance' }]
+                        },
+                        {
+                            model: Department,
+                            as: 'department',
+                            attributes: ['id', 'name', 'department_number']
                         },
                         {
                             model: Institution,
@@ -198,8 +204,16 @@ exports.generateXMLReport = async (req, res) => {
         if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
         const file_path = path.join(exportDir, file_name);
 
+        // 🧾 Load NHIA medication codes for medicine code resolution
+        let nhiaMedications = [];
+        try {
+            nhiaMedications = await NHIAMedication.findAll({ attributes: ['code', 'name'] });
+        } catch (medErr) {
+            console.warn('[XML] Could not load NHIA medications:', medErr.message);
+        }
+
         // 🧾 Generate XML content
-        const xmlData = createNHISXML(claims, institution);
+        const xmlData = createNHISXML(claims, institution, nhiaMedications);
 
         // 💾 Save XML to disk
         fs.writeFileSync(file_path, xmlData);

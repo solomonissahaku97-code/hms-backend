@@ -20,6 +20,10 @@ router.get(
 router.post('/appointment/approve', shdeduleAppointmentController.approveAppointment);
 router.delete('/appointments/delete', shdeduleAppointmentController.deleteAppointment);
 
+// Doctor confirm/reject appointment
+router.patch('/appointments/confirm', shdeduleAppointmentController.confirmAppointment);
+router.patch('/appointments/reject', shdeduleAppointmentController.rejectAppointment);
+
 // Institution-wide upcoming appointment listing
 router.get('/appointments/upcoming', shdeduleAppointmentController.getUpcomingAppointments);
 

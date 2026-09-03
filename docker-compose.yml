@@ -85,6 +85,8 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3008
       SUBSCRIPTION_SERVICE_URL: http://subscription-service:3009
       NETWORK_SERVICE_URL: http://network-service:3011
+      NOTIFICATION_SERVICE_URL: http://notification-service:3013
+      PATIENT_PORTAL_SERVICE_URL: http://patient-portal-service:3012
       SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:-change-me-in-production}
       # Supabase Storage (primary file storage)
       SUPABASE_URL: ${SUPABASE_URL}

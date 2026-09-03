@@ -112,3 +112,4 @@ config/google_auth.json
 
 # Windows
 Thumbs.db
+notification-service/config/firebase-service-account.json

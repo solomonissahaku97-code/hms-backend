@@ -16,6 +16,7 @@ const sequelize = require('./config/database');
 const { port } = require('./config/conf');
 const NotificationService = require('./service/notificationService');
 const { ensureBucket } = require('./config/supabase');
+const { initFirebase } = require('./service/fcmService');
 
 // Dynamically override swagger host and schemes so production doesn't show http
 if (process.env.NODE_ENV === 'production' && process.env.APP_URL) {
@@ -25,6 +26,9 @@ if (process.env.NODE_ENV === 'production' && process.env.APP_URL) {
   swaggerFile.host = process.env.APP_URL_DEV;
   swaggerFile.schemes = ['http'];
 }
+
+// Initialize Firebase Admin for push notifications
+initFirebase();
 
 // Initialize express app
 const app = express();

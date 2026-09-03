@@ -50,7 +50,7 @@ db.Patient = sequelize.define('Patient', {
   date_of_birth: { type: DataTypes.DATE },
   folder_number: { type: DataTypes.STRING },
   institution_id: { type: DataTypes.UUID },
-}, { tableName: 'patients', timestamps: true });
+}, { tableName: 'patients', timestamps: true, underscored: true });
 
 db.Visit = sequelize.define('Visit', {
   id: { type: DataTypes.UUID, primaryKey: true },
@@ -59,14 +59,14 @@ db.Visit = sequelize.define('Visit', {
   department_id: { type: DataTypes.UUID },
   status: { type: DataTypes.STRING },
   attendance_number: { type: DataTypes.STRING },
-}, { tableName: 'visits', timestamps: true });
+}, { tableName: 'visits', timestamps: true, underscored: true });
 
 db.Department = sequelize.define('Department', {
   id: { type: DataTypes.UUID, primaryKey: true },
   name: { type: DataTypes.STRING },
   institution_id: { type: DataTypes.UUID },
   departmentType: { type: DataTypes.STRING },
-}, { tableName: 'departments', timestamps: true });
+}, { tableName: 'departments', timestamps: true, underscored: true });
 
 db.Institution = sequelize.define('Institution', {
   id: { type: DataTypes.UUID, primaryKey: true },
@@ -88,6 +88,11 @@ db.Diagnosis = sequelize.define('Diagnosis', {
 db.SystemDiagnosis = sequelize.define('systemDiagnosis', {
   id: { type: DataTypes.UUID, primaryKey: true },
 }, { tableName: 'system_diagnoses', timestamps: false });
+
+// ── Stub Associations (for nested includes in queries) ──────────────
+db.Visit.belongsTo(db.Patient, { foreignKey: 'patient_id', as: 'patient' });
+db.Visit.belongsTo(db.Department, { foreignKey: 'department_id', as: 'department' });
+db.Visit.belongsTo(db.Institution, { foreignKey: 'institution_id', as: 'institution' });
 
 // ── Associations ─────────────────────────────────────────────────────
 

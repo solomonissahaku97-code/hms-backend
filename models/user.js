@@ -68,7 +68,7 @@ const User = sequelize.define('User', {
         allowNull: false,
         defaultValue: 'STAFF',
         validate: {
-            isIn: [['SUPER_ADMIN', 'ADMIN', 'STAFF']],
+            isIn: [['SUPER_ADMIN', 'ADMIN', 'STAFF', 'PATIENT']],
         },
     },
 
@@ -125,6 +125,19 @@ const User = sequelize.define('User', {
     role_manager: {
         type: DataTypes.STRING(20),
         allowNull: true,
+    },
+
+    // ── Patient portal ────────────────────────────────────
+    must_change_password: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+        comment: 'True for patients using auto-generated password; cleared on first password change',
+    },
+    device_tokens: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'JSON array of registered FCM device tokens for push notifications',
     },
 }, {
     sequelize,

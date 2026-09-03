@@ -14,7 +14,7 @@ const crypto = require('crypto');
 const { decryptStaffData } = require('../../utils/encryptionHelper');
 const UserGroup = require('../../models/userGroup');
 const StaffDepartment = require('../../models/controls/StaffDepartment');
-const UserPermission = require('../../models/staffPermission');
+const UserPermission = require('../../models/userPermission');
 
 // ── Logic questions for Staff 2FA ──────────────────────────
 const logicQuestions = [
@@ -125,6 +125,24 @@ exports.login = async (req, res) => {
             const remainingTime = Math.ceil((user.account_locked_until - new Date()) / 60000);
             return res.status(403).json({
                 error: `Account temporarily locked. Try again in ${remainingTime} minutes.`,
+            });
+        }
+
+        // ── Patient: direct token (no 2FA) ──────────────────
+        if (userType === 'PATIENT') {
+            await user.update({ login_attempts: 0, account_locked_until: null, last_login: new Date() });
+
+            const token = generateToken(user);
+
+            return res.status(200).json({
+                id: user.id,
+                username: user.staff_id_code,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                phone: user.phone,
+                user_type: 'PATIENT',
+                institution_id: user.institution_id,
+                token,
             });
         }
 

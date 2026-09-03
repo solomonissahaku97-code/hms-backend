@@ -9,6 +9,8 @@ const Visit = require('../models/Visit');
 const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
 const { sendSMS } = require('../service/smsService');
+const { notifyPatientAppointment, findPatientUserId } = require('../helpers/pushNotificationHelper');
+const { sendNotificationToUser } = require('../helpers/fcmNotificationHelper');
 
 
 
@@ -68,6 +70,48 @@ exports.createAppointment = async (req, res) => {
         // Generate a shareable token for the appointment
         appointment.token = uuidv4();
         await appointment.save();
+
+        // ── Send push notification to patient (non-blocking) ──
+        try {
+            const visit = await Visit.findByPk(visit_id, { include: [{ model: Patient, as: 'patient', attributes: ['id'] }] });
+            if (visit?.patient?.id) {
+                const doctor = await Staff.findOne({ where: { id: staff_id }, attributes: ['firstName', 'lastName'] });
+                const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : 'the doctor';
+                const dateStr = appointment_date ? new Date(appointment_date).toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'soon';
+                notifyPatientAppointment(visit.patient.id, { doctorName, date: dateStr, type: 'created' }).catch(() => {});
+            }
+
+            // Also notify the doctor via FCM
+            sendNotificationToUser({
+                userId: staff_id,
+                title: '📅 New Appointment Booked',
+                body: `A new appointment has been scheduled for ${appointment_date}.`,
+                type: 'appointment',
+                data: { appointment_id: appointment.id, appointment_date },
+            }).catch(() => {});
+
+            // Emit real-time websocket notification to the doctor
+            try {
+                const notificationService = req.app.get('notificationService');
+                if (notificationService) {
+                    const visit = await Visit.findByPk(visit_id, { include: [{ model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] }] });
+                    const patientName = visit?.patient ? `${visit.patient.first_name || ''} ${visit.patient.last_name || ''}`.trim() : 'A patient';
+                    const doctor = await Staff.findOne({ where: { id: staff_id }, attributes: ['firstName', 'lastName'] });
+                    const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : 'Doctor';
+                    const dateStr = appointment_date ? new Date(appointment_date).toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'soon';
+                    await notificationService.createNotification({
+                        title: '📅 New Appointment Booked',
+                        description: `${patientName} has booked an appointment with Dr. ${doctorName} on ${dateStr} at ${appointment_time}.`,
+                        type: 'Appointment',
+                        to_staff_id: staff_id,
+                        institution_id: institution_id,
+                        priority: 'Medium',
+                    });
+                }
+            } catch (wsErr) {
+                console.error('WebSocket notification error:', wsErr.message);
+            }
+        } catch (_) { /* non-blocking */ }
 
         let smsResult = { success: false, sent: false, skipped: false };
 
@@ -222,14 +266,16 @@ exports.getAppointmentByDoctorId = async (req, res) => {
                 patient_id: patientData?.id ?? null,
 
 
-                patient: patientData
-                    ? `${patientData.first_name} ${patientData.last_name}`
-                    : "Unknown",
+                patient: {
+                    first_name: patientData?.first_name ?? "Unknown",
+                    last_name: patientData?.last_name ?? "",
+                    phone: patientData?.phone ?? null,
+                },
 
 
-                date: apt.appointment_date,
+                appointment_date: apt.appointment_date,
 
-                time: apt.appointment_time,
+                appointment_time: apt.appointment_time,
 
                 status: apt.status ?? "pending",
 
@@ -367,11 +413,29 @@ exports.deleteAppointment = async (req, res) => {
     const { id, institution_id } = req.query;
 
     try {
-        const result = await Appointment.destroy({ where: { id, institution_id } });
+        // Fetch appointment before deleting to notify patient
+        const appointment = await Appointment.findOne({
+            where: { id, institution_id },
+            include: [{ model: Visit, as: 'patient', include: [{ model: Patient, as: 'patient', attributes: ['id'] }] }],
+        });
 
-        if (result === 0) {
+        if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found' });
         }
+
+        await appointment.destroy();
+
+        // ── FCM push notification: appointment cancelled (fire-and-forget) ──
+        try {
+            if (appointment.patient?.patient?.id) {
+                const doctor = await Staff.findOne({ where: { id: appointment.staff_id }, attributes: ['firstName', 'lastName'] });
+                const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : 'the doctor';
+                const dateStr = appointment.appointment_date
+                    ? new Date(appointment.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                    : 'soon';
+                notifyPatientAppointment(appointment.patient.patient.id, { doctorName, date: dateStr, type: 'cancelled' }).catch(() => {});
+            }
+        } catch (_) {}
 
         res.status(200).json({ message: 'Appointment deleted successfully' });
     } catch (error) {
@@ -404,6 +468,16 @@ exports.approveAppointment = async (req, res) => {
 
         // Update patient's department
         await patient.update({ department_id: department_id });
+
+        // ── FCM push notification to patient: appointment approved (fire-and-forget) ──
+        try {
+            const doctor = await Staff.findOne({ where: { id: appointment.staff_id }, attributes: ['firstName', 'lastName'] });
+            const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : 'the doctor';
+            const dateStr = appointment.appointment_date
+                ? new Date(appointment.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                : 'soon';
+            notifyPatientAppointment(patient_id, { doctorName, date: dateStr, type: 'created' }).catch(() => {});
+        } catch (_) {}
 
         // Send success response
         return res.status(200).json({ message: 'Appointment approved successfully' });
@@ -523,6 +597,98 @@ exports.getAppointmentByToken = async (req, res) => {
     } catch (error) {
         console.error('Error fetching appointment by token:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch appointment', error: error.message });
+    }
+};
+
+
+// CONFIRM AN APPOINTMENT (Doctor approves)
+exports.confirmAppointment = async (req, res) => {
+    const { appointmentId, institution_id } = req.body;
+
+    try {
+        const appointment = await Appointment.findOne({
+            where: { id: appointmentId, institution_id }
+        });
+
+        if (!appointment) {
+            return res.status(404).json({ error: 'Appointment not found' });
+        }
+
+        if (appointment.status === 'completed') {
+            return res.status(400).json({ error: 'Appointment is already completed' });
+        }
+
+        if (appointment.status === 'canceled' || appointment.status === 'rejected') {
+            return res.status(400).json({ error: 'Cannot confirm a cancelled/rejected appointment' });
+        }
+
+        await appointment.update({ status: 'confirmed' });
+
+        // Notify patient via FCM
+        try {
+            const visit = await Visit.findByPk(appointment.visit_id, {
+                include: [{ model: Patient, as: 'patient', attributes: ['id'] }]
+            });
+            if (visit?.patient?.id) {
+                const doctor = await Staff.findOne({ where: { id: appointment.staff_id }, attributes: ['firstName', 'lastName'] });
+                const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : 'the doctor';
+                const dateStr = appointment.appointment_date
+                    ? new Date(appointment.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                    : 'soon';
+                notifyPatientAppointment(visit.patient.id, { doctorName, date: dateStr, type: 'confirmed' }).catch(() => {});
+            }
+        } catch (_) {}
+
+        return res.status(200).json({ message: 'Appointment confirmed successfully' });
+    } catch (error) {
+        console.error('Error confirming appointment:', error);
+        return res.status(500).json({ error: 'An error occurred while confirming the appointment' });
+    }
+};
+
+
+// REJECT AN APPOINTMENT (Doctor declines)
+exports.rejectAppointment = async (req, res) => {
+    const { appointmentId, institution_id, rejection_reason } = req.body;
+
+    try {
+        const appointment = await Appointment.findOne({
+            where: { id: appointmentId, institution_id }
+        });
+
+        if (!appointment) {
+            return res.status(404).json({ error: 'Appointment not found' });
+        }
+
+        if (appointment.status === 'completed') {
+            return res.status(400).json({ error: 'Cannot reject a completed appointment' });
+        }
+
+        if (appointment.status === 'canceled' || appointment.status === 'rejected') {
+            return res.status(400).json({ error: 'Appointment is already cancelled/rejected' });
+        }
+
+        await appointment.update({ status: 'rejected' });
+
+        // Notify patient via FCM
+        try {
+            const visit = await Visit.findByPk(appointment.visit_id, {
+                include: [{ model: Patient, as: 'patient', attributes: ['id'] }]
+            });
+            if (visit?.patient?.id) {
+                const doctor = await Staff.findOne({ where: { id: appointment.staff_id }, attributes: ['firstName', 'lastName'] });
+                const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : 'the doctor';
+                const dateStr = appointment.appointment_date
+                    ? new Date(appointment.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                    : 'soon';
+                notifyPatientAppointment(visit.patient.id, { doctorName, date: dateStr, type: 'rejected' }).catch(() => {});
+            }
+        } catch (_) {}
+
+        return res.status(200).json({ message: 'Appointment rejected successfully' });
+    } catch (error) {
+        console.error('Error rejecting appointment:', error);
+        return res.status(500).json({ error: 'An error occurred while rejecting the appointment' });
     }
 };
 

@@ -4,14 +4,19 @@ const { v4: uuidv4 } = require('uuid');
 const systemDiagnosis = require("../../models/claims/systemDiagnosis");
 const Diagnosis = require("../../models/diagnosis");
 const Staff = require("../../models/staff");
+const Visit = require("../../models/Visit");
+const Patient = require("../../models/patient");
 const { addClaimItem,updateClaimTotal  } = require('../../service/claimService')
 const sequelize = require('../../config/database');
+const { notifyDiagnosisAdded } = require('../../helpers/fcmNotificationHelper');
 
 // Add a new diagnosis
 exports.addDiagnosis = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  let transaction;
   try {
-    const { 
+    transaction = await sequelize.transaction();
+
+    let { 
       visit_id, 
       institution_id, 
       staff_id, 
@@ -23,10 +28,42 @@ exports.addDiagnosis = async (req, res) => {
     } = req.body;
     console.log(req.body)
 
+    // Resolve staff_id from auth middleware if not provided or invalid.
+    // The frontend may send the User model ID instead of the Staff model ID
+    // for unified users — prefer the staffId resolved by eitherAuthOrAdmin.
+    // For admins (who have no staff profile), use their admin ID.
+    if (!staff_id && req.staffId) {
+      staff_id = req.staffId;
+    } else if (!staff_id && req.user?.id) {
+      staff_id = req.user.id;
+    } else if (!staff_id && req.staff?.id) {
+      staff_id = req.staff.id;
+    } else if (!staff_id && req.admin?.id) {
+      staff_id = req.admin.id;
+    } else if (!staff_id && req.superAdmin?.id) {
+      staff_id = req.superAdmin.id;
+    }
+
+    // Resolve institution_id from auth context as fallback
+    if (!institution_id) {
+      institution_id = req.user?.institution_id || req.admin?.institution_id || null;
+    }
+
+    // If institution or department isn't supplied, resolve them from the visit.
+    // This makes the endpoint robust regardless of whether the caller is a
+    // staff user or an admin (admins have no department_id).
+    if (!institution_id || !department_id) {
+      const visit = await Visit.findByPk(visit_id, { transaction });
+      if (visit) {
+        institution_id = institution_id || visit.institution_id;
+        department_id = department_id || visit.department_id;
+      }
+    }
+
     // Validate required fields
     if (!visit_id || !institution_id || !staff_id || !system_diagnosis_ids || !department_id) {
-      await transaction.rollback();
-      return res.status(400).json({ message: "All fields are required." });
+      if (transaction) await transaction.rollback().catch(() => {});
+      return res.status(400).json({ message: "All fields are required.", missing: { visit_id: !!visit_id, institution_id: !!institution_id, staff_id: !!staff_id, system_diagnosis_ids: !!system_diagnosis_ids, department_id: !!department_id } });
     }
 
     // Generate a shared group ID so multiple diagnoses added together are linked
@@ -59,17 +96,18 @@ exports.addDiagnosis = async (req, res) => {
       await Promise.all(
         createdDiagnoses.map(async (diagnosisRecord) => {
           const diagnosis = diagnoses.find(d => d.id === diagnosisRecord.system_diagnosis_id);
-          console.log( diagnosis.id)
-          await addClaimItem(claim_id, {
-            item_type: 'Diagnosis',
-            item_id: diagnosisRecord.id,
-            description: `${diagnosis.diagnosis_name} (${diagnosis.icd10_code})`,
-            gdrg_code: diagnosis.icd_10_code,
-            unit_price: 0,
-            quantity: 1,
-            nhia_amount: 0,
-            amount: 0
-          }, transaction);
+          if (diagnosis) {
+            await addClaimItem(claim_id, {
+              item_type: 'Diagnosis',
+              item_id: diagnosisRecord.id,
+              description: `${diagnosis.diagnosis_name} (${diagnosis.icd10_code || diagnosis.icd_10_code})`,
+              gdrg_code: diagnosis.icd_10_code,
+              unit_price: 0,
+              quantity: 1,
+              nhia_amount: 0,
+              amount: 0
+            }, transaction);
+          }
         })
       );
       
@@ -77,10 +115,31 @@ exports.addDiagnosis = async (req, res) => {
     }
 
     await transaction.commit();
+
+    // ── Send FCM push notification (fire-and-forget) ──────────────
+    try {
+      const visit = await Visit.findByPk(visit_id, {
+        include: [{ model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] }],
+      });
+      const patientName = visit?.patient
+        ? `${visit.patient.first_name || ''} ${visit.patient.last_name || ''}`.trim()
+        : 'a patient';
+
+      notifyDiagnosisAdded({
+        staff_id,
+        department_id,
+        institution_id,
+        patient_name: patientName,
+        visit_id,
+      }).catch(() => {}); // don't block response
+    } catch (_) {
+      // notification failure should not break the diagnosis flow
+    }
+
     return res.status(201).json(createdDiagnoses);
   } catch (error) {
-    await transaction.rollback();
     console.error('Error adding diagnosis:', error);
+    if (transaction) await transaction.rollback().catch(() => {});
     return res.status(500).json({ 
       message: "Failed to add diagnosis", 
       error: error.message 
@@ -90,15 +149,21 @@ exports.addDiagnosis = async (req, res) => {
 
 exports.getPatientDiagnosis = async (req, res) => {
   try {
-    const { visit_id, institution_id } = req.query;
+    const { visit_id, patient_id, institution_id } = req.query;
 
-    if (!visit_id) {
-      return res.status(400).json({ error: 'Visit ID is required' });
+    // Accept either visit_id or patient_id — find all diagnoses matching
+    const whereClause = {};
+    if (visit_id) {
+      whereClause.visit_id = visit_id;
+    } else if (patient_id) {
+      whereClause.patient_id = patient_id;
+    } else {
+      return res.status(400).json({ error: 'Visit ID or Patient ID is required' });
     }
 
-    // Find the diagnosis records for this visit
+    // Find the diagnosis records
     const patientDiagnoses = await Diagnosis.findAll({
-      where: { visit_id },
+      where: whereClause,
       include: [
         {
           model: Staff,

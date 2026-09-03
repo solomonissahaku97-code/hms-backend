@@ -4,6 +4,7 @@ const Prescription = require('../../models/prescription');
 const Role = require('../../models/role');
 const Staff = require('../../models/staff');
 const notificationService = require('../../service/notificationService')
+const { sendNotificationToDepartment, sendNotificationToUser } = require('../../helpers/fcmNotificationHelper');
 // Create a new prescription
 
 exports.createPrescription = async (req, res) => {
@@ -49,6 +50,17 @@ exports.createPrescription = async (req, res) => {
         // Commit transaction if everything succeeds
         await t.commit();
 
+        // ── FCM push notification to pharmacy department (fire-and-forget) ──
+        try {
+            sendNotificationToDepartment({
+                department_id,
+                institution_id,
+                title: '💊 New Prescription',
+                body: `A new prescription for ${drug} has been created for a patient.`,
+                type: 'prescription',
+            }).catch(() => {});
+        } catch (_) {}
+
         res.status(201).json({ message: "Prescription created successfully", prescription });
     } catch (error) {
         console.error("Prescription Creation Error:", error);
@@ -86,7 +98,39 @@ exports.approvePrescription = async (req, res) => {
         prescription.status = 'approved';
         await prescription.save();
 
-        notificationService.sendNotification({})
+        // ── FCM push notification to prescribing doctor (fire-and-forget) ──
+        try {
+            sendNotificationToDepartment({
+                department_id: prescription.department_id,
+                institution_id: prescription.institution_id,
+                title: '✅ Prescription Approved',
+                body: `A prescription has been approved and is ready for dispensing.`,
+                type: 'prescription',
+            }).catch(() => {});
+        } catch (_) {}
+
+        // ── FCM push notification to PATIENT (fire-and-forget) ──
+        try {
+            if (prescription.patient_id) {
+                const patientRec = await Patient.findByPk(prescription.patient_id, { attributes: ['folder_number'] });
+                if (patientRec?.folder_number) {
+                    const { QueryTypes } = require('sequelize');
+                    const [patientUser] = await sequelize.query(
+                        `SELECT id FROM users WHERE staff_id_code = :folder AND user_type = 'PATIENT'`,
+                        { replacements: { folder: patientRec.folder_number }, type: QueryTypes.SELECT }
+                    );
+                    if (patientUser?.id) {
+                        sendNotificationToUser({
+                            userId: patientUser.id,
+                            title: '💊 Prescription Approved',
+                            body: `Your prescription has been approved and is ready for pickup.`,
+                            type: 'prescription',
+                            data: { prescription_id: prescription.id, url: '/prescriptions' },
+                        }).catch(() => {});
+                    }
+                }
+            }
+        } catch (_) {}
 
         res.status(200).json({ message: 'Prescription approved successfully', prescription });
     } catch (error) {
@@ -112,6 +156,17 @@ exports.issuePrescription = async (req, res) => {
 
         prescription.status = 'issued';
         await prescription.save();
+
+        // ── FCM push notification to pharmacy department (fire-and-forget) ──
+        try {
+            sendNotificationToDepartment({
+                department_id: prescription.department_id,
+                institution_id: prescription.institution_id,
+                title: '💊 Prescription Issued',
+                body: `A prescription has been issued and is ready for the patient.`,
+                type: 'prescription',
+            }).catch(() => {});
+        } catch (_) {}
 
         res.status(200).json({ message: 'Prescription issued successfully', prescription });
     } catch (error) {

@@ -66,8 +66,38 @@ const Patient = sequelize.define('Patient', {
         defaultValue: false,
         allowNull: false
     },
-
-
+    address: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    city: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    country: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    email: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    religion: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
+    nhis_number: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    nin_number: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    ghana_card_number: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
 }, {
     sequelize,
     modelName: 'Patient',

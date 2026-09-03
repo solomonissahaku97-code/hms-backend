@@ -9,6 +9,7 @@ const Record = require('../models/record');
 const Notification = require('../models/notification');
 const { sequelize } = require('../models');
 const { sendNotificationToDepartment } = require('../helpers/sendPushNotification');
+const { sendNotificationToUser: sendFcmToUser } = require('../helpers/fcmNotificationHelper');
 
 
 
@@ -119,6 +120,23 @@ const LabResultController = {
             labResult.results_comment = results_comment;
             labResult.status = 'completed';
             await labResult.save();
+
+            // ── FCM push notification: lab result ready (fire-and-forget) ──
+            try {
+                const patient = labResult.patient_id ? await Patient.findByPk(labResult.patient_id) : null;
+                const patientName = patient ? `${patient.first_name || ''} ${patient.last_name || ''}`.trim() : 'a patient';
+
+                // Notify the requesting doctor
+                if (labResult.doctor_id) {
+                    sendFcmToUser({
+                        userId: labResult.doctor_id,
+                        title: '🔬 Lab Result Ready',
+                        body: `Lab result for ${patientName} is now completed.`,
+                        type: 'lab_result',
+                        data: { labResultId, patient_name: patientName },
+                    }).catch(() => {});
+                }
+            } catch (_) {}
 
             return res.status(200).json({ message: 'Lab result uploaded successfully', labResult });
         } catch (error) {

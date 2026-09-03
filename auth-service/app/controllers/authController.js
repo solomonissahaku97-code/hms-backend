@@ -18,6 +18,7 @@ const crypto = require('crypto');
 const { QueryTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const config = require('../config/conf');
+const { decryptStaffData } = require('../utils/encryptionHelper');
 
 // ─── Helpers ─────────────────────────────────────────────────────
 const shuffleArray = (arr) => arr.sort(() => Math.random() - 0.5);
@@ -38,6 +39,107 @@ const LOGIC_QUESTIONS = [
 function generateToken(payload) {
   return jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
 }
+
+// ─── Unified Login (staff + admin) ─────────────────────────────────
+exports.unifiedLogin = async (req, res) => {
+  const { email, staffID, password } = req.body;
+  const identifier = email || staffID;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ error: 'Email/StaffID and password are required' });
+  }
+
+  try {
+    let user = null;
+    let userType = null;
+
+    if (staffID) {
+      const [staff] = await sequelize.query(
+        `SELECT s.*, inst.name as institution_name, inst.id as inst_id,
+                r.name as role_name, r.id as role_id,
+                d.name as department_name, d.id as department_id
+         FROM staffs s
+         LEFT JOIN institutions inst ON s.institution_id = inst.id
+         LEFT JOIN roles r ON s.role_id = r.id
+         LEFT JOIN departments d ON s.department_id = d.id
+         WHERE s."staffID" = :staffID`,
+        { replacements: { staffID }, type: QueryTypes.SELECT }
+      );
+      if (staff) {
+        user = staff;
+        userType = 'STAFF';
+      }
+    } else if (email) {
+      const [admin] = await sequelize.query(
+        `SELECT a.*, inst.name as institution_name, inst.id as inst_id
+         FROM admins a
+         LEFT JOIN institutions inst ON a.institution_id = inst.id
+         WHERE LOWER(a.email) = LOWER(:email)`,
+        { replacements: { email: email.trim() }, type: QueryTypes.SELECT }
+      );
+      if (admin) {
+        user = admin;
+        userType = 'ADMIN';
+      }
+    }
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    if (userType === 'STAFF') {
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+      }
+
+      const question = LOGIC_QUESTIONS[Math.floor(Math.random() * LOGIC_QUESTIONS.length)];
+      const shuffled = shuffleArray([...question.opts]);
+      const hashed = hashAnswer(question.a);
+
+      await sequelize.query(
+        `UPDATE staffs SET logic_question = :q, logic_answer_hash = :h WHERE id = :id`,
+        { replacements: { q: question.q, h: hashed, id: user.id }, type: QueryTypes.UPDATE }
+      );
+
+      return res.json({
+        staffID: user.staffID,
+        logic_question: question.q,
+        options: shuffled,
+        message: 'Please select the correct answer to proceed.',
+        user_type: 'STAFF',
+      });
+    }
+
+    if (userType === 'ADMIN') {
+      const valid = await bcrypt.compare(password, user.password_hash);
+      if (!valid) {
+        return res.status(400).json({ error: 'Invalid credentials' });
+      }
+
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        institution_id: user.institution_id,
+        role: 'admin',
+      });
+
+      return res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        user_type: 'ADMIN',
+        institution: { id: user.inst_id, name: user.institution_name },
+        token,
+      });
+    }
+
+    return res.status(400).json({ error: 'Invalid credentials' });
+  } catch (err) {
+    console.error('Unified login error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
 
 // ─── Staff Login Step 1: Send Logic Question ─────────────────────
 exports.staffLogin = async (req, res) => {
@@ -147,20 +249,34 @@ exports.verifyLogicAnswer = async (req, res) => {
       { replacements: { token, id: staff.id }, type: QueryTypes.UPDATE }
     );
 
+    const decryptedStaff = decryptStaffData(staff);
+
     return res.json({
       message: 'Login successful!',
       token,
       user: {
-        id: staff.id,
-        staffID: staff.staffID,
-        firstName: staff.firstName,
-        lastName: staff.lastName,
-        email: staff.email,
-        institution_id: staff.institution_id,
-        institution_name: staff.institution_name,
-        role_name: staff.role_name,
-        department_name: staff.department_name,
+        id: decryptedStaff.id,
+        staffID: decryptedStaff.staffID,
+        firstName: decryptedStaff.firstName,
+        lastName: decryptedStaff.lastName,
+        middleName: decryptedStaff.middleName,
+        email: decryptedStaff.email,
+        phone_number: decryptedStaff.phone_number,
+        institution_id: decryptedStaff.institution_id,
+        institution_name: decryptedStaff.institution_name,
+        institution: {
+          id: decryptedStaff.institution_id,
+          name: decryptedStaff.institution_name,
+        },
+        role_name: decryptedStaff.role_name,
+        role_id: decryptedStaff.role_id,
+        department_id: decryptedStaff.department_id,
+        department_name: decryptedStaff.department_name,
+        department: decryptedStaff.department_id
+            ? { id: decryptedStaff.department_id, name: decryptedStaff.department_name }
+            : null,
         permissions: permNames,
+        token,
       },
     });
   } catch (err) {
@@ -318,7 +434,8 @@ exports.getUserById = async (req, res) => {
     );
 
     if (!user) return res.status(404).json({ error: 'User not found' });
-    return res.json({ success: true, data: user });
+    const decryptedUser = decryptStaffData(user);
+    return res.json({ success: true, data: decryptedUser });
   } catch (err) {
     console.error('Get user error:', err);
     res.status(500).json({ error: 'Server error' });
